@@ -13,10 +13,10 @@
         android:allowBackup="true"
         android:label="التمريض المنزلي"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <activity
-            android:name="iq.tamreed.home.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
 
             <intent-filter>
