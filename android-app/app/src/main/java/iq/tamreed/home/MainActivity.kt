@@ -2,34 +2,61 @@ package iq.tamreed.home
 
 import android.Manifest
 import android.app.AlertDialog
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Location
 import android.location.LocationManager
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
+import android.os.Handler
+import android.os.Looper
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
 
-    private val BLUE = Color.rgb(0, 102, 204)
-    private val DARK_BLUE = Color.rgb(0, 74, 150)
-    private val LIGHT_BLUE = Color.rgb(235, 245, 255)
+    // Supabase
+    private val SUPABASE_URL =
+        "https://pmjmfeymnahpockjjafn.supabase.co"
+
+    private val SUPABASE_KEY =
+        "ضع_هنا_PUBLISHABLE_KEY"
+
+    // ألوان التطبيق
+    private val BLUE = Color.rgb(0, 91, 170)
+    private val DARK_BLUE = Color.rgb(0, 63, 125)
+    private val LIGHT_BLUE = Color.rgb(238, 247, 255)
     private val TEXT = Color.rgb(35, 45, 55)
+    private val GREEN = Color.rgb(20, 150, 100)
+    private val GRAY = Color.rgb(110, 120, 130)
 
     private val LOCATION_REQUEST = 1001
+
+    private var currentPhone = ""
+    private var currentLat: Double? = null
+    private var currentLng: Double? = null
+
+    private val executor = Executors.newSingleThreadExecutor()
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        showHome()
+        showWelcome()
     }
+
+    // ---------------------------------------------------------
+    // أدوات الواجهة
+    // ---------------------------------------------------------
 
     private fun baseLayout(): LinearLayout {
 
@@ -37,11 +64,13 @@ class MainActivity : AppCompatActivity() {
 
             orientation = LinearLayout.VERTICAL
 
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+
             setBackgroundColor(Color.WHITE)
 
             layoutDirection = View.LAYOUT_DIRECTION_RTL
 
-            setPadding(24, 35, 24, 20)
+            setPadding(24, 30, 24, 24)
         }
     }
 
@@ -61,7 +90,7 @@ class MainActivity : AppCompatActivity() {
 
             gravity = Gravity.CENTER
 
-            setPadding(10, 12, 10, 12)
+            setPadding(10, 10, 10, 10)
 
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
@@ -84,7 +113,7 @@ class MainActivity : AppCompatActivity() {
 
             isAllCaps = false
 
-            setPadding(10, 10, 10, 10)
+            setPadding(10, 5, 10, 5)
 
             layoutDirection = View.LAYOUT_DIRECTION_RTL
 
@@ -94,22 +123,486 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun input(
+        hintText: String,
+        phone: Boolean = false
+    ): EditText {
+
+        return EditText(this).apply {
+
+            hint = hintText
+
+            textSize = 17f
+
+            setTextColor(TEXT)
+
+            setHintTextColor(GRAY)
+
+            setPadding(20, 5, 20, 5)
+
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+
+            if (phone) {
+                inputType = InputType.TYPE_CLASS_PHONE
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // شاشة البداية
+    // ---------------------------------------------------------
+
+    private fun showWelcome() {
+
+        val root = baseLayout()
+
+        val logo = TextView(this).apply {
+
+            text = "⚕"
+
+            textSize = 55f
+
+            setTextColor(BLUE)
+
+            gravity = Gravity.CENTER
+
+            setPadding(0, 15, 0, 5)
+        }
+
+        root.addView(
+            logo,
+            LinearLayout.LayoutParams(
+                -1,
+                90
+            )
+        )
+
+        root.addView(
+            text(
+                "التمريض المنزلي",
+                34f,
+                DARK_BLUE
+            )
+        )
+
+        root.addView(
+            text(
+                "خدمات التمريض والرعاية الصحية المنزلية",
+                18f,
+                TEXT
+            )
+        )
+
+        root.addView(
+            text(
+                "محافظة الأنبار - العراق",
+                17f,
+                GRAY
+            )
+        )
+
+        val line = View(this).apply {
+            setBackgroundColor(BLUE)
+        }
+
+        root.addView(
+            line,
+            LinearLayout.LayoutParams(
+                -1,
+                5
+            ).apply {
+                setMargins(0, 25, 0, 25)
+            }
+        )
+
+        root.addView(
+            text(
+                "مرحباً بك 👋\nاحصل على خدمة تمريض منزلية بسهولة وأمان",
+                19f,
+                DARK_BLUE
+            )
+        )
+
+        root.addView(
+            button("📱 تسجيل الدخول برقم الهاتف") {
+
+                showPhoneLogin()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                65
+            ).apply {
+                setMargins(0, 25, 0, 10)
+            }
+        )
+
+        root.addView(
+            text(
+                "التسجيل مطلوب لإنشاء الطلبات ومتابعتها",
+                14f,
+                GRAY
+            )
+        )
+
+        setContentView(root)
+    }
+
+    // ---------------------------------------------------------
+    // تسجيل الهاتف
+    // ---------------------------------------------------------
+
+    private fun showPhoneLogin() {
+
+        val root = baseLayout()
+
+        root.addView(
+            text(
+                "تسجيل الدخول",
+                30f,
+                DARK_BLUE
+            )
+        )
+
+        root.addView(
+            text(
+                "أدخل رقم هاتفك لإرسال رمز التحقق",
+                17f,
+                GRAY
+            )
+        )
+
+        val phone = input(
+            "رقم الهاتف مثال: +9647701234567",
+            true
+        )
+
+        root.addView(
+            phone,
+            LinearLayout.LayoutParams(
+                -1,
+                65
+            ).apply {
+                setMargins(0, 30, 0, 15)
+            }
+        )
+
+        root.addView(
+            button("إرسال رمز التحقق") {
+
+                val value = phone.text.toString().trim()
+
+                if (value.isEmpty()) {
+
+                    phone.error = "أدخل رقم الهاتف"
+
+                    return@button
+                }
+
+                if (!value.startsWith("+")) {
+
+                    phone.error =
+                        "اكتب الرقم بالصيغة الدولية +964..."
+
+                    return@button
+                }
+
+                currentPhone = value
+
+                sendOtp(value)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                65
+            )
+        )
+
+        root.addView(
+            button("رجوع") {
+
+                showWelcome()
+
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                60
+            ).apply {
+                setMargins(0, 15, 0, 0)
+            }
+        )
+
+        setContentView(root)
+    }
+
+    // ---------------------------------------------------------
+    // إرسال OTP
+    // ---------------------------------------------------------
+
+    private fun sendOtp(phone: String) {
+
+        Toast.makeText(
+            this,
+            "جاري إرسال رمز التحقق...",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        executor.execute {
+
+            try {
+
+                val url =
+                    URL("$SUPABASE_URL/auth/v1/otp")
+
+                val connection =
+                    url.openConnection() as HttpURLConnection
+
+                connection.requestMethod = "POST"
+
+                connection.setRequestProperty(
+                    "apikey",
+                    SUPABASE_KEY
+                )
+
+                connection.setRequestProperty(
+                    "Content-Type",
+                    "application/json"
+                )
+
+                connection.doOutput = true
+
+                val body =
+                    JSONObject()
+                        .put("phone", phone)
+                        .toString()
+
+                connection.outputStream.use {
+
+                    it.write(
+                        body.toByteArray(Charsets.UTF_8)
+                    )
+                }
+
+                val code =
+                    connection.responseCode
+
+                handler.post {
+
+                    if (code in 200..299) {
+
+                        showOtpScreen()
+
+                    } else {
+
+                        Toast.makeText(
+                            this,
+                            "تعذر إرسال رمز التحقق. تأكد من إعدادات Supabase.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                connection.disconnect()
+
+            } catch (e: Exception) {
+
+                handler.post {
+
+                    Toast.makeText(
+                        this,
+                        "خطأ في الاتصال بالإنترنت",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // شاشة OTP
+    // ---------------------------------------------------------
+
+    private fun showOtpScreen() {
+
+        val root = baseLayout()
+
+        root.addView(
+            text(
+                "رمز التحقق",
+                30f,
+                DARK_BLUE
+            )
+        )
+
+        root.addView(
+            text(
+                "أدخل الرمز المرسل إلى:\n$currentPhone",
+                17f,
+                GRAY
+            )
+        )
+
+        val otp = input(
+            "أدخل رمز التحقق المكون من 6 أرقام"
+        )
+
+        otp.inputType =
+            InputType.TYPE_CLASS_NUMBER
+
+        otp.gravity = Gravity.CENTER
+
+        root.addView(
+            otp,
+            LinearLayout.LayoutParams(
+                -1,
+                70
+            ).apply {
+                setMargins(0, 30, 0, 15)
+            }
+        )
+
+        root.addView(
+            button("تأكيد الرمز") {
+
+                val code =
+                    otp.text.toString().trim()
+
+                if (code.length != 6) {
+
+                    otp.error =
+                        "أدخل الرمز المكون من 6 أرقام"
+
+                    return@button
+                }
+
+                verifyOtp(
+                    currentPhone,
+                    code
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                65
+            )
+        )
+
+        root.addView(
+            button("إعادة إرسال الرمز") {
+
+                sendOtp(currentPhone)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                60
+            ).apply {
+                setMargins(0, 12, 0, 0)
+            }
+        )
+
+        setContentView(root)
+    }
+
+    // ---------------------------------------------------------
+    // التحقق من OTP
+    // ---------------------------------------------------------
+
+    private fun verifyOtp(
+        phone: String,
+        token: String
+    ) {
+
+        Toast.makeText(
+            this,
+            "جاري التحقق...",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        executor.execute {
+
+            try {
+
+                val url =
+                    URL("$SUPABASE_URL/auth/v1/verify")
+
+                val connection =
+                    url.openConnection() as HttpURLConnection
+
+                connection.requestMethod = "POST"
+
+                connection.setRequestProperty(
+                    "apikey",
+                    SUPABASE_KEY
+                )
+
+                connection.setRequestProperty(
+                    "Content-Type",
+                    "application/json"
+                )
+
+                connection.doOutput = true
+
+                val body =
+                    JSONObject()
+                        .put("phone", phone)
+                        .put("token", token)
+                        .put("type", "sms")
+                        .toString()
+
+                connection.outputStream.use {
+
+                    it.write(
+                        body.toByteArray(Charsets.UTF_8)
+                    )
+                }
+
+                val code =
+                    connection.responseCode
+
+                handler.post {
+
+                    if (code in 200..299) {
+
+                        Toast.makeText(
+                            this,
+                            "تم تسجيل الدخول بنجاح",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        showHome()
+
+                    } else {
+
+                        Toast.makeText(
+                            this,
+                            "رمز التحقق غير صحيح أو منتهي",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                connection.disconnect()
+
+            } catch (e: Exception) {
+
+                handler.post {
+
+                    Toast.makeText(
+                        this,
+                        "حدث خطأ أثناء التحقق",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // الصفحة الرئيسية
+    // ---------------------------------------------------------
+
     private fun showHome() {
 
         val root = baseLayout()
 
-        val header = LinearLayout(this).apply {
-
-            orientation = LinearLayout.VERTICAL
-
-            gravity = Gravity.CENTER
-
-            setPadding(10, 10, 10, 25)
-
-            setBackgroundColor(LIGHT_BLUE)
-        }
-
-        header.addView(
+        root.addView(
             text(
                 "التمريض المنزلي",
                 32f,
@@ -117,128 +610,107 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        header.addView(
-            text(
-                "خدمات التمريض المنزلي",
-                20f,
-                TEXT
-            )
-        )
-
-        header.addView(
-            text(
-                "لمحافظة الأنبار - العراق",
-                17f,
-                Color.DKGRAY
-            )
-        )
-
-        root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
-
         root.addView(
             text(
-                "مرحباً بك 👋\nكيف يمكننا مساعدتك اليوم؟",
-                20f,
-                DARK_BLUE
+                "خدمات الرعاية المنزلية - الأنبار",
+                18f,
+                GRAY
             )
         )
 
-        val request = button("🩺  طلب ممرض منزلي") {
-
-            showRequestScreen()
+        val line = View(this).apply {
+            setBackgroundColor(BLUE)
         }
 
         root.addView(
-            request,
+            line,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                70
+                -1,
+                4
             ).apply {
-
-                setMargins(0, 15, 0, 10)
+                setMargins(0, 15, 0, 20)
             }
         )
 
-        val services = button("🏥  الخدمات التمريضية") {
-
-            showServices()
-        }
-
         root.addView(
-            services,
+            button("🩺 طلب ممرض منزلي") {
+
+                showRequestScreen()
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 70
             ).apply {
-
-                setMargins(0, 10, 0, 10)
+                setMargins(0, 5, 0, 10)
             }
         )
 
-        val location = button("📍  تحديد موقعي") {
-
-            requestLocation()
-        }
-
         root.addView(
-            location,
+            button("🏥 الخدمات التمريضية") {
+
+                showServices()
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 70
             ).apply {
-
-                setMargins(0, 10, 0, 10)
+                setMargins(0, 5, 0, 10)
             }
         )
 
-        val bookings = button("📋  طلباتي السابقة") {
-
-            showBookings()
-        }
-
         root.addView(
-            bookings,
+            button("📍 تحديد موقعي") {
+
+                requestLocation()
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 70
             ).apply {
-
-                setMargins(0, 10, 0, 10)
+                setMargins(0, 5, 0, 10)
             }
         )
 
-        val contact = button("☎️  تواصل معنا") {
-
-            contactUs()
-        }
-
         root.addView(
-            contact,
+            button("📋 طلباتي") {
+
+                showBookings()
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 70
             ).apply {
+                setMargins(0, 5, 0, 10)
+            }
+        )
 
-                setMargins(0, 10, 0, 10)
+        root.addView(
+            button("☎️ التواصل معنا") {
+
+                contactUs()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                70
+            ).apply {
+                setMargins(0, 5, 0, 10)
             }
         )
 
         root.addView(
             text(
-                "خدمة التمريض المنزلي على مدار الساعة",
-                15f,
-                Color.GRAY
+                "خدمة التمريض المنزلي في محافظة الأنبار",
+                14f,
+                GRAY
             )
         )
 
         setContentView(root)
     }
+
+    // ---------------------------------------------------------
+    // الخدمات
+    // ---------------------------------------------------------
 
     private fun showServices() {
 
@@ -247,7 +719,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             text(
                 "الخدمات التمريضية",
-                28f,
+                29f,
                 DARK_BLUE
             )
         )
@@ -258,8 +730,9 @@ class MainActivity : AppCompatActivity() {
             "🩺 قياس ضغط الدم والسكر",
             "💊 إعطاء الأدوية حسب وصف الطبيب",
             "👴 رعاية كبار السن",
-            "🏥 رعاية المرضى بعد العمليات",
-            "🛏️ رعاية المرضى طريحي الفراش"
+            "🏥 رعاية ما بعد العمليات",
+            "🛏️ رعاية المرضى طريحي الفراش",
+            "❤️ متابعة الحالات المنزلية"
         )
 
         for (service in services) {
@@ -268,47 +741,52 @@ class MainActivity : AppCompatActivity() {
 
                 text = service
 
-                textSize = 18f
+                textSize = 17f
 
                 setTextColor(TEXT)
 
-                gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+                gravity =
+                    Gravity.RIGHT or
+                    Gravity.CENTER_VERTICAL
 
-                setPadding(20, 20, 20, 20)
+                setPadding(20, 10, 20, 10)
 
                 setBackgroundColor(LIGHT_BLUE)
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
             }
 
             root.addView(
                 item,
                 LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    -1,
                     65
                 ).apply {
-
-                    setMargins(0, 7, 0, 7)
+                    setMargins(0, 6, 0, 6)
                 }
             )
         }
 
-        val back = button("رجوع للرئيسية") {
-
-            showHome()
-        }
-
         root.addView(
-            back,
+            button("رجوع") {
+
+                showHome()
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 65
             ).apply {
-
-                setMargins(0, 20, 0, 10)
+                setMargins(0, 20, 0, 0)
             }
         )
 
         setContentView(root)
     }
+
+    // ---------------------------------------------------------
+    // طلب ممرض
+    // ---------------------------------------------------------
 
     private fun showRequestScreen() {
 
@@ -317,180 +795,318 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             text(
                 "طلب ممرض منزلي",
-                28f,
+                29f,
                 DARK_BLUE
             )
         )
 
         root.addView(
             text(
-                "أدخل تفاصيل الطلب",
-                17f,
-                Color.GRAY
+                "أدخل معلومات المريض ومكان الخدمة",
+                16f,
+                GRAY
             )
         )
 
-        val name = EditText(this).apply {
-
-            hint = "اسم المريض"
-
-            textSize = 17f
-
-            setPadding(20, 10, 20, 10)
-
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
+        val name =
+            input("اسم المريض")
 
         root.addView(
             name,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 60
             ).apply {
-
-                setMargins(0, 15, 0, 10)
+                setMargins(0, 20, 0, 8)
             }
         )
 
-        val phone = EditText(this).apply {
+        val phone =
+            input("رقم الهاتف", true)
 
-            hint = "رقم الهاتف"
-
-            inputType = android.text.InputType.TYPE_CLASS_PHONE
-
-            textSize = 17f
-
-            setPadding(20, 10, 20, 10)
-        }
+        phone.setText(currentPhone)
 
         root.addView(
             phone,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 60
             ).apply {
-
-                setMargins(0, 10, 0, 10)
+                setMargins(0, 8, 0, 8)
             }
         )
 
-        val address = EditText(this).apply {
-
-            hint = "العنوان / المنطقة"
-
-            textSize = 17f
-
-            setPadding(20, 10, 20, 10)
-
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
+        val address =
+            input("العنوان / المنطقة")
 
         root.addView(
             address,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 60
             ).apply {
-
-                setMargins(0, 10, 0, 10)
+                setMargins(0, 8, 0, 8)
             }
         )
 
-        val notes = EditText(this).apply {
+        val notes =
+            input("ملاحظات إضافية")
 
-            hint = "ملاحظات إضافية"
+        notes.minLines = 4
 
-            textSize = 17f
-
-            gravity = Gravity.TOP or Gravity.RIGHT
-
-            setPadding(20, 15, 20, 15)
-
-            minLines = 4
-        }
+        notes.gravity =
+            Gravity.TOP or Gravity.RIGHT
 
         root.addView(
             notes,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 120
             ).apply {
-
-                setMargins(0, 10, 0, 15)
+                setMargins(0, 8, 0, 12)
             }
         )
 
-        val location = button("📍 تحديد الموقع") {
+        val locationButton =
+            button("📍 تحديد موقعي الآن") {
 
-            requestLocation()
-        }
+                requestLocation()
+            }
 
         root.addView(
-            location,
+            locationButton,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                65
+                -1,
+                60
             ).apply {
+                setMargins(0, 5, 0, 10)
+            }
+        )
 
+        root.addView(
+            button("✅ إرسال طلب الممرض") {
+
+                val patient =
+                    name.text.toString().trim()
+
+                val phoneValue =
+                    phone.text.toString().trim()
+
+                val addressValue =
+                    address.text.toString().trim()
+
+                val notesValue =
+                    notes.text.toString().trim()
+
+                if (patient.isEmpty()) {
+
+                    name.error =
+                        "أدخل اسم المريض"
+
+                    return@button
+                }
+
+                if (phoneValue.isEmpty()) {
+
+                    phone.error =
+                        "أدخل رقم الهاتف"
+
+                    return@button
+                }
+
+                if (addressValue.isEmpty()) {
+
+                    address.error =
+                        "أدخل العنوان"
+
+                    return@button
+                }
+
+                createBooking(
+                    patient,
+                    phoneValue,
+                    addressValue,
+                    notesValue
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                70
+            ).apply {
                 setMargins(0, 10, 0, 10)
             }
         )
 
-        val submit = button("تأكيد طلب الممرض") {
-
-            if (name.text.toString().trim().isEmpty()) {
-
-                name.error = "أدخل اسم المريض"
-
-                return@button
-            }
-
-            if (phone.text.toString().trim().isEmpty()) {
-
-                phone.error = "أدخل رقم الهاتف"
-
-                return@button
-            }
-
-            AlertDialog.Builder(this)
-                .setTitle("تم استلام الطلب")
-                .setMessage(
-                    "تم تسجيل طلبك بنجاح.\n\n" +
-                    "سيتم التواصل معك لتأكيد الطلب وتحديد الممرض المناسب."
-                )
-                .setPositiveButton("حسناً") { _, _ ->
-
-                    showHome()
-                }
-                .show()
-        }
-
         root.addView(
-            submit,
+            button("رجوع") {
+
+                showHome()
+            },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                70
-            ).apply {
-
-                setMargins(0, 15, 0, 10)
-            }
-        )
-
-        val back = button("رجوع") {
-
-            showHome()
-        }
-
-        root.addView(
-            back,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 60
             )
         )
 
         setContentView(root)
     }
+
+    // ---------------------------------------------------------
+    // إنشاء الطلب في Supabase
+    // ---------------------------------------------------------
+
+    private fun createBooking(
+        patient: String,
+        phone: String,
+        address: String,
+        notes: String
+    ) {
+
+        Toast.makeText(
+            this,
+            "جاري إرسال الطلب...",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        executor.execute {
+
+            try {
+
+                val url =
+                    URL(
+                        "$SUPABASE_URL/rest/v1/bookings"
+                    )
+
+                val connection =
+                    url.openConnection()
+                            as HttpURLConnection
+
+                connection.requestMethod = "POST"
+
+                connection.setRequestProperty(
+                    "apikey",
+                    SUPABASE_KEY
+                )
+
+                connection.setRequestProperty(
+                    "Content-Type",
+                    "application/json"
+                )
+
+                connection.setRequestProperty(
+                    "Prefer",
+                    "return=minimal"
+                )
+
+                connection.doOutput = true
+
+                val json =
+                    JSONObject().apply {
+
+                        put(
+                            "patient_name",
+                            patient
+                        )
+
+                        put(
+                            "phone",
+                            phone
+                        )
+
+                        put(
+                            "address",
+                            address
+                        )
+
+                        put(
+                            "notes",
+                            notes
+                        )
+
+                        put(
+                            "status",
+                            "pending"
+                        )
+
+                        if (currentLat != null) {
+                            put(
+                                "latitude",
+                                currentLat
+                            )
+                        }
+
+                        if (currentLng != null) {
+                            put(
+                                "longitude",
+                                currentLng
+                            )
+                        }
+                    }
+
+                connection.outputStream.use {
+
+                    it.write(
+                        json.toString()
+                            .toByteArray(Charsets.UTF_8)
+                    )
+                }
+
+                val code =
+                    connection.responseCode
+
+                handler.post {
+
+                    if (code in 200..299) {
+
+                        AlertDialog.Builder(this)
+                            .setTitle("تم إرسال الطلب ✅")
+                            .setMessage(
+                                "تم استلام طلب التمريض بنجاح.\n\n" +
+                                "سيتم التواصل معك لتأكيد الطلب."
+                            )
+                            .setPositiveButton(
+                                "حسناً"
+                            ) { _, _ ->
+
+                                showHome()
+                            }
+                            .show()
+
+                    } else {
+
+                        AlertDialog.Builder(this)
+                            .setTitle("تعذر إرسال الطلب")
+                            .setMessage(
+                                "تأكد من إنشاء جدول bookings " +
+                                "وإعداد صلاحيات Supabase."
+                            )
+                            .setPositiveButton(
+                                "حسناً",
+                                null
+                            )
+                            .show()
+                    }
+                }
+
+                connection.disconnect()
+
+            } catch (e: Exception) {
+
+                handler.post {
+
+                    Toast.makeText(
+                        this,
+                        "خطأ في الاتصال بـ Supabase",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // الطلبات
+    // ---------------------------------------------------------
 
     private fun showBookings() {
 
@@ -499,29 +1115,28 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             text(
                 "طلباتي",
-                28f,
+                30f,
                 DARK_BLUE
             )
         )
 
         root.addView(
             text(
-                "لا توجد طلبات مسجلة حالياً",
-                18f,
-                Color.GRAY
+                "طلبات التمريض الخاصة بك",
+                17f,
+                GRAY
             )
         )
 
         root.addView(
-            button("طلب ممرض منزلي") {
+            button("🩺 طلب ممرض جديد") {
 
                 showRequestScreen()
             },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 65
             ).apply {
-
                 setMargins(0, 25, 0, 10)
             }
         )
@@ -532,7 +1147,7 @@ class MainActivity : AppCompatActivity() {
                 showHome()
             },
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                -1,
                 60
             )
         )
@@ -540,17 +1155,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(root)
     }
 
-    private fun contactUs() {
-
-        AlertDialog.Builder(this)
-            .setTitle("التواصل معنا")
-            .setMessage(
-                "للتواصل مع فريق التمريض المنزلي، " +
-                "سيتم إضافة الاتصال وواتساب في المرحلة التالية."
-            )
-            .setPositiveButton("حسناً", null)
-            .show()
-    }
+    // ---------------------------------------------------------
+    // الموقع
+    // ---------------------------------------------------------
 
     private fun requestLocation() {
 
@@ -574,38 +1181,74 @@ class MainActivity : AppCompatActivity() {
         }
 
         val manager =
-            getSystemService(LOCATION_SERVICE) as LocationManager
+            getSystemService(
+                LOCATION_SERVICE
+            ) as LocationManager
 
         val gpsEnabled =
-            manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            manager.isProviderEnabled(
+                LocationManager.GPS_PROVIDER
+            )
 
         if (!gpsEnabled) {
 
             AlertDialog.Builder(this)
                 .setTitle("تفعيل الموقع")
                 .setMessage(
-                    "يجب تشغيل خدمة الموقع حتى نستطيع تحديد موقعك."
+                    "يجب تشغيل خدمة الموقع أولاً."
                 )
-                .setPositiveButton("الإعدادات") { _, _ ->
-
-                    startActivity(
-                        Intent(
-                            Settings.ACTION_LOCATION_SOURCE_SETTINGS
-                        )
-                    )
-                }
-                .setNegativeButton("إلغاء", null)
+                .setPositiveButton(
+                    "حسناً",
+                    null
+                )
                 .show()
 
             return
         }
 
-        Toast.makeText(
-            this,
-            "تم السماح بالوصول إلى الموقع",
-            Toast.LENGTH_LONG
-        ).show()
+        try {
+
+            val location: Location? =
+                manager.getLastKnownLocation(
+                    LocationManager.GPS_PROVIDER
+                )
+
+            if (location != null) {
+
+                currentLat =
+                    location.latitude
+
+                currentLng =
+                    location.longitude
+
+                Toast.makeText(
+                    this,
+                    "تم تحديد موقعك بنجاح 📍",
+                    Toast.LENGTH_LONG
+                ).show()
+
+            } else {
+
+                Toast.makeText(
+                    this,
+                    "لم يتم الحصول على الموقع بعد، حاول مرة أخرى.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+
+        } catch (e: SecurityException) {
+
+            Toast.makeText(
+                this,
+                "لا يوجد إذن للوصول إلى الموقع",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
+
+    // ---------------------------------------------------------
+    // نتيجة إذن الموقع
+    // ---------------------------------------------------------
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -623,23 +1266,46 @@ class MainActivity : AppCompatActivity() {
 
             if (
                 grantResults.isNotEmpty() &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED
+                grantResults[0] ==
+                PackageManager.PERMISSION_GRANTED
             ) {
 
-                Toast.makeText(
-                    this,
-                    "تم السماح بتحديد موقعك",
-                    Toast.LENGTH_SHORT
-                ).show()
+                requestLocation()
 
             } else {
 
                 Toast.makeText(
                     this,
-                    "لم يتم السماح بتحديد الموقع",
-                    Toast.LENGTH_SHORT
+                    "لم يتم السماح بالوصول إلى الموقع",
+                    Toast.LENGTH_LONG
                 ).show()
             }
         }
+    }
+
+    // ---------------------------------------------------------
+    // التواصل
+    // ---------------------------------------------------------
+
+    private fun contactUs() {
+
+        AlertDialog.Builder(this)
+            .setTitle("التواصل معنا")
+            .setMessage(
+                "التمريض المنزلي - محافظة الأنبار\n\n" +
+                "سيتم إضافة الاتصال وواتساب في المرحلة القادمة."
+            )
+            .setPositiveButton(
+                "حسناً",
+                null
+            )
+            .show()
+    }
+
+    override fun onDestroy() {
+
+        executor.shutdown()
+
+        super.onDestroy()
     }
 }
