@@ -2077,32 +2077,3 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 }
-
-
-/*
-===========================================================
-إضافات مطلوبة للمشروع لتفعيل GPS
-===========================================================
-
-1) في:
-android-app/app/build.gradle.kts
-
-أضف داخل dependencies:
-
-implementation("com.google.android.gms:play-services-location:21.3.0")
-
-
-2) في:
-android-app/app/src/main/AndroidManifest.xml
-
-أضف قبل <application>:
-
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-ملاحظة:
-لا تضع كود Gradle أو Manifest داخل MainActivity.kt.
-هذا التعليق موجود هنا فقط حتى تكون الإضافتان محفوظتين مع الملف،
-ويجب تطبيقهما في الملفين المذكورين أعلاه.
-===========================================================
-*/
