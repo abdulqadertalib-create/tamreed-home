@@ -524,12 +524,11 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        root.addView(
-            button(
-                "📋  طلباتي"
-            ) {
-                showBookings()
-            },
+        val bookingsButton = button("📋  طلباتي") {
+            showBookings()
+        }
+
+        val bookingsParams =
             LinearLayout.LayoutParams(
                 -1,
                 dp(58)
@@ -541,7 +540,8 @@ class MainActivity : AppCompatActivity() {
                     dp(8)
                 )
             }
-        )
+
+        root.addView(bookingsButton, bookingsParams)
 
         root.addView(
             button(
@@ -739,7 +739,7 @@ class MainActivity : AppCompatActivity() {
 
             return if (
                 phone.length == 14 &&
-                phone.substring(4, 5) == "7"
+                phone.getOrNull(4) == '7'
             ) {
                 phone
             } else {
@@ -754,7 +754,7 @@ class MainActivity : AppCompatActivity() {
 
             return if (
                 phone.length == 14 &&
-                phone.substring(4, 5) == "7"
+                phone.getOrNull(4) == '7'
             ) {
                 phone
             } else {
