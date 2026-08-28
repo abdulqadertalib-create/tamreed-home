@@ -3,6 +3,8 @@ package iq.tamreed.home
 import android.Manifest
 import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -35,6 +37,35 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import io.github.jan.supabase.postgrest.from
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class BookingInsert(
+    val patient_id: String,
+    val service_id: String,
+    val address: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val scheduled_at: String,
+    val status: String = "PENDING",
+    val notes: String? = null
+)
+
+@Serializable
+data class BookingRow(
+    val id: String,
+    val patient_id: String,
+    val nurse_id: String? = null,
+    val service_id: String,
+    val address: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val scheduled_at: String,
+    val status: String,
+    val notes: String? = null,
+    val created_at: String
+)
 
 class MainActivity : AppCompatActivity() {
 
@@ -407,35 +438,49 @@ class MainActivity : AppCompatActivity() {
 
         val root = baseLayout()
         root.addView(text("🩺 طلب ممرض منزلي", 29f, DARK_BLUE))
-        root.addView(text("حدد الخدمة ومكان المريض ثم أرسل الطلب", 17f, GRAY))
+        root.addView(
+            text("أكمل البيانات التالية لإرسال طلب حقيقي", 16f, GRAY),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(3), 0, dp(12)) }
+        )
 
         val services = arrayOf(
             "اختر الخدمة",
-            "قياس ضغط الدم",
-            "قياس السكر",
-            "إعطاء حقنة",
-            "تغيير الضماد",
-            "تركيب المحلول",
-            "رعاية كبار السن",
-            "رعاية المرضى في المنزل",
-            "متابعة حالة صحية",
-            "خدمة تمريض أخرى"
+            "زيارة تمريض منزلية",
+            "قياس ضغط وسكر",
+            "تغيير الضماد"
         )
+        val serviceIds = arrayOf(
+            "",
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            "33333333-3333-4333-8333-333333333333"
+        )
+
+        root.addView(text("1️⃣ الخدمة المطلوبة", 17f, DARK_BLUE))
         val service = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, services)
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                services
+            )
         }
         root.addView(service, LinearLayout.LayoutParams(-1, dp(60)).apply {
-            setMargins(0, dp(18), 0, dp(12))
+            setMargins(0, dp(5), 0, dp(12))
         })
 
-        root.addView(text("📍 مدينة / منطقة المريض", 17f, DARK_BLUE))
+        root.addView(text("2️⃣ مدينة / منطقة المريض", 17f, DARK_BLUE))
         val city = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, anbarCities)
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                anbarCities
+            )
         }
         root.addView(city, LinearLayout.LayoutParams(-1, dp(60)).apply {
             setMargins(0, dp(5), 0, dp(12))
         })
 
+        root.addView(text("3️⃣ اسم المريض", 17f, DARK_BLUE))
         val patient = EditText(this).apply {
             hint = "اسم المريض"
             textSize = 17f
@@ -447,75 +492,216 @@ class MainActivity : AppCompatActivity() {
             setMargins(0, dp(5), 0, dp(10))
         })
 
-        val notes = EditText(this).apply {
-            hint = "ملاحظات إضافية عن الحالة"
-            textSize = 17f
+        root.addView(text("4️⃣ عنوان المنزل", 17f, DARK_BLUE))
+        val address = EditText(this).apply {
+            hint = "المحلة، الشارع، أقرب نقطة..."
+            textSize = 16f
             gravity = Gravity.TOP or Gravity.RIGHT
-            minLines = 4
+            minLines = 3
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             setPadding(dp(15), dp(15), dp(15), dp(15))
         }
-        root.addView(notes, LinearLayout.LayoutParams(-1, dp(130)).apply {
+        root.addView(address, LinearLayout.LayoutParams(-1, dp(105)).apply {
+            setMargins(0, dp(5), 0, dp(10))
+        })
+
+        root.addView(text("5️⃣ موعد الزيارة", 17f, DARK_BLUE))
+        val schedule = text("لم يتم اختيار موعد الزيارة", 16f, DARK_BLUE)
+        var scheduledAt = ""
+        root.addView(schedule, LinearLayout.LayoutParams(-1, dp(62)).apply {
+            setMargins(0, dp(5), 0, dp(5))
+        })
+
+        addButton(root, "📅 اختيار التاريخ والوقت", 60) {
+            chooseSchedule(schedule) { iso -> scheduledAt = iso }
+        }
+
+        root.addView(text("6️⃣ موقع المريض", 17f, DARK_BLUE))
+        val locationStatus = text(currentLocationText, 15f, GRAY)
+        root.addView(locationStatus, LinearLayout.LayoutParams(-1, dp(90)).apply {
+            setMargins(0, dp(4), 0, dp(5))
+        })
+
+        addButton(root, "📍 تحديد موقعي الحالي", 60) {
+            locationStatus.text = "جاري تحديد الموقع..."
+            getCurrentLocation(locationStatus)
+        }
+
+        root.addView(text("7️⃣ ملاحظات", 17f, DARK_BLUE))
+        val notes = EditText(this).apply {
+            hint = "ملاحظات عن الحالة (اختياري)"
+            textSize = 16f
+            gravity = Gravity.TOP or Gravity.RIGHT
+            minLines = 3
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            setPadding(dp(15), dp(15), dp(15), dp(15))
+        }
+        root.addView(notes, LinearLayout.LayoutParams(-1, dp(105)).apply {
             setMargins(0, dp(5), 0, dp(12))
         })
 
-        addButton(root, "📍  تحديد موقع المريض", 62) {
-            showLocation()
-        }
-
-        addButton(root, "📨  إرسال طلب التمريض", 68) {
+        addButton(root, "✅ مراجعة وإرسال الطلب", 68) {
             if (service.selectedItemPosition == 0) {
                 Toast.makeText(this, "اختر الخدمة أولاً", Toast.LENGTH_SHORT).show()
                 return@addButton
             }
             if (city.selectedItemPosition == 0) {
-                Toast.makeText(this, "اختر المدينة أو المنطقة أولاً", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "اختر المدينة أو المنطقة", Toast.LENGTH_SHORT).show()
                 return@addButton
             }
+
             val patientName = patient.text.toString().trim()
+            val addressText = address.text.toString().trim()
+
             if (patientName.isEmpty()) {
                 patient.error = "أدخل اسم المريض"
                 return@addButton
             }
+            if (addressText.isEmpty()) {
+                address.error = "أدخل عنوان المنزل"
+                return@addButton
+            }
+            if (scheduledAt.isBlank()) {
+                Toast.makeText(this, "اختر موعد الزيارة", Toast.LENGTH_SHORT).show()
+                return@addButton
+            }
 
-            confirmRequest(
+            confirmAndCreateBooking(
+                serviceIds[service.selectedItemPosition],
                 service.selectedItem.toString(),
-                city.selectedItem.toString(),
                 patientName,
-                notes.text.toString()
+                "${city.selectedItem} - $addressText",
+                scheduledAt,
+                notes.text.toString().trim()
             )
         }
 
-        addButton(root, "↩️  رجوع", 55) { showServicesHome() }
+        addButton(root, "↩️ رجوع", 55) { showServicesHome() }
         setContentView(scroll(root))
     }
 
-    private fun confirmRequest(service: String, city: String, patient: String, notes: String) {
-        val location = if (currentLatitude != null && currentLongitude != null) {
-            "متوفر GPS: %.6f, %.6f".format(currentLatitude, currentLongitude)
+    private fun chooseSchedule(target: TextView, onSelected: (String) -> Unit) {
+        val now = java.util.Calendar.getInstance()
+
+        DatePickerDialog(
+            this,
+            { _, year, month, day ->
+                TimePickerDialog(
+                    this,
+                    { _, hour, minute ->
+                        val selected = java.util.Calendar.getInstance().apply {
+                            set(year, month, day, hour, minute, 0)
+                            set(java.util.Calendar.MILLISECOND, 0)
+                        }
+
+                        val display = String.format(
+                            java.util.Locale("ar"),
+                            "%02d/%02d/%04d - %02d:%02d",
+                            day, month + 1, year, hour, minute
+                        )
+
+                        val iso = java.text.SimpleDateFormat(
+                            "yyyy-MM-dd'T'HH:mm:ssXXX",
+                            java.util.Locale.US
+                        ).apply {
+                            timeZone = java.util.TimeZone.getDefault()
+                        }.format(selected.time)
+
+                        target.text = "📅 $display"
+                        onSelected(iso)
+                    },
+                    now.get(java.util.Calendar.HOUR_OF_DAY),
+                    now.get(java.util.Calendar.MINUTE),
+                    true
+                ).show()
+            },
+            now.get(java.util.Calendar.YEAR),
+            now.get(java.util.Calendar.MONTH),
+            now.get(java.util.Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.minDate = System.currentTimeMillis()
+        }.show()
+    }
+
+    private fun confirmAndCreateBooking(
+        serviceId: String,
+        serviceName: String,
+        patientName: String,
+        address: String,
+        scheduledAt: String,
+        notes: String
+    ) {
+        val gps = if (currentLatitude != null && currentLongitude != null) {
+            "%.6f, %.6f".format(currentLatitude, currentLongitude)
         } else {
-            "لم يتم تحديد GPS"
+            "غير محدد"
         }
 
         AlertDialog.Builder(this)
-            .setTitle("تأكيد طلب التمريض")
+            .setTitle("تأكيد الطلب")
             .setMessage(
-                "الخدمة: $service\n\n" +
-                        "المدينة / المنطقة: $city\n\n" +
-                        "المريض: $patient\n\n" +
-                        "الموقع: $location\n\n" +
-                        "الملاحظات: ${if (notes.trim().isEmpty()) "لا توجد" else notes.trim()}\n\n" +
-                        "هل تريد إرسال الطلب؟"
+                "الخدمة: $serviceName\n\n" +
+                    "المريض: $patientName\n\n" +
+                    "العنوان: $address\n\n" +
+                    "الموعد: $scheduledAt\n\n" +
+                    "GPS: $gps\n\n" +
+                    "هل تريد إرسال الطلب؟"
             )
-            .setNegativeButton("إلغاء", null)
-            .setPositiveButton("إرسال") { _, _ ->
-                Toast.makeText(this, "تم إنشاء طلب التمريض بنجاح ✅", Toast.LENGTH_LONG).show()
-                showBookings()
+            .setNegativeButton("تعديل", null)
+            .setPositiveButton("إرسال الطلب") { _, _ ->
+                createBooking(serviceId, patientName, address, scheduledAt, notes)
             }
             .show()
     }
 
-    // =====================================================
+    private fun createBooking(
+        serviceId: String,
+        patientName: String,
+        address: String,
+        scheduledAt: String,
+        notes: String
+    ) {
+        val loading = ProgressDialog(this).apply {
+            setMessage("جاري حفظ الطلب...")
+            setCancelable(false)
+            show()
+        }
+
+        scope.launch {
+            try {
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                    ?: throw IllegalStateException("انتهت جلسة تسجيل الدخول. سجّل الدخول مرة أخرى.")
+
+                val payload = BookingInsert(
+                    patient_id = user.id,
+                    service_id = serviceId,
+                    address = "$patientName - $address",
+                    latitude = currentLatitude,
+                    longitude = currentLongitude,
+                    scheduled_at = scheduledAt,
+                    status = "PENDING",
+                    notes = notes.ifBlank { null }
+                )
+
+                SupabaseManager.client.from("bookings").insert(payload)
+
+                loading.dismiss()
+                Toast.makeText(
+                    this@MainActivity,
+                    "تم إرسال الطلب بنجاح ✅",
+                    Toast.LENGTH_LONG
+                ).show()
+                showBookings()
+            } catch (e: Exception) {
+                loading.dismiss()
+                showError(
+                    "تعذر إرسال الطلب",
+                    e.message ?: "تأكد من اتصال الإنترنت وإعدادات Supabase."
+                )
+            }
+        }
+    }
+
     // 6. جميع الخدمات
     // =====================================================
 
@@ -667,28 +853,83 @@ class MainActivity : AppCompatActivity() {
     private fun showBookings() {
         val root = baseLayout()
         root.addView(text("📋 طلباتي", 30f, DARK_BLUE))
-        root.addView(text("يمكنك هنا متابعة طلبات التمريض الخاصة بك", 16f, GRAY))
+        root.addView(
+            text("طلباتك المحفوظة في النظام وحالتها الحالية", 16f, GRAY),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(3), 0, dp(12)) }
+        )
 
-        val empty = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(15), dp(30), dp(15), dp(30))
-            background = roundedBackground(LIGHT_GRAY, dp(18))
-        }
-        empty.addView(text("📭", 48f))
-        empty.addView(text("لا توجد طلبات حالياً", 21f, DARK_BLUE))
-        empty.addView(text("عند إنشاء طلب تمريض سيظهر هنا", 15f, GRAY))
+        val loading = text("جاري تحميل الطلبات...", 16f, GRAY)
+        root.addView(loading, LinearLayout.LayoutParams(-1, dp(90)))
 
-        root.addView(empty, LinearLayout.LayoutParams(-1, dp(185)).apply {
-            setMargins(0, dp(25), 0, dp(15))
-        })
+        addButton(root, "🩺 إنشاء طلب جديد", 65) { showRequestScreen() }
+        addButton(root, "↩️ رجوع", 55) { showServicesHome() }
 
-        addButton(root, "🩺  إنشاء طلب جديد", 65) { showRequestScreen() }
-        addButton(root, "↩️  رجوع", 55) { showServicesHome() }
         setContentView(scroll(root))
+
+        scope.launch {
+            try {
+                val bookings = SupabaseManager.client
+                    .from("bookings")
+                    .select()
+                    .decodeList<BookingRow>()
+
+                root.removeView(loading)
+
+                if (bookings.isEmpty()) {
+                    root.addView(
+                        text("📭\nلا توجد طلبات حالياً", 20f, DARK_BLUE),
+                        1,
+                        LinearLayout.LayoutParams(-1, dp(160)).apply {
+                            setMargins(0, dp(15), 0, dp(10))
+                        }
+                    )
+                    return@launch
+                }
+
+                for (booking in bookings.sortedByDescending { it.created_at }) {
+                    val serviceName = when (booking.service_id) {
+                        "11111111-1111-4111-8111-111111111111" -> "زيارة تمريض منزلية"
+                        "22222222-2222-4222-8222-222222222222" -> "قياس ضغط وسكر"
+                        "33333333-3333-4333-8333-333333333333" -> "تغيير الضماد"
+                        else -> "خدمة تمريضية"
+                    }
+
+                    val statusArabic = when (booking.status) {
+                        "PENDING" -> "بانتظار قبول الممرض"
+                        "ACCEPTED" -> "تم قبول الطلب"
+                        "ON_THE_WAY" -> "الممرض في الطريق"
+                        "IN_PROGRESS" -> "الزيارة قيد التنفيذ"
+                        "COMPLETED" -> "اكتملت الزيارة"
+                        "CANCELLED" -> "تم إلغاء الطلب"
+                        else -> booking.status
+                    }
+
+                    val card = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.RIGHT
+                        layoutDirection = View.LAYOUT_DIRECTION_RTL
+                        setPadding(dp(15), dp(12), dp(15), dp(12))
+                        background = roundedBackground(LIGHT_BLUE, dp(18))
+                    }
+
+                    card.addView(text("🩺 $serviceName", 18f, DARK_BLUE))
+                    card.addView(text("📍 ${booking.address}", 15f, TEXT))
+                    card.addView(text("📅 ${booking.scheduled_at}", 14f, GRAY))
+                    card.addView(text("الحالة: $statusArabic", 16f, GREEN))
+
+                    root.addView(
+                        card,
+                        LinearLayout.LayoutParams(-1, dp(150)).apply {
+                            setMargins(0, dp(5), 0, dp(8))
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                loading.text = "تعذر تحميل الطلبات.\n${e.message ?: "خطأ غير معروف"}"
+            }
+        }
     }
 
-    // =====================================================
     // 9. التواصل والأخطاء
     // =====================================================
 
