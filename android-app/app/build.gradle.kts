@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -33,14 +34,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Kotlin 2.2+
     kotlin {
         jvmToolchain(17)
     }
 }
 
 dependencies {
-implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     // Android
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
