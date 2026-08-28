@@ -52,12 +52,43 @@ data class BookingInsert(
     val notes: String? = null
 )
 
-@Serializable
-data class ServiceRow(
+data class ServiceItem(
     val id: String,
-    val name_ar: String,
-    val description_ar: String? = null,
-    val active: Boolean = true
+    val name: String,
+    val description: String
+)
+
+private val APP_SERVICES = listOf(
+    ServiceItem(
+        "11111111-1111-4111-8111-111111111111",
+        "زيارة تمريض منزلية",
+        "زيارة ممرض إلى منزل المريض"
+    ),
+    ServiceItem(
+        "22222222-2222-4222-8222-222222222222",
+        "قياس ضغط وسكر",
+        "قياس ومتابعة ضغط الدم وسكر الدم"
+    ),
+    ServiceItem(
+        "33333333-3333-4333-8333-333333333333",
+        "تغيير الضماد",
+        "العناية بالجروح وتغيير الضمادات"
+    ),
+    ServiceItem(
+        "44444444-4444-4444-8444-444444444444",
+        "إعطاء الحقن",
+        "إعطاء الحقن حسب وصف الطبيب"
+    ),
+    ServiceItem(
+        "55555555-5555-4555-8555-555555555555",
+        "تركيب المحاليل",
+        "تركيب ومتابعة المحاليل الوريدية"
+    ),
+    ServiceItem(
+        "66666666-6666-4666-8666-666666666666",
+        "رعاية كبار السن",
+        "رعاية ومتابعة كبار السن في المنزل"
+    )
 )
 
 @Serializable
@@ -1331,7 +1362,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         // ---------------------------------------------
-        // الخدمات من Supabase
+        // الخدمات المحلية المضمونة - لا تعتمد على Serializer
         // ---------------------------------------------
 
         root.addView(
@@ -1342,30 +1373,23 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        val service =
-            Spinner(this)
+        val service = Spinner(this)
 
-        val serviceLoading =
-            text(
-                "⏳ جاري تحميل الخدمات...",
-                15f,
-                GRAY
+        val serviceNames =
+            APP_SERVICES.map { it.name }
+
+        val serviceAdapter =
+            ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_item,
+                serviceNames
             )
 
-        root.addView(
-            serviceLoading,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(45)
-            ).apply {
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(2)
-                )
-            }
+        serviceAdapter.setDropDownViewResource(
+            android.R.layout.simple_spinner_dropdown_item
         )
+
+        service.adapter = serviceAdapter
 
         root.addView(
             service,
@@ -1375,15 +1399,14 @@ class MainActivity : AppCompatActivity() {
             ).apply {
                 setMargins(
                     0,
-                    0,
+                    dp(5),
                     0,
                     dp(12)
                 )
             }
         )
 
-        var loadedServices =
-            emptyList<ServiceRow>()
+        val loadedServices = APP_SERVICES
 
         // ---------------------------------------------
         // المدينة
@@ -1747,69 +1770,6 @@ class MainActivity : AppCompatActivity() {
             scroll(root)
         )
 
-        // ---------------------------------------------
-        // تحميل الخدمات من Supabase
-        // ---------------------------------------------
-
-        scope.launch {
-
-            try {
-
-                val services =
-                    SupabaseManager
-                        .client
-                        .from("services")
-                        .select()
-                        .decodeList<ServiceRow>()
-                        .filter {
-                            it.active
-                        }
-
-                loadedServices =
-                    services
-
-                if (services.isEmpty()) {
-
-                    serviceLoading.text =
-                        "⚠️ لا توجد خدمات متاحة حالياً"
-
-                    return@launch
-                }
-
-                serviceLoading.visibility =
-                    View.GONE
-
-                val names =
-                    services.map {
-                        it.name_ar
-                    }
-
-                val adapter =
-                    ArrayAdapter(
-                        this@MainActivity,
-                        android.R.layout.simple_spinner_item,
-                        names
-                    )
-
-                adapter.setDropDownViewResource(
-                    android.R.layout.simple_spinner_dropdown_item
-                )
-
-                service.adapter =
-                    adapter
-
-            } catch (e: Exception) {
-
-                serviceLoading.text =
-                    "⚠️ تعذر تحميل الخدمات"
-
-                showError(
-                    "تعذر تحميل الخدمات",
-                    e.message
-                        ?: "تحقق من اتصال Supabase"
-                )
-            }
-        }
     }
 
     private fun chooseSchedule(
@@ -2068,20 +2028,69 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        val loading =
-            text(
-                "⏳ جاري تحميل الخدمات...",
-                16f,
-                GRAY
+        for (service in APP_SERVICES) {
+
+            val box =
+                LinearLayout(this).apply {
+
+                    orientation =
+                        LinearLayout.VERTICAL
+
+                    gravity =
+                        Gravity.CENTER
+
+                    layoutDirection =
+                        View.LAYOUT_DIRECTION_RTL
+
+                    setPadding(
+                        dp(12),
+                        dp(10),
+                        dp(12),
+                        dp(10)
+                    )
+
+                    background =
+                        roundedBackground(
+                            LIGHT_GRAY,
+                            dp(17)
+                        )
+
+                    setOnClickListener {
+                        showRequestScreen()
+                    }
+                }
+
+            box.addView(
+                text(
+                    "🩺 ${service.name}",
+                    19f,
+                    DARK_BLUE
+                )
             )
 
-        root.addView(
-            loading,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(80)
+            box.addView(
+                text(
+                    service.description,
+                    14f,
+                    GRAY
+                )
             )
-        )
+
+            root.addView(
+                box,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(90)
+                ).apply {
+                    setMargins(
+                        0,
+                        dp(5),
+                        0,
+                        dp(5)
+                    )
+                }
+            )
+        }
 
         addButton(
             root,
@@ -2102,124 +2111,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(
             scroll(root)
         )
-
-        scope.launch {
-
-            try {
-
-                val services =
-                    SupabaseManager
-                        .client
-                        .from("services")
-                        .select()
-                        .decodeList<ServiceRow>()
-                        .filter {
-                            it.active
-                        }
-
-                root.removeView(
-                    loading
-                )
-
-                if (services.isEmpty()) {
-
-                    root.addView(
-                        text(
-                            "📭\nلا توجد خدمات متاحة حالياً",
-                            20f,
-                            DARK_BLUE
-                        ),
-                        1,
-                        LinearLayout.LayoutParams(
-                            -1,
-                            dp(150)
-                        )
-                    )
-
-                    return@launch
-                }
-
-                for (service in services) {
-
-                    val box =
-                        LinearLayout(this@MainActivity)
-                            .apply {
-
-                                orientation =
-                                    LinearLayout.VERTICAL
-
-                                gravity =
-                                    Gravity.CENTER
-
-                                layoutDirection =
-                                    View.LAYOUT_DIRECTION_RTL
-
-                                setPadding(
-                                    dp(12),
-                                    dp(10),
-                                    dp(12),
-                                    dp(10)
-                                )
-
-                                background =
-                                    roundedBackground(
-                                        LIGHT_GRAY,
-                                        dp(17)
-                                    )
-
-                                setOnClickListener {
-                                    showRequestScreen()
-                                }
-                            }
-
-                    box.addView(
-                        text(
-                            "🩺 ${service.name_ar}",
-                            19f,
-                            DARK_BLUE
-                        )
-                    )
-
-                    if (
-                        !service.description_ar
-                            .isNullOrBlank()
-                    ) {
-
-                        box.addView(
-                            text(
-                                service.description_ar!!,
-                                14f,
-                                GRAY
-                            )
-                        )
-                    }
-
-                    root.addView(
-                        box,
-                        LinearLayout.LayoutParams(
-                            -1,
-                            dp(90)
-                        ).apply {
-                            setMargins(
-                                0,
-                                dp(5),
-                                0,
-                                dp(5)
-                            )
-                        }
-                    )
-                }
-
-            } catch (e: Exception) {
-
-                loading.text =
-                    "تعذر تحميل الخدمات.\n" +
-                    (
-                        e.message
-                            ?: "خطأ غير معروف"
-                    )
-            }
-        }
     }
 
     // =====================================================
@@ -2639,6 +2530,15 @@ class MainActivity : AppCompatActivity() {
 
                             "33333333-3333-4333-8333-333333333333" ->
                                 "تغيير الضماد"
+
+                        "44444444-4444-4444-8444-444444444444" ->
+                                "إعطاء الحقن"
+
+                        "55555555-5555-4555-8555-555555555555" ->
+                                "تركيب المحاليل"
+
+                        "66666666-6666-4666-8666-666666666666" ->
+                                "رعاية كبار السن"
 
                             else ->
                                 "خدمة تمريضية"
