@@ -1,6 +1,10 @@
 package iq.tamreed.home
 
+import android.Manifest
 import android.app.AlertDialog
+import android.content.pm.PackageManager
+import android.location.Location
+import android.provider.Settings
 import android.app.ProgressDialog
 import android.content.Intent
 import android.graphics.Color
@@ -13,6 +17,8 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
@@ -23,6 +29,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+
+import com.google.android.gms.location.LocationServices
 
 
 class MainActivity : AppCompatActivity() {
@@ -55,6 +63,12 @@ class MainActivity : AppCompatActivity() {
     // =====================================================
 
     private var phoneNumber = ""
+
+    private val LOCATION_REQUEST_CODE = 2001
+
+    private var currentLatitude: Double? = null
+    private var currentLongitude: Double? = null
+    private var currentLocationText = "لم يتم تحديد الموقع"
 
     // =====================================================
     // مدن ومناطق محافظة الأنبار
@@ -1600,7 +1614,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "📍 موقع الطلب",
+                "📍 تحديد موقع المريض",
                 29f,
                 DARK_BLUE
             )
@@ -1608,55 +1622,45 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "حدد موقع المريض ليسهل وصول الممرض",
+                "سيستخدم التطبيق موقعك الحالي لتسهيل وصول الممرض",
                 17f,
                 GRAY
             )
         )
 
-        root.addView(
+        val locationStatus =
             text(
-                "🗺️",
-                65f,
-                BLUE
+                currentLocationText,
+                18f,
+                DARK_BLUE
             )
-        )
 
         root.addView(
-            text(
-                "سيتم ربط الخريطة وتحديد الموقع الجغرافي GPS في الخطوة القادمة.",
-                17f,
-                TEXT
-            )
+            locationStatus,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(120)
+            ).apply {
+                setMargins(
+                    0,
+                    dp(25),
+                    0,
+                    dp(15)
+                )
+            }
         )
 
         root.addView(
             button(
-                "📍  فتح خرائط Google"
+                "📍 الحصول على موقعي الحالي"
             ) {
 
-                try {
+                locationStatus.text =
+                    "جاري تحديد موقعك..."
 
-                    val intent =
-                        Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse(
-                                "geo:33.3500,43.7833?q=33.3500,43.7833"
-                            )
-                        )
-
-                    startActivity(intent)
-
-                } catch (
-                    e: Exception
-                ) {
-
-                    Toast.makeText(
-                        this,
-                        "تعذر فتح الخرائط",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                getCurrentLocation(
+                    locationStatus
+                )
             },
             LinearLayout.LayoutParams(
                 -1,
@@ -1664,7 +1668,7 @@ class MainActivity : AppCompatActivity() {
             ).apply {
                 setMargins(
                     0,
-                    dp(25),
+                    dp(5),
                     0,
                     dp(10)
                 )
@@ -1673,14 +1677,10 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             button(
-                "📌 استخدام موقعي"
+                "🗺️ فتح الموقع في خرائط Google"
             ) {
 
-                Toast.makeText(
-                    this,
-                    "سيتم تفعيل GPS الحقيقي في المرحلة القادمة",
-                    Toast.LENGTH_LONG
-                ).show()
+                openCurrentLocationInMaps()
             },
             LinearLayout.LayoutParams(
                 -1,
@@ -1709,6 +1709,209 @@ class MainActivity : AppCompatActivity() {
             scroll(root)
         )
     }
+
+    // =====================================================
+    // الحصول على GPS الحقيقي
+    // =====================================================
+
+    private fun getCurrentLocation(
+        statusView: TextView
+    ) {
+
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                LOCATION_REQUEST_CODE
+            )
+
+            return
+        }
+
+        val client =
+            LocationServices
+                .getFusedLocationProviderClient(this)
+
+        client.lastLocation
+            .addOnSuccessListener { location: Location? ->
+
+                if (location != null) {
+
+                    currentLatitude =
+                        location.latitude
+
+                    currentLongitude =
+                        location.longitude
+
+                    currentLocationText =
+                        "تم تحديد موقعك بنجاح ✅\n\n" +
+                                "خط العرض: %.6f\n" +
+                                "خط الطول: %.6f".format(
+                                    location.latitude,
+                                    location.longitude
+                                )
+
+                    statusView.text =
+                        currentLocationText
+
+                    Toast.makeText(
+                        this,
+                        "تم تحديد موقعك بنجاح",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                } else {
+
+                    statusView.text =
+                        "تعذر الحصول على الموقع الحالي.\n" +
+                                "تأكد من تشغيل GPS ثم حاول مرة أخرى."
+
+                    Toast.makeText(
+                        this,
+                        "لم يتم العثور على موقع GPS",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            .addOnFailureListener { error ->
+
+                statusView.text =
+                    "حدث خطأ أثناء تحديد الموقع:\n" +
+                            (error.message ?: "خطأ غير معروف")
+            }
+    }
+
+    // =====================================================
+    // فتح الموقع في خرائط Google
+    // =====================================================
+
+    private fun openCurrentLocationInMaps() {
+
+        val latitude =
+            currentLatitude
+
+        val longitude =
+            currentLongitude
+
+        if (
+            latitude == null ||
+            longitude == null
+        ) {
+
+            Toast.makeText(
+                this,
+                "حدد موقعك أولاً",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        try {
+
+            val uri =
+                Uri.parse(
+                    "geo:$latitude,$longitude?q=$latitude,$longitude"
+                )
+
+            val intent =
+                Intent(
+                    Intent.ACTION_VIEW,
+                    uri
+                )
+
+            startActivity(intent)
+
+        } catch (
+            e: Exception
+        ) {
+
+            Toast.makeText(
+                this,
+                "تعذر فتح خرائط Google",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    // =====================================================
+    // نتيجة طلب صلاحية الموقع
+    // =====================================================
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+
+        super.onRequestPermissionsResult(
+            requestCode,
+            permissions,
+            grantResults
+        )
+
+        if (
+            requestCode ==
+            LOCATION_REQUEST_CODE
+        ) {
+
+            if (
+                grantResults.isNotEmpty() &&
+                grantResults.any {
+                    it == PackageManager.PERMISSION_GRANTED
+                }
+            ) {
+
+                Toast.makeText(
+                    this,
+                    "تم السماح بالوصول إلى الموقع. اضغط تحديد الموقع مرة أخرى.",
+                    Toast.LENGTH_LONG
+                ).show()
+
+            } else {
+
+                AlertDialog.Builder(this)
+                    .setTitle(
+                        "صلاحية الموقع مطلوبة"
+                    )
+                    .setMessage(
+                        "يحتاج التطبيق إلى موقعك لتحديد مكان المريض ووصول الممرض."
+                    )
+                    .setPositiveButton(
+                        "الإعدادات"
+                    ) { _, _ ->
+
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse(
+                                    "package:$packageName"
+                                )
+                            )
+                        )
+                    }
+                    .setNegativeButton(
+                        "إلغاء",
+                        null
+                    )
+                    .show()
+            }
+        }
+    }
+
 
     // =====================================================
     // الطلبات
@@ -1874,3 +2077,32 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 }
+
+
+/*
+===========================================================
+إضافات مطلوبة للمشروع لتفعيل GPS
+===========================================================
+
+1) في:
+android-app/app/build.gradle.kts
+
+أضف داخل dependencies:
+
+implementation("com.google.android.gms:play-services-location:21.3.0")
+
+
+2) في:
+android-app/app/src/main/AndroidManifest.xml
+
+أضف قبل <application>:
+
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+ملاحظة:
+لا تضع كود Gradle أو Manifest داخل MainActivity.kt.
+هذا التعليق موجود هنا فقط حتى تكون الإضافتان محفوظتين مع الملف،
+ويجب تطبيقهما في الملفين المذكورين أعلاه.
+===========================================================
+*/
