@@ -1748,7 +1748,7 @@ class MainActivity : AppCompatActivity() {
 
             confirmAndCreateBooking(
                 selectedService.id,
-                selectedService.name_ar,
+                selectedService.name,
                 patientName,
                 fullAddress,
                 scheduledAt,
