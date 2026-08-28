@@ -542,6 +542,30 @@ class MainActivity : AppCompatActivity() {
         })
 
         // ==============================
+        // حالة الطلب
+        // ==============================
+        val statusCard = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            background = roundedBackground(LIGHT_GRAY, dp(18))
+            setOnClickListener { showBookings() }
+        }
+        statusCard.addView(text("📋", 28f, DARK_BLUE), LinearLayout.LayoutParams(dp(48), dp(55)))
+        val statusInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        statusInfo.addView(text("طلباتك", 17f, DARK_BLUE))
+        statusInfo.addView(text("اضغط لمتابعة حالة الطلبات السابقة", 13f, GRAY))
+        statusCard.addView(statusInfo, LinearLayout.LayoutParams(0, dp(58), 1f))
+        root.addView(statusCard, LinearLayout.LayoutParams(-1, dp(76)).apply {
+            setMargins(0, 0, 0, dp(16))
+        })
+
+        // ==============================
         // الوصول السريع
         // ==============================
         root.addView(sectionTitle("الوصول السريع", "كل ما تحتاجه في مكان واحد"),
@@ -598,7 +622,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun serviceCard(icon: String, title: String, subtitle: String, serviceIndex: Int): LinearLayout = LinearLayout(this).apply {
         orientation=LinearLayout.VERTICAL; gravity=Gravity.CENTER; layoutDirection=View.LAYOUT_DIRECTION_RTL
-        setPadding(dp(8),dp(8),dp(8),dp(8)); background=roundedBackground(LIGHT_BLUE,dp(20)); setOnClickListener{showRequestScreen()}
+        setPadding(dp(8),dp(8),dp(8),dp(8)); background=roundedBackground(LIGHT_BLUE,dp(20)); setOnClickListener{showRequestScreen(serviceIndex)}
         addView(text(icon,34f,DARK_BLUE)); addView(text(title,18f,DARK_BLUE)); addView(text(subtitle,13f,GRAY))
     }
 
