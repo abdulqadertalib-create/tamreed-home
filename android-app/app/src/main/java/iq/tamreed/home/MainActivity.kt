@@ -57,6 +57,30 @@ class MainActivity : AppCompatActivity() {
     private var phoneNumber = ""
 
     // =====================================================
+    // مدن ومناطق محافظة الأنبار
+    // =====================================================
+
+    private val anbarCities = arrayOf(
+        "اختر المدينة / المنطقة",
+        "الرمادي",
+        "الفلوجة",
+        "الكرمة",
+        "الصقلاوية",
+        "الحبانية",
+        "الخالدية",
+        "عامرية الفلوجة",
+        "هيت",
+        "كبيسة",
+        "حديثة",
+        "البغدادي",
+        "عانة",
+        "راوة",
+        "القائم",
+        "الرطبة",
+        "الوليد"
+    )
+
+    // =====================================================
     // إنشاء التطبيق
     // =====================================================
 
@@ -1181,6 +1205,42 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
+        // -------------------------------------------------
+        // اختيار مدينة / منطقة الطلب
+        // -------------------------------------------------
+
+        root.addView(
+            text(
+                "📍 اختر مدينة أو منطقة المريض",
+                17f,
+                DARK_BLUE
+            )
+        )
+
+        val city = Spinner(this)
+
+        city.adapter =
+            ArrayAdapter(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                anbarCities
+            )
+
+        root.addView(
+            city,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            ).apply {
+                setMargins(
+                    0,
+                    dp(5),
+                    0,
+                    dp(15)
+                )
+            }
+        )
+
         val patient =
             EditText(this).apply {
 
@@ -1294,6 +1354,17 @@ class MainActivity : AppCompatActivity() {
                     return@button
                 }
 
+                if (city.selectedItemPosition == 0) {
+
+                    Toast.makeText(
+                        this,
+                        "اختر المدينة أو المنطقة أولاً",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@button
+                }
+
                 if (
                     patient.text
                         .toString()
@@ -1309,6 +1380,7 @@ class MainActivity : AppCompatActivity() {
 
                 confirmRequest(
                     service.selectedItem.toString(),
+                    city.selectedItem.toString(),
                     patient.text.toString(),
                     notes.text.toString()
                 )
@@ -1347,6 +1419,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun confirmRequest(
         service: String,
+        city: String,
         patient: String,
         notes: String
     ) {
@@ -1357,7 +1430,9 @@ class MainActivity : AppCompatActivity() {
             )
             .setMessage(
                 "الخدمة: $service\n\n" +
+                        "المدينة / المنطقة: $city\n\n" +
                         "المريض: $patient\n\n" +
+                        "الملاحظات: ${if (notes.trim().isEmpty()) "لا توجد" else notes.trim()}\n\n" +
                         "هل تريد إرسال الطلب؟"
             )
             .setNegativeButton(
