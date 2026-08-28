@@ -13,6 +13,7 @@ import android.location.Location
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.content.SharedPreferences
 import android.text.InputFilter
 import android.text.InputType
 import android.view.Gravity
@@ -81,6 +82,7 @@ class MainActivity : AppCompatActivity() {
     private val LIGHT_GRAY = Color.rgb(245, 247, 250)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private lateinit var prefs: SharedPreferences
 
     private var phoneNumber = ""
     private var currentLatitude: Double? = null
@@ -97,7 +99,22 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        showWelcome()
+        prefs = getSharedPreferences("tamreed_home", MODE_PRIVATE)
+        phoneNumber = prefs.getString("phone", "") ?: ""
+
+        // نبدأ من الشاشة المناسبة حسب جلسة Supabase الحالية.
+        scope.launch {
+            try {
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                if (user != null) {
+                    showServicesHome()
+                } else {
+                    showWelcome()
+                }
+            } catch (_: Exception) {
+                showWelcome()
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -132,13 +149,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun button(value: String, action: () -> Unit): Button = Button(this).apply {
         text = value
-        textSize = 17f
+        textSize = 16.5f
         setTextColor(Color.WHITE)
         isAllCaps = false
         gravity = Gravity.CENTER
-        background = roundedBackground(BLUE, dp(18))
-        elevation = dp(3).toFloat()
-        setPadding(dp(12), dp(8), dp(12), dp(8))
+        background = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(BLUE, DARK_BLUE)
+        ).apply {
+            cornerRadius = dp(18).toFloat()
+        }
+        elevation = dp(4).toFloat()
+        setPadding(dp(14), dp(8), dp(14), dp(8))
         layoutDirection = View.LAYOUT_DIRECTION_RTL
         minHeight = dp(56)
         setOnClickListener { action() }
@@ -387,6 +409,7 @@ class MainActivity : AppCompatActivity() {
                     token = code
                 )
 
+                prefs.edit().putString("phone", phoneNumber).apply()
                 loading.dismiss()
                 Toast.makeText(this@MainActivity, "تم تسجيل الدخول بنجاح ✅", Toast.LENGTH_LONG).show()
                 showServicesHome()
@@ -437,8 +460,8 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(text("خدمات سريعة",20f,DARK_BLUE),LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,dp(18),0,dp(8)) })
         val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER; layoutDirection=View.LAYOUT_DIRECTION_RTL }
-        row.addView(serviceCard("🩺","قياس الضغط","متابعة الضغط"),LinearLayout.LayoutParams(0,dp(142),1f).apply{setMargins(0,dp(3),dp(4),dp(3))})
-        row.addView(serviceCard("🩸","قياس السكر","فحص السكر"),LinearLayout.LayoutParams(0,dp(142),1f).apply{setMargins(dp(4),dp(3),0,dp(3))})
+        row.addView(serviceCard("🩺","قياس الضغط","متابعة الضغط", 2),LinearLayout.LayoutParams(0,dp(142),1f).apply{setMargins(0,dp(3),dp(4),dp(3))})
+        row.addView(serviceCard("🩸","قياس السكر","فحص السكر", 2),LinearLayout.LayoutParams(0,dp(142),1f).apply{setMargins(dp(4),dp(3),0,dp(3))})
         root.addView(row)
 
         root.addView(text("الخدمات والمتابعة",20f,DARK_BLUE),LinearLayout.LayoutParams(-1,-2).apply{setMargins(0,dp(18),0,dp(8))})
@@ -446,13 +469,13 @@ class MainActivity : AppCompatActivity() {
         addButton(root,"📋  طلباتي",60){showBookings()}
         addButton(root,"📍  تحديد موقع الطلب",60){showLocation()}
         addButton(root,"☎️  تواصل معنا",60){contactUs()}
-        addButton(root,"↩️  العودة إلى شاشة الترحيب",54){showWelcome()}
+        addButton(root,"🔐  تسجيل الخروج",54){logoutUser()}
 
         root.addView(text("التمريض المنزلي • رعاية أقرب وأسهل",13f,GRAY),LinearLayout.LayoutParams(-1,-2).apply{setMargins(0,dp(12),0,dp(4))})
         setContentView(scroll(root))
     }
 
-    private fun serviceCard(icon: String, title: String, subtitle: String): LinearLayout = LinearLayout(this).apply {
+    private fun serviceCard(icon: String, title: String, subtitle: String, serviceIndex: Int): LinearLayout = LinearLayout(this).apply {
         orientation=LinearLayout.VERTICAL; gravity=Gravity.CENTER; layoutDirection=View.LAYOUT_DIRECTION_RTL
         setPadding(dp(8),dp(8),dp(8),dp(8)); background=roundedBackground(LIGHT_BLUE,dp(20)); setOnClickListener{showRequestScreen()}
         addView(text(icon,34f,DARK_BLUE)); addView(text(title,18f,DARK_BLUE)); addView(text(subtitle,13f,GRAY))
@@ -462,7 +485,7 @@ class MainActivity : AppCompatActivity() {
     // 5. طلب التمريض
     // =====================================================
 
-    private fun showRequestScreen() {
+    private fun showRequestScreen(preselectedServiceIndex: Int = 0) {
         if (phoneNumber.isBlank()) {
             showPhoneLogin()
             return
@@ -499,6 +522,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(service, LinearLayout.LayoutParams(-1, dp(60)).apply {
             setMargins(0, dp(5), 0, dp(12))
         })
+        if (preselectedServiceIndex in services.indices) {
+            service.setSelection(preselectedServiceIndex)
+        }
 
         root.addView(text("2️⃣ مدينة / منطقة المريض", 17f, DARK_BLUE))
         val city = Spinner(this).apply {
@@ -884,9 +910,16 @@ class MainActivity : AppCompatActivity() {
 
         scope.launch {
             try {
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                    ?: throw IllegalStateException("انتهت جلسة تسجيل الدخول. سجّل الدخول مرة أخرى.")
+
                 val bookings = SupabaseManager.client
                     .from("bookings")
-                    .select()
+                    .select {
+                        filter {
+                            eq("patient_id", user.id)
+                        }
+                    }
                     .decodeList<BookingRow>()
 
                 root.removeView(loading)
@@ -948,6 +981,29 @@ class MainActivity : AppCompatActivity() {
 
     // 9. التواصل والأخطاء
     // =====================================================
+
+    private fun logoutUser() {
+        AlertDialog.Builder(this)
+            .setTitle("تسجيل الخروج")
+            .setMessage("هل تريد تسجيل الخروج من حسابك؟")
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("تسجيل الخروج") { _, _ ->
+                scope.launch {
+                    try {
+                        SupabaseManager.client.auth.signOut()
+                    } catch (_: Exception) {
+                        // حتى لو تعذر الاتصال، نمسح بيانات الدخول المحلية.
+                    }
+                    phoneNumber = ""
+                    currentLatitude = null
+                    currentLongitude = null
+                    currentLocationText = "لم يتم تحديد الموقع"
+                    prefs.edit().remove("phone").apply()
+                    showWelcome()
+                }
+            }
+            .show()
+    }
 
     private fun contactUs() {
         AlertDialog.Builder(this)
