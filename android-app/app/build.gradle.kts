@@ -5,10 +5,12 @@ plugins {
 
 android {
     namespace = "iq.tamreed.home"
+
     compileSdk = 36
 
     defaultConfig {
         applicationId = "iq.tamreed.home"
+
         minSdk = 26
         targetSdk = 36
 
@@ -18,6 +20,10 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = false
+        }
+
+        debug {
             isMinifyEnabled = false
         }
     }
@@ -34,6 +40,7 @@ android {
 
 dependencies {
 
+    // Android
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
