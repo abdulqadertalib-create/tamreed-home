@@ -425,53 +425,174 @@ class MainActivity : AppCompatActivity() {
     // =====================================================
 
     private fun showServicesHome() {
-        if (phoneNumber.isBlank()) { showPhoneLogin(); return }
+        if (phoneNumber.isBlank()) {
+            showPhoneLogin()
+            return
+        }
 
-        val root = baseLayout()
+        val root = baseLayout().apply {
+            setPadding(dp(14), dp(16), dp(14), dp(24))
+        }
 
-        val top = LinearLayout(this).apply {
+        // ==============================
+        // رأس الصفحة الاحترافي
+        // ==============================
+        val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(14),dp(14),dp(14),dp(14))
-            background = roundedBackground(LIGHT_BLUE, dp(24))
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(DARK_BLUE, BLUE)
+            ).apply { cornerRadius = dp(26).toFloat() }
         }
-        top.addView(text("🏥",42f,DARK_BLUE), LinearLayout.LayoutParams(dp(62),dp(62)))
-        val titleBox=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.CENTER_VERTICAL }
-        titleBox.addView(text("التمريض المنزلي",24f,DARK_BLUE))
-        titleBox.addView(text("الأنبار • العراق",14f,GRAY))
-        top.addView(titleBox, LinearLayout.LayoutParams(0,dp(65),1f))
-        root.addView(top, LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,0,0,dp(14)) })
 
-        val account = LinearLayout(this).apply {
-            orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL; layoutDirection=View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(12),dp(8),dp(12),dp(8)); background=roundedBackground(LIGHT_GRAY,dp(18))
+        val logo = text("🏥", 36f, Color.WHITE).apply {
+            gravity = Gravity.CENTER
         }
-        account.addView(text("👤",28f,DARK_BLUE),LinearLayout.LayoutParams(dp(58),dp(58)))
-        val accText=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.CENTER_VERTICAL }
-        accText.addView(text("مرحباً بك",15f,GRAY))
-        accText.addView(text(phoneNumber,17f,DARK_BLUE))
-        account.addView(accText,LinearLayout.LayoutParams(0,dp(62),1f))
-        root.addView(account,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,0,0,dp(18)) })
+        header.addView(logo, LinearLayout.LayoutParams(dp(58), dp(58)))
 
-        root.addView(sectionTitle("ماذا تحتاج اليوم؟", "اختر الخدمة المناسبة لك"),
-            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 0, 0, dp(10)) })
-        addButton(root,"🩺  اطلب ممرضاً الآن",70){ showRequestScreen() }
+        val headerText = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        headerText.addView(text("التمريض المنزلي", 23f, Color.WHITE))
+        headerText.addView(text("رعاية صحية تصل إلى باب منزلك", 13.5f, Color.WHITE))
+        header.addView(headerText, LinearLayout.LayoutParams(0, dp(65), 1f))
 
-        root.addView(text("خدمات سريعة",20f,DARK_BLUE),LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,dp(18),0,dp(8)) })
-        val row=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER; layoutDirection=View.LAYOUT_DIRECTION_RTL }
-        row.addView(serviceCard("🩺","قياس الضغط","متابعة الضغط", 2),LinearLayout.LayoutParams(0,dp(142),1f).apply{setMargins(0,dp(3),dp(4),dp(3))})
-        row.addView(serviceCard("🩸","قياس السكر","فحص السكر", 2),LinearLayout.LayoutParams(0,dp(142),1f).apply{setMargins(dp(4),dp(3),0,dp(3))})
-        root.addView(row)
+        val profileButton = TextView(this).apply {
+            text = "👤"
+            textSize = 25f
+            gravity = Gravity.CENTER
+            background = roundedBackground(Color.WHITE, dp(18))
+            setOnClickListener {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("حسابي")
+                    .setMessage("رقم الهاتف:\n$phoneNumber\n\nالحساب المسجل في تطبيق التمريض المنزلي")
+                    .setPositiveButton("إغلاق", null)
+                    .show()
+            }
+        }
+        header.addView(profileButton, LinearLayout.LayoutParams(dp(58), dp(58)).apply {
+            setMargins(dp(6), 0, 0, 0)
+        })
 
-        root.addView(text("الخدمات والمتابعة",20f,DARK_BLUE),LinearLayout.LayoutParams(-1,-2).apply{setMargins(0,dp(18),0,dp(8))})
-        addButton(root,"🏥  جميع الخدمات التمريضية",60){showServices()}
-        addButton(root,"📋  طلباتي",60){showBookings()}
-        addButton(root,"📍  تحديد موقع الطلب",60){showLocation()}
-        addButton(root,"☎️  تواصل معنا",60){contactUs()}
-        addButton(root,"🔐  تسجيل الخروج",54){logoutUser()}
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(86)).apply {
+            setMargins(0, 0, 0, dp(16))
+        })
 
-        root.addView(text("التمريض المنزلي • رعاية أقرب وأسهل",13f,GRAY),LinearLayout.LayoutParams(-1,-2).apply{setMargins(0,dp(12),0,dp(4))})
+        // ==============================
+        // بطاقة الترحيب
+        // ==============================
+        val welcome = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            gravity = Gravity.RIGHT
+            setPadding(dp(18), dp(16), dp(18), dp(16))
+            background = roundedBackground(LIGHT_BLUE, dp(22))
+        }
+        welcome.addView(text("مرحباً بك 👋", 24f, DARK_BLUE))
+        welcome.addView(text("ماذا تحتاج اليوم؟", 19f, TEXT))
+        welcome.addView(text("اختر الخدمة وسنساعدك في إرسال طلب تمريض منزلي بسهولة.", 14f, GRAY))
+        root.addView(welcome, LinearLayout.LayoutParams(-1, -2).apply {
+            setMargins(0, 0, 0, dp(14))
+        })
+
+        // ==============================
+        // زر الطلب الرئيسي
+        // ==============================
+        val requestButton = button("🩺   اطلب ممرضاً الآن", {
+            showRequestScreen()
+        }).apply {
+            textSize = 18f
+            elevation = dp(6).toFloat()
+        }
+        root.addView(requestButton, LinearLayout.LayoutParams(-1, dp(70)).apply {
+            setMargins(0, 0, 0, dp(18))
+        })
+
+        // ==============================
+        // الخدمات السريعة
+        // ==============================
+        root.addView(sectionTitle("خدمات سريعة", "الخدمات الأكثر استخداماً"),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 0, 0, dp(8)) })
+
+        val quickRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        quickRow.addView(
+            serviceCard("🩺", "قياس الضغط", "متابعة الضغط", 2),
+            LinearLayout.LayoutParams(0, dp(145), 1f).apply {
+                setMargins(0, 0, dp(5), 0)
+            }
+        )
+        quickRow.addView(
+            serviceCard("🩸", "قياس السكر", "فحص السكر", 2),
+            LinearLayout.LayoutParams(0, dp(145), 1f).apply {
+                setMargins(dp(5), 0, 0, 0)
+            }
+        )
+        root.addView(quickRow, LinearLayout.LayoutParams(-1, dp(145)).apply {
+            setMargins(0, 0, 0, dp(18))
+        })
+
+        // ==============================
+        // الوصول السريع
+        // ==============================
+        root.addView(sectionTitle("الوصول السريع", "كل ما تحتاجه في مكان واحد"),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 0, 0, dp(8)) })
+
+        addButton(root, "🏥   جميع الخدمات التمريضية", 62) {
+            showServices()
+        }
+        addButton(root, "📋   طلباتي ومتابعة الطلب", 62) {
+            showBookings()
+        }
+        addButton(root, "📍   تحديد موقع الطلب", 62) {
+            showLocation()
+        }
+        addButton(root, "☎️   تواصل معنا", 62) {
+            contactUs()
+        }
+
+        // ==============================
+        // معلومات الحساب
+        // ==============================
+        val accountCard = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            background = outlinedBackground()
+        }
+        accountCard.addView(text("🔐", 25f, DARK_BLUE), LinearLayout.LayoutParams(dp(50), dp(50)))
+        val accountInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        accountInfo.addView(text("الحساب المسجل", 13f, GRAY))
+        accountInfo.addView(text(phoneNumber, 16f, DARK_BLUE))
+        accountCard.addView(accountInfo, LinearLayout.LayoutParams(0, dp(55), 1f))
+        root.addView(accountCard, LinearLayout.LayoutParams(-1, dp(72)).apply {
+            setMargins(0, dp(12), 0, dp(10))
+        })
+
+        addButton(root, "🚪   تسجيل الخروج", 55) {
+            logoutUser()
+        }
+
+        root.addView(
+            text("التمريض المنزلي • محافظة الأنبار - العراق", 13f, GRAY),
+            LinearLayout.LayoutParams(-1, -2).apply {
+                setMargins(0, dp(12), 0, 0)
+            }
+        )
+
         setContentView(scroll(root))
     }
 
