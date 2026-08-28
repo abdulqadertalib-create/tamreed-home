@@ -613,11 +613,36 @@ class MainActivity : AppCompatActivity() {
         }
 
         val root = baseLayout()
-        root.addView(text("🩺 طلب ممرض منزلي", 29f, DARK_BLUE))
+
+        root.addView(text("🩺 طلب ممرض منزلي", 30f, DARK_BLUE))
         root.addView(
-            text("أكمل البيانات التالية لإرسال طلب حقيقي", 16f, GRAY),
-            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(3), 0, dp(12)) }
+            text(
+                "أخبرنا بما تحتاج وسنجهز طلب الزيارة إلى منزلك",
+                16f,
+                GRAY
+            ),
+            LinearLayout.LayoutParams(-1, -2).apply {
+                setMargins(0, dp(3), 0, dp(18))
+            }
         )
+
+        // بطاقة معلومات المستخدم
+        val accountCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            background = roundedBackground(LIGHT_BLUE, dp(18))
+        }
+        accountCard.addView(text("👤 الحساب المسجل", 14f, GRAY))
+        accountCard.addView(text(phoneNumber, 17f, DARK_BLUE))
+        root.addView(accountCard, LinearLayout.LayoutParams(-1, dp(75)).apply {
+            setMargins(0, 0, 0, dp(18))
+        })
+
+        root.addView(text("1  •  اختر الخدمة", 19f, DARK_BLUE))
+        root.addView(text("ما الخدمة التي تحتاجها؟", 14f, GRAY),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(2), 0, dp(8)) })
 
         val services = arrayOf(
             "اختر الخدمة",
@@ -632,7 +657,6 @@ class MainActivity : AppCompatActivity() {
             "33333333-3333-4333-8333-333333333333"
         )
 
-        root.addView(text("1️⃣ الخدمة المطلوبة", 17f, DARK_BLUE))
         val service = Spinner(this).apply {
             adapter = ArrayAdapter(
                 this@MainActivity,
@@ -640,14 +664,17 @@ class MainActivity : AppCompatActivity() {
                 services
             )
         }
-        root.addView(service, LinearLayout.LayoutParams(-1, dp(60)).apply {
-            setMargins(0, dp(5), 0, dp(12))
+        root.addView(service, LinearLayout.LayoutParams(-1, dp(58)).apply {
+            setMargins(0, 0, 0, dp(16))
         })
-        if (preselectedServiceIndex in services.indices) {
+        if (preselectedServiceIndex in services.indices && preselectedServiceIndex > 0) {
             service.setSelection(preselectedServiceIndex)
         }
 
-        root.addView(text("2️⃣ مدينة / منطقة المريض", 17f, DARK_BLUE))
+        root.addView(text("2  •  موقع الزيارة", 19f, DARK_BLUE))
+        root.addView(text("اختر المدينة ثم حدد موقع المنزل", 14f, GRAY),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(2), 0, dp(8)) })
+
         val city = Spinner(this).apply {
             adapter = ArrayAdapter(
                 this@MainActivity,
@@ -655,55 +682,90 @@ class MainActivity : AppCompatActivity() {
                 anbarCities
             )
         }
-        root.addView(city, LinearLayout.LayoutParams(-1, dp(60)).apply {
-            setMargins(0, dp(5), 0, dp(12))
+        root.addView(city, LinearLayout.LayoutParams(-1, dp(58)).apply {
+            setMargins(0, 0, 0, dp(10))
         })
 
-        root.addView(text("3️⃣ اسم المريض", 17f, DARK_BLUE))
-        val patient = inputField("اسم المريض")
-        root.addView(patient, LinearLayout.LayoutParams(-1, dp(60)).apply {
-            setMargins(0, dp(5), 0, dp(10))
-        })
-
-        root.addView(text("4️⃣ عنوان المنزل", 17f, DARK_BLUE))
-        val address = inputField("المحلة، الشارع، أقرب نقطة...", true).apply {
-            textSize = 16f
+        val locationStatus = text(
+            if (currentLatitude != null && currentLongitude != null)
+                "📍 الموقع محفوظ ويمكن استخدامه للطلب"
+            else currentLocationText,
+            15f,
+            GRAY
+        )
+        val locationCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            gravity = Gravity.RIGHT
+            setPadding(dp(15), dp(10), dp(15), dp(10))
+            background = roundedBackground(LIGHT_GRAY, dp(16))
+            addView(text("موقع GPS", 13f, GRAY))
+            addView(locationStatus)
         }
-        root.addView(address, LinearLayout.LayoutParams(-1, dp(105)).apply {
-            setMargins(0, dp(5), 0, dp(10))
+        root.addView(locationCard, LinearLayout.LayoutParams(-1, dp(72)).apply {
+            setMargins(0, 0, 0, dp(7))
         })
 
-        root.addView(text("5️⃣ موعد الزيارة", 17f, DARK_BLUE))
-        val schedule = text("لم يتم اختيار موعد الزيارة", 16f, DARK_BLUE)
-        var scheduledAt = ""
-        root.addView(schedule, LinearLayout.LayoutParams(-1, dp(62)).apply {
-            setMargins(0, dp(5), 0, dp(5))
-        })
-
-        addButton(root, "📅 اختيار التاريخ والوقت", 60) {
-            chooseSchedule(schedule) { iso -> scheduledAt = iso }
-        }
-
-        root.addView(text("6️⃣ موقع المريض", 17f, DARK_BLUE))
-        val locationStatus = text(currentLocationText, 15f, GRAY)
-        root.addView(locationStatus, LinearLayout.LayoutParams(-1, dp(90)).apply {
-            setMargins(0, dp(4), 0, dp(5))
-        })
-
-        addButton(root, "📍 تحديد موقعي الحالي", 60) {
+        addButton(root, "📍  تحديد موقعي الحالي", 58) {
             locationStatus.text = "جاري تحديد الموقع..."
             getCurrentLocation(locationStatus)
         }
 
-        root.addView(text("7️⃣ ملاحظات", 17f, DARK_BLUE))
-        val notes = inputField("ملاحظات عن الحالة (اختياري)", true).apply {
-            textSize = 16f
-        }
-        root.addView(notes, LinearLayout.LayoutParams(-1, dp(105)).apply {
-            setMargins(0, dp(5), 0, dp(12))
+        root.addView(text("3  •  بيانات المريض", 19f, DARK_BLUE),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(10), 0, 0) })
+
+        val patient = inputField("اسم المريض")
+        root.addView(patient, LinearLayout.LayoutParams(-1, dp(60)).apply {
+            setMargins(0, dp(7), 0, dp(8))
         })
 
-        addButton(root, "✅ مراجعة وإرسال الطلب", 68) {
+        val address = inputField("المحلة، الشارع، أقرب نقطة دالة...", true).apply {
+            textSize = 16f
+        }
+        root.addView(address, LinearLayout.LayoutParams(-1, dp(105)).apply {
+            setMargins(0, 0, 0, dp(15))
+        })
+
+        root.addView(text("4  •  موعد الزيارة", 19f, DARK_BLUE))
+        val schedule = text("لم يتم اختيار موعد الزيارة", 16f, DARK_BLUE)
+        var scheduledAt = ""
+
+        val scheduleCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = roundedBackground(LIGHT_BLUE, dp(17))
+            addView(schedule)
+        }
+        root.addView(scheduleCard, LinearLayout.LayoutParams(-1, dp(68)).apply {
+            setMargins(0, dp(7), 0, dp(7))
+        })
+
+        addButton(root, "📅  اختيار التاريخ والوقت", 58) {
+            chooseSchedule(schedule) { iso -> scheduledAt = iso }
+        }
+
+        root.addView(text("5  •  ملاحظات للممرض", 19f, DARK_BLUE),
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(12), 0, 0) })
+
+        val notes = inputField("أي ملاحظة مهمة عن المريض أو الزيارة...", true).apply {
+            textSize = 16f
+        }
+        root.addView(notes, LinearLayout.LayoutParams(-1, dp(110)).apply {
+            setMargins(0, dp(7), 0, dp(16))
+        })
+
+        val summary = text(
+            "بعد الضغط على مراجعة الطلب ستظهر لك جميع التفاصيل قبل الإرسال.",
+            14f,
+            GRAY
+        )
+        root.addView(summary, LinearLayout.LayoutParams(-1, -2).apply {
+            setMargins(0, 0, 0, dp(8))
+        })
+
+        addButton(root, "✅  مراجعة الطلب وإرساله", 68) {
             if (service.selectedItemPosition == 0) {
                 Toast.makeText(this, "اختر الخدمة أولاً", Toast.LENGTH_SHORT).show()
                 return@addButton
@@ -718,10 +780,12 @@ class MainActivity : AppCompatActivity() {
 
             if (patientName.isEmpty()) {
                 patient.error = "أدخل اسم المريض"
+                patient.requestFocus()
                 return@addButton
             }
             if (addressText.isEmpty()) {
                 address.error = "أدخل عنوان المنزل"
+                address.requestFocus()
                 return@addButton
             }
             if (scheduledAt.isBlank()) {
@@ -739,7 +803,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        addButton(root, "↩️ رجوع", 55) { showServicesHome() }
+        addButton(root, "↩️  العودة للرئيسية", 55) { showServicesHome() }
         setContentView(scroll(root))
     }
 
