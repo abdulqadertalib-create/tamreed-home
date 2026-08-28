@@ -33,8 +33,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    // Kotlin 2.2+
+    kotlin {
+        jvmToolchain(17)
     }
 }
 
