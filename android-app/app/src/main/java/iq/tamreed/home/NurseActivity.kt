@@ -136,9 +136,9 @@ class NurseActivity : AppCompatActivity() {
             background = background(LIGHT_BLUE, 25)
         }
 
-        header.addView(label("ðŸ‘¨â€âš•ï¸", 48f, DARK_BLUE))
-        header.addView(label("Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ù…Ø±Ø¶", 28f, DARK_BLUE))
-        header.addView(label("Ø¥Ø¯Ø§Ø±Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„ØªÙ…Ø±ÙŠØ¶ Ø§Ù„Ù…Ù†Ø²Ù„ÙŠ", 16f, GRAY))
+        header.addView(label("\uD83D\uDC68\u200D\u2695\uFE0F", 48f, DARK_BLUE))
+        header.addView(label("\u0644\u0648\u062D\u0629 \u0627\u0644\u0645\u0645\u0631\u0636", 28f, DARK_BLUE))
+        header.addView(label("\u0625\u062F\u0627\u0631\u0629 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u062A\u0645\u0631\u064A\u0636 \u0627\u0644\u0645\u0646\u0632\u0644\u064A", 16f, GRAY))
 
         root.addView(
             header,
@@ -147,12 +147,12 @@ class NurseActivity : AppCompatActivity() {
             }
         )
 
-        addButton(root, "ðŸ“‹ Ø¹Ø±Ø¶ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ø±Ø¶Ù‰") { showBookings() }
-        addButton(root, "ðŸ”„ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø·Ù„Ø¨Ø§Øª") { showBookings() }
-        addButton(root, "ðŸ  Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„ØªØ·Ø¨ÙŠÙ‚") { finish() }
+        addButton(root, "\uD83D\uDCCB \u0639\u0631\u0636 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0645\u0631\u0636\u0649") { showBookings() }
+        addButton(root, "\uD83D\uDD04 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0637\u0644\u0628\u0627\u062A") { showBookings() }
+        addButton(root, "\uD83C\uDFE0 \u0627\u0644\u0639\u0648\u062F\u0629 \u0644\u0644\u062A\u0637\u0628\u064A\u0642") { finish() }
 
         root.addView(
-            label("ÙŠÙ…ÙƒÙ† Ù„Ù„Ù…Ù…Ø±Ø¶ Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª ÙˆØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„ØªÙ‡Ø§.", 14f, GRAY)
+            label("\u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0645\u0631\u0636 \u0645\u062A\u0627\u0628\u0639\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0648\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u062A\u0647\u0627.", 14f, GRAY)
         )
 
         setContentView(scroll(root))
@@ -161,17 +161,17 @@ class NurseActivity : AppCompatActivity() {
     private fun showBookings() {
         val root = root()
 
-        root.addView(label("ðŸ“‹ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ø±Ø¶Ù‰", 29f, DARK_BLUE))
-        root.addView(label("Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù…", 16f, GRAY))
+        root.addView(label("\uD83D\uDCCB \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0645\u0631\u0636\u0649", 29f, DARK_BLUE))
+        root.addView(label("\u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u0627\u0644\u0646\u0638\u0627\u0645", 16f, GRAY))
 
-        val loading = label("â³ Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª...", 16f, GRAY)
+        val loading = label("\u23F3 \u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062A...", 16f, GRAY)
 
         root.addView(
             loading,
             LinearLayout.LayoutParams(-1, dp(80))
         )
 
-        addButton(root, "â†©ï¸ Ø§Ù„Ø¹ÙˆØ¯Ø©") { showHome() }
+        addButton(root, "\u21A9\uFE0F \u0627\u0644\u0639\u0648\u062F\u0629") { showHome() }
         setContentView(scroll(root))
 
         scope.launch {
@@ -185,7 +185,7 @@ class NurseActivity : AppCompatActivity() {
 
                 if (bookings.isEmpty()) {
                     root.addView(
-                        label("ðŸ“­\nÙ„Ø§ ØªÙˆØ¬Ø¯ Ø·Ù„Ø¨Ø§Øª Ø­Ø§Ù„ÙŠØ§Ù‹", 20f, DARK_BLUE),
+                        label("\uD83D\uDCED\n\u0644\u0627 \u062A\u0648\u062C\u062F \u0637\u0644\u0628\u0627\u062A \u062D\u0627\u0644\u064A\u0627\u064B", 20f, DARK_BLUE),
                         LinearLayout.LayoutParams(-1, dp(150))
                     )
                     return@launch
@@ -197,8 +197,8 @@ class NurseActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 loading.text =
-                    "âš ï¸ ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª\n\n" +
-                        (e.message ?: "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ")
+                    "\u26A0\uFE0F \u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062A\n\n" +
+                        (e.message ?: "\u062E\u0637\u0623 \u063A\u064A\u0631 \u0645\u0639\u0631\u0648\u0641")
             }
         }
     }
@@ -216,17 +216,17 @@ class NurseActivity : AppCompatActivity() {
         }
 
         card.addView(
-            label("ðŸ©º ${serviceName(booking.service_id)}", 19f, DARK_BLUE)
+            label("\uD83E\uDE7A ${serviceName(booking.service_id)}", 19f, DARK_BLUE)
         )
         card.addView(
-            label("ðŸ‘¤ Ø§Ù„Ù…Ø±ÙŠØ¶: ${booking.address}", 15f, TEXT)
+            label("\uD83D\uDC64 \u0627\u0644\u0645\u0631\u064A\u0636: ${booking.address}", 15f, TEXT)
         )
         card.addView(
-            label("ðŸ“… Ø§Ù„Ù…ÙˆØ¹Ø¯: ${booking.scheduled_at}", 14f, GRAY)
+            label("\uD83D\uDCC5 \u0627\u0644\u0645\u0648\u0639\u062F: ${booking.scheduled_at}", 14f, GRAY)
         )
         card.addView(
             label(
-                "ðŸ“Œ ${statusText(booking.status)}",
+                "\uD83D\uDCCC ${statusText(booking.status)}",
                 16f,
                 statusColor(booking.status)
             )
@@ -235,7 +235,7 @@ class NurseActivity : AppCompatActivity() {
         if (!booking.nurse_id.isNullOrBlank()) {
             card.addView(
                 label(
-                    "ðŸ‘¨â€âš•ï¸ ØªÙ… ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ù…Ù…Ø±Ø¶ Ù„Ù‡Ø°Ø§ Ø§Ù„Ø·Ù„Ø¨",
+                    "\uD83D\uDC68\u200D\u2695\uFE0F \u062A\u0645 \u062A\u0639\u064A\u064A\u0646 \u0627\u0644\u0645\u0645\u0631\u0636 \u0644\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628",
                     14f,
                     GREEN
                 )
@@ -243,7 +243,7 @@ class NurseActivity : AppCompatActivity() {
         }
 
         if (!booking.notes.isNullOrBlank()) {
-            card.addView(label("ðŸ“ ${booking.notes}", 14f, GRAY))
+            card.addView(label("\uD83D\uDCDD ${booking.notes}", 14f, GRAY))
         }
 
         root.addView(
@@ -254,25 +254,25 @@ class NurseActivity : AppCompatActivity() {
         )
 
         when (booking.status) {
-            "PENDING" -> addButton(root, "âœ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨", GREEN) {
+            "PENDING" -> addButton(root, "\u2705 \u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628", GREEN) {
                 acceptBooking(booking.id)
             }
 
-            "ACCEPTED" -> addButton(root, "ðŸš— Ø§Ù„Ù…Ù…Ø±Ø¶ ÙÙŠ Ø§Ù„Ø·Ø±ÙŠÙ‚") {
+            "ACCEPTED" -> addButton(root, "\uD83D\uDE97 \u0627\u0644\u0645\u0645\u0631\u0636 \u0641\u064A \u0627\u0644\u0637\u0631\u064A\u0642") {
                 changeStatus(booking.id, "ON_THE_WAY")
             }
 
-            "ON_THE_WAY" -> addButton(root, "ðŸ©º Ø¨Ø¯Ø£Øª Ø§Ù„Ø²ÙŠØ§Ø±Ø©") {
+            "ON_THE_WAY" -> addButton(root, "\uD83E\uDE7A \u0628\u062F\u0623\u062A \u0627\u0644\u0632\u064A\u0627\u0631\u0629") {
                 changeStatus(booking.id, "IN_PROGRESS")
             }
 
-            "IN_PROGRESS" -> addButton(root, "âœ… Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù„Ø²ÙŠØ§Ø±Ø©", GREEN) {
+            "IN_PROGRESS" -> addButton(root, "\u2705 \u0625\u0646\u0647\u0627\u0621 \u0627\u0644\u0632\u064A\u0627\u0631\u0629", GREEN) {
                 changeStatus(booking.id, "COMPLETED")
             }
         }
 
         if (booking.latitude != null && booking.longitude != null) {
-            addButton(root, "ðŸ—ºï¸ ÙØªØ­ Ù…ÙˆÙ‚Ø¹ Ø§Ù„Ù…Ø±ÙŠØ¶") {
+            addButton(root, "\uD83D\uDDFA\uFE0F \u0641\u062A\u062D \u0645\u0648\u0642\u0639 \u0627\u0644\u0645\u0631\u064A\u0636") {
                 openMaps(booking.latitude, booking.longitude)
             }
         }
@@ -284,8 +284,8 @@ class NurseActivity : AppCompatActivity() {
 
         if (currentUser == null) {
             showError(
-                "Ù„Ù… ÙŠØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„ Ø§Ù„Ù…Ù…Ø±Ø¶.\n\n" +
-                    "ÙŠØ¬Ø¨ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ø§Ù‹ Ø«Ù… Ù…Ø­Ø§ÙˆÙ„Ø© Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨."
+                "\u0644\u0645 \u064A\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u062F\u062E\u0648\u0644 \u0627\u0644\u0645\u0645\u0631\u0636.\n\n" +
+                    "\u064A\u062C\u0628 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u062B\u0645 \u0645\u062D\u0627\u0648\u0644\u0629 \u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628."
             )
             return
         }
@@ -293,7 +293,7 @@ class NurseActivity : AppCompatActivity() {
         val nurseId = currentUser.id
 
         val loading = ProgressDialog(this).apply {
-            setMessage("Ø¬Ø§Ø±ÙŠ Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨...")
+            setMessage("\u062C\u0627\u0631\u064A \u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628...")
             setCancelable(false)
             show()
         }
@@ -318,7 +318,7 @@ class NurseActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseActivity,
-                    "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨ Ø¨Ù†Ø¬Ø§Ø­ âœ…",
+                    "\u062A\u0645 \u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628 \u0628\u0646\u062C\u0627\u062D \u2705",
                     Toast.LENGTH_SHORT
                 ).show()
 
@@ -328,8 +328,8 @@ class NurseActivity : AppCompatActivity() {
                 loading.dismiss()
 
                 showError(
-                    "ØªØ¹Ø°Ø± Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨\n\n" +
-                        (e.message ?: "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ")
+                    "\u062A\u0639\u0630\u0631 \u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628\n\n" +
+                        (e.message ?: "\u062E\u0637\u0623 \u063A\u064A\u0631 \u0645\u0639\u0631\u0648\u0641")
                 )
             }
         }
@@ -343,12 +343,12 @@ class NurseActivity : AppCompatActivity() {
             SupabaseManager.client.auth.currentUserOrNull()
 
         if (currentUser == null) {
-            showError("Ù„Ù… ÙŠØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„ Ø§Ù„Ù…Ù…Ø±Ø¶.")
+            showError("\u0644\u0645 \u064A\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u062F\u062E\u0648\u0644 \u0627\u0644\u0645\u0645\u0631\u0636.")
             return
         }
 
         val loading = ProgressDialog(this).apply {
-            setMessage("Ø¬Ø§Ø±ÙŠ ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨...")
+            setMessage("\u062C\u0627\u0631\u064A \u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0627\u0644\u0637\u0644\u0628...")
             setCancelable(false)
             show()
         }
@@ -368,7 +368,7 @@ class NurseActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseActivity,
-                    "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­ âœ…",
+                    "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u062D\u0627\u0644\u0629 \u0628\u0646\u062C\u0627\u062D \u2705",
                     Toast.LENGTH_SHORT
                 ).show()
 
@@ -376,7 +376,7 @@ class NurseActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 loading.dismiss()
-                showError(e.message ?: "ØªØ¹Ø°Ø± ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©")
+                showError(e.message ?: "\u062A\u0639\u0630\u0631 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u062D\u0627\u0644\u0629")
             }
         }
     }
@@ -385,9 +385,9 @@ class NurseActivity : AppCompatActivity() {
         if (isFinishing || isDestroyed) return
 
         AlertDialog.Builder(this)
-            .setTitle("ØªÙ†Ø¨ÙŠÙ‡")
+            .setTitle("\u062A\u0646\u0628\u064A\u0647")
             .setMessage(message)
-            .setPositiveButton("Ø­Ø³Ù†Ù‹Ø§", null)
+            .setPositiveButton("\u062D\u0633\u0646\u064B\u0627", null)
             .show()
     }
 
@@ -406,7 +406,7 @@ class NurseActivity : AppCompatActivity() {
         } catch (_: Exception) {
             Toast.makeText(
                 this,
-                "ØªØ¹Ø°Ø± ÙØªØ­ Ø§Ù„Ø®Ø±Ø§Ø¦Ø·",
+                "\u062A\u0639\u0630\u0631 \u0641\u062A\u062D \u0627\u0644\u062E\u0631\u0627\u0626\u0637",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -415,46 +415,46 @@ class NurseActivity : AppCompatActivity() {
     private fun serviceName(id: String): String =
         when (id) {
             "11111111-1111-4111-8111-111111111111" ->
-                "Ø²ÙŠØ§Ø±Ø© ØªÙ…Ø±ÙŠØ¶ Ù…Ù†Ø²Ù„ÙŠØ©"
+                "\u0632\u064A\u0627\u0631\u0629 \u062A\u0645\u0631\u064A\u0636 \u0645\u0646\u0632\u0644\u064A\u0629"
 
             "22222222-2222-4222-8222-222222222222" ->
-                "Ù‚ÙŠØ§Ø³ Ø¶ØºØ· ÙˆØ³ÙƒØ±"
+                "\u0642\u064A\u0627\u0633 \u0636\u063A\u0637 \u0648\u0633\u0643\u0631"
 
             "33333333-3333-4333-8333-333333333333" ->
-                "ØªØºÙŠÙŠØ± Ø§Ù„Ø¶Ù…Ø§Ø¯"
+                "\u062A\u063A\u064A\u064A\u0631 \u0627\u0644\u0636\u0645\u0627\u062F"
 
             "44444444-4444-4444-8444-444444444444" ->
-                "Ø¥Ø¹Ø·Ø§Ø¡ Ø§Ù„Ø­Ù‚Ù†"
+                "\u0625\u0639\u0637\u0627\u0621 \u0627\u0644\u062D\u0642\u0646"
 
             "55555555-5555-4555-8555-555555555555" ->
-                "ØªØ±ÙƒÙŠØ¨ Ø§Ù„Ù…Ø­Ø§Ù„ÙŠÙ„"
+                "\u062A\u0631\u0643\u064A\u0628 \u0627\u0644\u0645\u062D\u0627\u0644\u064A\u0644"
 
             "66666666-6666-4666-8666-666666666666" ->
-                "Ø±Ø¹Ø§ÙŠØ© ÙƒØ¨Ø§Ø± Ø§Ù„Ø³Ù†"
+                "\u0631\u0639\u0627\u064A\u0629 \u0643\u0628\u0627\u0631 \u0627\u0644\u0633\u0646"
 
             else ->
-                "Ø®Ø¯Ù…Ø© ØªÙ…Ø±ÙŠØ¶ÙŠØ©"
+                "\u062E\u062F\u0645\u0629 \u062A\u0645\u0631\u064A\u0636\u064A\u0629"
         }
 
     private fun statusText(status: String): String =
         when (status) {
             "PENDING" ->
-                "ðŸŸ¡ Ø¨Ø§Ù†ØªØ¸Ø§Ø± Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ù…Ù…Ø±Ø¶"
+                "\uD83D\uDFE1 \u0628\u0627\u0646\u062A\u0638\u0627\u0631 \u0642\u0628\u0648\u0644 \u0627\u0644\u0645\u0645\u0631\u0636"
 
             "ACCEPTED" ->
-                "ðŸ”µ ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨"
+                "\uD83D\uDD35 \u062A\u0645 \u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628"
 
             "ON_THE_WAY" ->
-                "ðŸš— Ø§Ù„Ù…Ù…Ø±Ø¶ ÙÙŠ Ø§Ù„Ø·Ø±ÙŠÙ‚"
+                "\uD83D\uDE97 \u0627\u0644\u0645\u0645\u0631\u0636 \u0641\u064A \u0627\u0644\u0637\u0631\u064A\u0642"
 
             "IN_PROGRESS" ->
-                "ðŸ©º Ø¨Ø¯Ø£Øª Ø§Ù„Ø²ÙŠØ§Ø±Ø©"
+                "\uD83E\uDE7A \u0628\u062F\u0623\u062A \u0627\u0644\u0632\u064A\u0627\u0631\u0629"
 
             "COMPLETED" ->
-                "ðŸŸ¢ Ø§ÙƒØªÙ…Ù„Øª Ø§Ù„Ø²ÙŠØ§Ø±Ø©"
+                "\uD83D\uDFE2 \u0627\u0643\u062A\u0645\u0644\u062A \u0627\u0644\u0632\u064A\u0627\u0631\u0629"
 
             "CANCELLED" ->
-                "ðŸ”´ ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø·Ù„Ø¨"
+                "\uD83D\uDD34 \u062A\u0645 \u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0637\u0644\u0628"
 
             else ->
                 status
