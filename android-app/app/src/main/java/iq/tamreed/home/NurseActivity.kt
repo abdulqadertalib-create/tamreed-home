@@ -54,9 +54,7 @@ class NurseActivity : AppCompatActivity() {
             SupervisorJob() + Dispatchers.Main
         )
 
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showHome()
     }
@@ -92,9 +90,7 @@ class NurseActivity : AppCompatActivity() {
             )
         }
 
-    private fun scroll(
-        view: View
-    ): ScrollView =
+    private fun scroll(view: View): ScrollView =
         ScrollView(this).apply {
             setBackgroundColor(Color.WHITE)
             addView(view)
@@ -418,15 +414,11 @@ class NurseActivity : AppCompatActivity() {
             label(
                 "📌 ${statusText(booking.status)}",
                 16f,
-                statusColor(
-                    booking.status
-                )
+                statusColor(booking.status)
             )
         )
 
-        if (
-            !booking.notes.isNullOrBlank()
-        ) {
+        if (!booking.notes.isNullOrBlank()) {
 
             card.addView(
                 label(
@@ -578,9 +570,7 @@ class NurseActivity : AppCompatActivity() {
                 AlertDialog.Builder(
                     this@NurseActivity
                 )
-                    .setTitle(
-                        "خطأ"
-                    )
+                    .setTitle("خطأ")
                     .setMessage(
                         e.message
                             ?: "تعذر تحديث الحالة"
@@ -700,4 +690,4 @@ class NurseActivity : AppCompatActivity() {
                     0
                 )
         }
-}
+} 
