@@ -5,7 +5,7 @@
     <!-- الإنترنت -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- تحديد موقع الزبون -->
+    <!-- موقع المريض -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
@@ -15,7 +15,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
-        <!-- شاشة المستخدم -->
+        <!-- لوحة الممرض -->
+        <activity
+            android:name=".NurseActivity"
+            android:exported="false" />
+
+        <!-- التطبيق الرئيسي -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -24,16 +29,12 @@
 
                 <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category
+                    android:name="android.intent.category.LAUNCHER" />
 
             </intent-filter>
 
         </activity>
-
-        <!-- شاشة الممرض -->
-        <activity
-            android:name=".NurseActivity"
-            android:exported="false" />
 
     </application>
 
