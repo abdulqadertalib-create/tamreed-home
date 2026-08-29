@@ -30,6 +30,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
@@ -155,7 +156,6 @@ class MainActivity : AppCompatActivity() {
         savedInstanceState: Bundle?
     ) {
         super.onCreate(savedInstanceState)
-
         showWelcome()
     }
 
@@ -219,9 +219,7 @@ class MainActivity : AppCompatActivity() {
         TextView(this).apply {
 
             text = value
-
             textSize = size
-
             setTextColor(color)
 
             gravity =
@@ -245,7 +243,6 @@ class MainActivity : AppCompatActivity() {
         Button(this).apply {
 
             text = value
-
             textSize = 17f
 
             setTextColor(
@@ -350,7 +347,6 @@ class MainActivity : AppCompatActivity() {
             if (
                 !subtitle.isNullOrBlank()
             ) {
-
                 addView(
                     text(
                         subtitle,
@@ -561,13 +557,8 @@ class MainActivity : AppCompatActivity() {
             "📱  تسجيل الدخول / إنشاء حساب",
             66
         ) {
-
             showPhoneLogin()
         }
-
-        // =================================================
-        // لوحة الممرض
-        // =================================================
 
         addButton(
             root,
@@ -605,17 +596,10 @@ class MainActivity : AppCompatActivity() {
 
         val features =
             listOf(
-                "🩺" to
-                    "ممرضون وخدمات منزلية",
-
-                "📍" to
-                    "تحديد موقع المريض",
-
-                "📋" to
-                    "متابعة الطلبات",
-
-                "🔒" to
-                    "تسجيل آمن برقم الهاتف"
+                "🩺" to "ممرضون وخدمات منزلية",
+                "📍" to "تحديد موقع المريض",
+                "📋" to "متابعة الطلبات",
+                "🔒" to "تسجيل آمن برقم الهاتف"
             )
 
         for (
@@ -717,7 +701,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // 2. تسجيل الدخول برقم الهاتف
+    // 2. تسجيل الدخول
     // =====================================================
 
     private fun showPhoneLogin() {
@@ -738,19 +722,7 @@ class MainActivity : AppCompatActivity() {
                 "أدخل رقم هاتفك العراقي وسنرسل لك رمز التحقق عبر SMS",
                 17f,
                 GRAY
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(4),
-                    0,
-                    dp(15)
-                )
-            }
+            )
         )
 
         val phone =
@@ -829,7 +801,6 @@ class MainActivity : AppCompatActivity() {
             "↩️  رجوع",
             55
         ) {
-
             showWelcome()
         }
 
@@ -857,11 +828,8 @@ class MainActivity : AppCompatActivity() {
                 phone.length == 14 &&
                 phone.getOrNull(4) == '7'
             ) {
-
                 phone
-
             } else {
-
                 null
             }
         }
@@ -878,11 +846,8 @@ class MainActivity : AppCompatActivity() {
                 phone.length == 14 &&
                 phone.getOrNull(4) == '7'
             ) {
-
                 phone
-
             } else {
-
                 null
             }
         }
@@ -899,11 +864,8 @@ class MainActivity : AppCompatActivity() {
                 phone.length == 14 &&
                 phone.getOrNull(4) == '7'
             ) {
-
                 phone
-
             } else {
-
                 null
             }
         }
@@ -921,7 +883,6 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setCancelable(false)
-
                 show()
             }
 
@@ -964,7 +925,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // 3. شاشة OTP
+    // 3. OTP
     // =====================================================
 
     private fun showOtpScreen() {
@@ -1018,9 +979,7 @@ class MainActivity : AppCompatActivity() {
 
                 filters =
                     arrayOf(
-                        InputFilter.LengthFilter(
-                            6
-                        )
+                        InputFilter.LengthFilter(6)
                     )
             }
 
@@ -1069,7 +1028,6 @@ class MainActivity : AppCompatActivity() {
             "🔄  إرسال الرمز مرة أخرى",
             60
         ) {
-
             sendOtp()
         }
 
@@ -1078,7 +1036,6 @@ class MainActivity : AppCompatActivity() {
             "📱  تغيير رقم الهاتف",
             55
         ) {
-
             showPhoneLogin()
         }
 
@@ -1099,7 +1056,6 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setCancelable(false)
-
                 show()
             }
 
@@ -1153,9 +1109,7 @@ class MainActivity : AppCompatActivity() {
         if (
             phoneNumber.isBlank()
         ) {
-
             showPhoneLogin()
-
             return
         }
 
@@ -1344,19 +1298,7 @@ class MainActivity : AppCompatActivity() {
             sectionTitle(
                 "ماذا تحتاج اليوم؟",
                 "اختر الخدمة المناسبة لك"
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    0,
-                    0,
-                    dp(10)
-                )
-            }
+            )
         )
 
         addButton(
@@ -1364,7 +1306,6 @@ class MainActivity : AppCompatActivity() {
             "🩺  اطلب ممرضاً الآن",
             70
         ) {
-
             showRequestScreen()
         }
 
@@ -1373,19 +1314,7 @@ class MainActivity : AppCompatActivity() {
                 "خدمات سريعة",
                 20f,
                 DARK_BLUE
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(18),
-                    0,
-                    dp(8)
-                )
-            }
+            )
         )
 
         val row =
@@ -1411,15 +1340,7 @@ class MainActivity : AppCompatActivity() {
                 0,
                 dp(142),
                 1f
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(3),
-                    dp(4),
-                    dp(3)
-                )
-            }
+            )
         )
 
         row.addView(
@@ -1432,15 +1353,7 @@ class MainActivity : AppCompatActivity() {
                 0,
                 dp(142),
                 1f
-            ).apply {
-
-                setMargins(
-                    dp(4),
-                    dp(3),
-                    0,
-                    dp(3)
-                )
-            }
+            )
         )
 
         root.addView(row)
@@ -1450,19 +1363,7 @@ class MainActivity : AppCompatActivity() {
                 "الخدمات والمتابعة",
                 20f,
                 DARK_BLUE
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(18),
-                    0,
-                    dp(8)
-                )
-            }
+            )
         )
 
         addButton(
@@ -1470,7 +1371,6 @@ class MainActivity : AppCompatActivity() {
             "🏥  جميع الخدمات التمريضية",
             60
         ) {
-
             showServices()
         }
 
@@ -1479,7 +1379,6 @@ class MainActivity : AppCompatActivity() {
             "📋  طلباتي",
             60
         ) {
-
             showBookings()
         }
 
@@ -1488,7 +1387,6 @@ class MainActivity : AppCompatActivity() {
             "📍  تحديد موقع الطلب",
             60
         ) {
-
             showLocation()
         }
 
@@ -1497,7 +1395,6 @@ class MainActivity : AppCompatActivity() {
             "☎️  تواصل معنا",
             60
         ) {
-
             contactUs()
         }
 
@@ -1506,29 +1403,8 @@ class MainActivity : AppCompatActivity() {
             "↩️  العودة إلى شاشة الترحيب",
             54
         ) {
-
             showWelcome()
         }
-
-        root.addView(
-            text(
-                "التمريض المنزلي • رعاية أقرب وأسهل",
-                13f,
-                GRAY
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(12),
-                    0,
-                    dp(4)
-                )
-            }
-        )
 
         setContentView(
             scroll(root)
@@ -1602,9 +1478,7 @@ class MainActivity : AppCompatActivity() {
         if (
             phoneNumber.isBlank()
         ) {
-
             showPhoneLogin()
-
             return
         }
 
@@ -1624,19 +1498,7 @@ class MainActivity : AppCompatActivity() {
                 "أكمل البيانات التالية لإرسال طلب حقيقي",
                 16f,
                 GRAY
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(3),
-                    0,
-                    dp(12)
-                )
-            }
+            )
         )
 
         root.addView(
@@ -1664,8 +1526,7 @@ class MainActivity : AppCompatActivity() {
 
         serviceAdapter
             .setDropDownViewResource(
-                android.R.layout
-                    .simple_spinner_dropdown_item
+                android.R.layout.simple_spinner_dropdown_item
             )
 
         service.adapter =
@@ -1676,15 +1537,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(60)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(12)
-                )
-            }
+            )
         )
 
         val loadedServices =
@@ -1704,8 +1557,7 @@ class MainActivity : AppCompatActivity() {
                 adapter =
                     ArrayAdapter(
                         this@MainActivity,
-                        android.R.layout
-                            .simple_spinner_dropdown_item,
+                        android.R.layout.simple_spinner_dropdown_item,
                         anbarCities
                     )
             }
@@ -1715,15 +1567,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(60)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(12)
-                )
-            }
+            )
         )
 
         root.addView(
@@ -1744,15 +1588,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(60)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(10)
-                )
-            }
+            )
         )
 
         root.addView(
@@ -1768,9 +1604,7 @@ class MainActivity : AppCompatActivity() {
                 "المحلة، الشارع، أقرب نقطة...",
                 true
             ).apply {
-
-                textSize =
-                    16f
+                textSize = 16f
             }
 
         root.addView(
@@ -1778,15 +1612,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(105)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(10)
-                )
-            }
+            )
         )
 
         root.addView(
@@ -1812,15 +1638,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(62)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(5)
-                )
-            }
+            )
         )
 
         addButton(
@@ -1832,9 +1650,7 @@ class MainActivity : AppCompatActivity() {
             chooseSchedule(
                 schedule
             ) { iso ->
-
-                scheduledAt =
-                    iso
+                scheduledAt = iso
             }
         }
 
@@ -1858,15 +1674,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(90)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(4),
-                    0,
-                    dp(5)
-                )
-            }
+            )
         )
 
         addButton(
@@ -1896,9 +1704,7 @@ class MainActivity : AppCompatActivity() {
                 "ملاحظات عن الحالة (اختياري)",
                 true
             ).apply {
-
-                textSize =
-                    16f
+                textSize = 16f
             }
 
         root.addView(
@@ -1906,15 +1712,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(105)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(5),
-                    0,
-                    dp(12)
-                )
-            }
+            )
         )
 
         addButton(
@@ -1923,26 +1721,12 @@ class MainActivity : AppCompatActivity() {
             68
         ) {
 
-            if (
-                loadedServices.isEmpty()
-            ) {
-
-                Toast.makeText(
-                    this,
-                    "لم يتم تحميل الخدمات بعد",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                return@addButton
-            }
-
             val selectedPosition =
                 service.selectedItemPosition
 
             if (
                 selectedPosition < 0 ||
-                selectedPosition >=
-                    loadedServices.size
+                selectedPosition >= loadedServices.size
             ) {
 
                 Toast.makeText(
@@ -1968,9 +1752,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val selectedService =
-                loadedServices[
-                    selectedPosition
-                ]
+                loadedServices[selectedPosition]
 
             val patientName =
                 patient.text
@@ -2028,9 +1810,7 @@ class MainActivity : AppCompatActivity() {
                 patientName,
                 fullAddress,
                 scheduledAt,
-                notes.text
-                    .toString()
-                    .trim()
+                notes.text.toString().trim()
             )
         }
 
@@ -2039,7 +1819,6 @@ class MainActivity : AppCompatActivity() {
             "↩️ رجوع",
             55
         ) {
-
             showServicesHome()
         }
 
@@ -2054,8 +1833,7 @@ class MainActivity : AppCompatActivity() {
     ) {
 
         val now =
-            java.util.Calendar
-                .getInstance()
+            java.util.Calendar.getInstance()
 
         DatePickerDialog(
             this,
@@ -2080,8 +1858,7 @@ class MainActivity : AppCompatActivity() {
                                     )
 
                                     set(
-                                        java.util.Calendar
-                                            .MILLISECOND,
+                                        java.util.Calendar.MILLISECOND,
                                         0
                                     )
                                 }
@@ -2098,20 +1875,17 @@ class MainActivity : AppCompatActivity() {
                             )
 
                         val iso =
-                            java.text
-                                .SimpleDateFormat(
-                                    "yyyy-MM-dd'T'HH:mm:ssXXX",
-                                    java.util.Locale.US
-                                )
-                                .apply {
+                            java.text.SimpleDateFormat(
+                                "yyyy-MM-dd'T'HH:mm:ssXXX",
+                                java.util.Locale.US
+                            ).apply {
 
-                                    timeZone =
-                                        java.util.TimeZone
-                                            .getDefault()
-                                }
-                                .format(
-                                    selected.time
-                                )
+                                timeZone =
+                                    java.util.TimeZone.getDefault()
+
+                            }.format(
+                                selected.time
+                            )
 
                         target.text =
                             "📅 $display"
@@ -2120,8 +1894,7 @@ class MainActivity : AppCompatActivity() {
 
                     },
                     now.get(
-                        java.util.Calendar
-                            .HOUR_OF_DAY
+                        java.util.Calendar.HOUR_OF_DAY
                     ),
                     now.get(
                         java.util.Calendar.MINUTE
@@ -2219,7 +1992,6 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setCancelable(false)
-
                 show()
             }
 
@@ -2289,7 +2061,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // 6. جميع الخدمات
+    // 6. الخدمات
     // =====================================================
 
     private fun showServices() {
@@ -2343,7 +2115,6 @@ class MainActivity : AppCompatActivity() {
                         )
 
                     setOnClickListener {
-
                         showRequestScreen()
                     }
                 }
@@ -2369,15 +2140,7 @@ class MainActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams(
                     -1,
                     dp(90)
-                ).apply {
-
-                    setMargins(
-                        0,
-                        dp(5),
-                        0,
-                        dp(5)
-                    )
-                }
+                )
             )
         }
 
@@ -2386,7 +2149,6 @@ class MainActivity : AppCompatActivity() {
             "🩺  طلب خدمة الآن",
             65
         ) {
-
             showRequestScreen()
         }
 
@@ -2395,7 +2157,6 @@ class MainActivity : AppCompatActivity() {
             "↩️  رجوع",
             55
         ) {
-
             showServicesHome()
         }
 
@@ -2441,15 +2202,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(
                 -1,
                 dp(125)
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(20),
-                    0,
-                    dp(10)
-                )
-            }
+            )
         )
 
         addButton(
@@ -2471,7 +2224,6 @@ class MainActivity : AppCompatActivity() {
             "🗺️ فتح الموقع في خرائط Google",
             60
         ) {
-
             openCurrentLocationInMaps()
         }
 
@@ -2480,7 +2232,6 @@ class MainActivity : AppCompatActivity() {
             "↩️  رجوع",
             55
         ) {
-
             showServicesHome()
         }
 
@@ -2494,48 +2245,37 @@ class MainActivity : AppCompatActivity() {
     ) {
 
         val fine =
-            ContextCompat
-                .checkSelfPermission(
-                    this,
-                    Manifest.permission
-                        .ACCESS_FINE_LOCATION
-                )
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
 
         val coarse =
-            ContextCompat
-                .checkSelfPermission(
-                    this,
-                    Manifest.permission
-                        .ACCESS_COARSE_LOCATION
-                )
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
 
         if (
-            fine !=
-                PackageManager.PERMISSION_GRANTED &&
-            coarse !=
-                PackageManager.PERMISSION_GRANTED
+            fine != PackageManager.PERMISSION_GRANTED &&
+            coarse != PackageManager.PERMISSION_GRANTED
         ) {
 
-            ActivityCompat
-                .requestPermissions(
-                    this,
-                    arrayOf(
-                        Manifest.permission
-                            .ACCESS_FINE_LOCATION,
-                        Manifest.permission
-                            .ACCESS_COARSE_LOCATION
-                    ),
-                    LOCATION_REQUEST_CODE
-                )
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                LOCATION_REQUEST_CODE
+            )
 
             return
         }
 
         val client =
             LocationServices
-                .getFusedLocationProviderClient(
-                    this
-                )
+                .getFusedLocationProviderClient(this)
 
         client.lastLocation
             .addOnSuccessListener {
@@ -2654,8 +2394,7 @@ class MainActivity : AppCompatActivity() {
             if (
                 grantResults.any {
                     it ==
-                        PackageManager
-                            .PERMISSION_GRANTED
+                        PackageManager.PERMISSION_GRANTED
                 }
             ) {
 
@@ -2680,8 +2419,7 @@ class MainActivity : AppCompatActivity() {
 
                         startActivity(
                             Intent(
-                                Settings
-                                    .ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                 Uri.parse(
                                     "package:$packageName"
                                 )
@@ -2719,19 +2457,7 @@ class MainActivity : AppCompatActivity() {
                 "طلباتك المحفوظة في النظام وحالتها الحالية",
                 16f,
                 GRAY
-            ),
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            ).apply {
-
-                setMargins(
-                    0,
-                    dp(3),
-                    0,
-                    dp(12)
-                )
-            }
+            )
         )
 
         val loading =
@@ -2754,7 +2480,6 @@ class MainActivity : AppCompatActivity() {
             "🩺 إنشاء طلب جديد",
             65
         ) {
-
             showRequestScreen()
         }
 
@@ -2763,7 +2488,6 @@ class MainActivity : AppCompatActivity() {
             "↩️ رجوع",
             55
         ) {
-
             showServicesHome()
         }
 
@@ -2811,19 +2535,7 @@ class MainActivity : AppCompatActivity() {
                             "📭\nلا توجد طلبات حالياً",
                             20f,
                             DARK_BLUE
-                        ),
-                        LinearLayout.LayoutParams(
-                            -1,
-                            dp(160)
-                        ).apply {
-
-                            setMargins(
-                                0,
-                                dp(15),
-                                0,
-                                dp(10)
-                            )
-                        }
+                        )
                     )
 
                     return@launch
@@ -2955,15 +2667,7 @@ class MainActivity : AppCompatActivity() {
                         LinearLayout.LayoutParams(
                             -1,
                             dp(150)
-                        ).apply {
-
-                            setMargins(
-                                0,
-                                dp(5),
-                                0,
-                                dp(8)
-                            )
-                        }
+                        )
                     )
                 }
 
