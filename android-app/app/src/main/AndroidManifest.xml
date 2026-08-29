@@ -15,6 +15,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
+        <!-- شاشة المستخدم -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -28,6 +29,11 @@
             </intent-filter>
 
         </activity>
+
+        <!-- شاشة الممرض -->
+        <activity
+            android:name=".NurseActivity"
+            android:exported="false" />
 
     </application>
 
