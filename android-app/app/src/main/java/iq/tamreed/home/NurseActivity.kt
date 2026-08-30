@@ -553,11 +553,12 @@ class NurseActivity : AppCompatActivity() {
 
                 setOnClickListener {
 
-                    Toast.makeText(
+                    val intent = Intent(
                         this@NurseActivity,
-                        "سيتم فتح الطلبات في المرحلة التالية",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        NurseRequestsActivity::class.java
+                    )
+
+                    startActivity(intent)
                 }
             }
 
