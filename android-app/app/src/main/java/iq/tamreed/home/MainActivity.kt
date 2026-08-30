@@ -346,6 +346,84 @@ class MainActivity : AppCompatActivity() {
         return bar
     }
 
+    private fun accountSummaryCard(): LinearLayout {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 20)
+            elevation = dp(2).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        val avatar = TextView(this).apply {
+            text = "👤"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            background = rounded(LIGHT_BLUE, 18)
+        }
+
+        card.addView(
+            avatar,
+            LinearLayout.LayoutParams(dp(60), dp(60)).apply {
+                marginStart = dp(10)
+            }
+        )
+
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.RIGHT
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val title = if (phoneNumber.isBlank()) "مرحباً بك" else "مرحباً بك"
+        info.addView(text(title, 18f, NAVY, true))
+        info.addView(
+            text(
+                if (phoneNumber.isBlank()) "حساب المريض" else phoneNumber,
+                13f,
+                GRAY
+            )
+        )
+
+        val verified = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        verified.addView(text("✓", 15f, GREEN, true))
+        verified.addView(text(" حساب موثق", 12f, GREEN, true))
+        info.addView(verified)
+
+        card.addView(
+            info,
+            LinearLayout.LayoutParams(0, -2, 1f)
+        )
+
+        return card
+    }
+
+    private fun quickActionCard(
+        icon: String,
+        title: String,
+        subtitle: String,
+        action: () -> Unit
+    ): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bordered(WHITE, BORDER, 18)
+            setPadding(dp(8), dp(10), dp(8), dp(10))
+            elevation = dp(1).toFloat()
+            setOnClickListener { action() }
+
+            addView(text(icon, 28f, NAVY, true))
+            addView(text(title, 15f, NAVY, true))
+            addView(text(subtitle, 11f, GRAY))
+        }
+    }
+
     private fun bottomNavigation(
         selected: String
     ): LinearLayout {
@@ -997,6 +1075,37 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 12)
 
+        root.addView(accountSummaryCard())
+
+        addSpace(root, 12)
+
+        val quickRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        quickRow.addView(
+            quickActionCard("📋", "طلباتي", "متابعة الطلبات") {
+                showBookings()
+            },
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply {
+                marginEnd = dp(5)
+            }
+        )
+
+        quickRow.addView(
+            quickActionCard("🩺", "الخدمات", "اختر خدمة") {
+                showServices()
+            },
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply {
+                marginStart = dp(5)
+            }
+        )
+
+        root.addView(quickRow)
+
+        addSpace(root, 14)
+
         val welcome =
             LinearLayout(this).apply {
 
@@ -1031,7 +1140,7 @@ class MainActivity : AppCompatActivity() {
 
         welcome.addView(
             text(
-                "خدمة تمريض تصل إليك أينما كنت",
+                "رعاية تمريضية منزلية منظمة",
                 16f,
                 WHITE
             )
@@ -1740,7 +1849,7 @@ class MainActivity : AppCompatActivity() {
             medicalVisualCard(
                 "🛡️",
                 "تنبيه طبي",
-                "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. في الحالات الحرجة اتصل بالإسعاف فوراً."
+                "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. في الحالات الحرجة اتصل بالإسعاف فوراً. لا تشارك بيانات حساسة غير ضرورية في الملاحظات."
             )
         )
 
@@ -3190,7 +3299,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("سياسة الخصوصية")
             .setMessage(
-                "نستخدم بيانات الحساب والطلب لتقديم خدمة التمريض ومتابعة الطلب."
+                "نستخدم بيانات الحساب والطلب والموقع فقط لتقديم خدمة التمريض ومتابعة الطلب ومساعدة الممرض على الوصول إلى موقع المريض. لا تكتب في الملاحظات معلومات حساسة غير ضرورية."
             )
             .setPositiveButton("حسناً", null)
             .show()
