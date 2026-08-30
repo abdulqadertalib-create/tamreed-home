@@ -562,6 +562,25 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(emergency)
 
+        addSpace(root, 14)
+
+        root.addView(
+            outlineButton(
+                "🩺 دخول الممرضين"
+            ) {
+                startActivity(
+                    Intent(
+                        this,
+                        NurseLoginActivity::class.java
+                    )
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            )
+        )
+
         setContentView(scroll(root))
     }
 
