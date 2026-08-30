@@ -1,6 +1,5 @@
 package iq.tamreed.home
 
-import android.content.Intent
 import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.graphics.Color
@@ -25,17 +24,24 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class NurseProfile(
+data class NurseLoginRecord(
     val id: String,
+    val user_id: String? = null,
     val full_name: String? = null,
     val phone: String? = null,
-    val active: Boolean = true
+    val specialty: String? = null,
+    val experience_years: Int? = null,
+    val city: String? = null,
+    val address: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val is_available: Boolean? = true,
+    val is_verified: Boolean? = false
 )
 
 class NurseLoginActivity : AppCompatActivity() {
 
     private val NAVY = Color.rgb(5, 62, 105)
-    private val BLUE = Color.rgb(31, 115, 176)
     private val LIGHT_BLUE = Color.rgb(235, 245, 251)
     private val TEXT = Color.rgb(45, 45, 45)
     private val GRAY = Color.rgb(120, 120, 120)
@@ -66,65 +72,50 @@ class NurseLoginActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
 
     private fun rounded(
         color: Int,
         radius: Int = 18
-    ): GradientDrawable =
-        GradientDrawable().apply {
+    ): GradientDrawable {
+        return GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
         }
+    }
 
     private fun bordered(
         color: Int = WHITE,
         strokeColor: Int = BORDER,
         radius: Int = 16
-    ): GradientDrawable =
-        GradientDrawable().apply {
+    ): GradientDrawable {
+        return GradientDrawable().apply {
             setColor(color)
             setStroke(dp(1), strokeColor)
             cornerRadius = dp(radius).toFloat()
         }
-
-    private fun rootLayout(): LinearLayout =
-        LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.TOP
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setBackgroundColor(LIGHT_GRAY)
-            setPadding(
-                dp(14),
-                dp(12),
-                dp(14),
-                dp(80)
-            )
-        }
-
-    private fun scroll(view: View): ScrollView =
-        ScrollView(this).apply {
-            isFillViewport = true
-            setBackgroundColor(LIGHT_GRAY)
-            addView(view)
-        }
+    }
 
     private fun text(
         value: String,
         size: Float = 16f,
         color: Int = TEXT,
         bold: Boolean = false
-    ): TextView =
-        TextView(this).apply {
+    ): TextView {
+
+        return TextView(this).apply {
             text = value
             textSize = size
             setTextColor(color)
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
+
             if (bold) {
                 setTypeface(null, Typeface.BOLD)
             }
+
             setPadding(
                 dp(6),
                 dp(6),
@@ -132,28 +123,33 @@ class NurseLoginActivity : AppCompatActivity() {
                 dp(6)
             )
         }
+    }
 
     private fun primaryButton(
         title: String,
         action: () -> Unit
-    ): Button =
-        Button(this).apply {
+    ): Button {
+
+        return Button(this).apply {
             text = title
             textSize = 17f
             isAllCaps = false
             setTextColor(WHITE)
             gravity = Gravity.CENTER
             background = rounded(NAVY, 15)
+
             setOnClickListener {
                 action()
             }
         }
+    }
 
     private fun outlineButton(
         title: String,
         action: () -> Unit
-    ): Button =
-        Button(this).apply {
+    ): Button {
+
+        return Button(this).apply {
             text = title
             textSize = 16f
             isAllCaps = false
@@ -164,15 +160,46 @@ class NurseLoginActivity : AppCompatActivity() {
                 NAVY,
                 15
             )
+
             setOnClickListener {
                 action()
             }
         }
+    }
 
-    private fun addSpace(
+    private fun rootLayout(): LinearLayout {
+
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(LIGHT_GRAY)
+
+            setPadding(
+                dp(14),
+                dp(12),
+                dp(14),
+                dp(80)
+            )
+        }
+    }
+
+    private fun scroll(
+        view: View
+    ): ScrollView {
+
+        return ScrollView(this).apply {
+            isFillViewport = true
+            setBackgroundColor(LIGHT_GRAY)
+            addView(view)
+        }
+    }
+
+    private fun space(
         parent: LinearLayout,
         height: Int
     ) {
+
         parent.addView(
             Space(this),
             LinearLayout.LayoutParams(
@@ -186,62 +213,18 @@ class NurseLoginActivity : AppCompatActivity() {
 
         val root = rootLayout()
 
-        val header =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-                background =
-                    rounded(NAVY, 24)
-                setPadding(
-                    dp(15),
-                    dp(20),
-                    dp(15),
-                    dp(20)
-                )
-            }
-
-        header.addView(
+        root.addView(
             text(
                 "🩺",
                 55f,
-                WHITE
+                NAVY
             )
         )
 
-        header.addView(
+        root.addView(
             text(
                 "دخول الممرض",
-                29f,
-                WHITE,
-                true
-            )
-        )
-
-        header.addView(
-            text(
-                "منصة التمريض المنزلي - الأنبار",
-                15f,
-                WHITE
-            )
-        )
-
-        root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(180)
-            )
-        )
-
-        addSpace(root, 25)
-
-        root.addView(
-            text(
-                "تسجيل دخول الممرض",
-                27f,
+                30f,
                 NAVY,
                 true
             )
@@ -249,37 +232,52 @@ class NurseLoginActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "أدخل رقم الهاتف المسجل لدى إدارة التمريض",
-                15f,
+                "منصة التمريض المنزلي - الأنبار",
+                16f,
                 GRAY
             )
         )
 
-        addSpace(root, 18)
+        space(root, 25)
 
         val card =
             LinearLayout(this).apply {
+
                 orientation =
                     LinearLayout.VERTICAL
+
                 gravity =
                     Gravity.CENTER
+
                 background =
                     rounded(WHITE, 20)
+
                 setPadding(
                     dp(18),
-                    dp(20),
+                    dp(25),
                     dp(18),
-                    dp(20)
+                    dp(25)
                 )
             }
 
         card.addView(
             text(
                 "📱",
-                42f,
+                45f,
                 NAVY
             )
         )
+
+        card.addView(
+            text(
+                "رقم هاتف الممرض",
+                20f,
+                NAVY,
+                true
+            )
+        )
+
+        space(card, 10)
 
         val phone =
             EditText(this).apply {
@@ -327,7 +325,7 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(card, 12)
+        space(card, 12)
 
         card.addView(
             primaryButton(
@@ -340,15 +338,19 @@ class NurseLoginActivity : AppCompatActivity() {
                     )
 
                 if (normalized == null) {
+
                     phone.error =
                         "رقم هاتف عراقي غير صحيح"
+
                     return@primaryButton
                 }
 
-                phoneNumber = normalized
+                phoneNumber =
+                    normalized
 
                 sendOtp()
             },
+
             LinearLayout.LayoutParams(
                 -1,
                 dp(62)
@@ -363,27 +365,35 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(root, 18)
+        space(root, 18)
 
-        val security =
+        val info =
             LinearLayout(this).apply {
+
                 orientation =
                     LinearLayout.HORIZONTAL
+
                 gravity =
                     Gravity.CENTER_VERTICAL
+
                 layoutDirection =
                     View.LAYOUT_DIRECTION_RTL
+
                 background =
-                    rounded(LIGHT_BLUE, 18)
+                    rounded(
+                        LIGHT_BLUE,
+                        18
+                    )
+
                 setPadding(
                     dp(12),
-                    dp(10),
                     dp(12),
-                    dp(10)
+                    dp(12),
+                    dp(12)
                 )
             }
 
-        security.addView(
+        info.addView(
             text(
                 "🔐",
                 32f,
@@ -395,7 +405,7 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        security.addView(
+        info.addView(
             text(
                 "الدخول مقصور على الممرضين المسجلين والمعتمدين.",
                 14f,
@@ -409,13 +419,13 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        root.addView(security)
+        root.addView(info)
 
-        addSpace(root, 15)
+        space(root, 15)
 
         root.addView(
             outlineButton(
-                "العودة إلى تسجيل دخول المريض"
+                "العودة"
             ) {
                 finish()
             },
@@ -425,7 +435,9 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        setContentView(scroll(root))
+        setContentView(
+            scroll(root)
+        )
     }
 
     private fun normalizeIraqPhone(
@@ -441,6 +453,7 @@ class NurseLoginActivity : AppCompatActivity() {
                 .replace(")", "")
 
         if (phone.startsWith("+964")) {
+
             return if (
                 phone.length == 14 &&
                 phone.getOrNull(4) == '7'
@@ -452,6 +465,7 @@ class NurseLoginActivity : AppCompatActivity() {
         }
 
         if (phone.startsWith("00964")) {
+
             phone =
                 "+" + phone.substring(2)
 
@@ -466,6 +480,7 @@ class NurseLoginActivity : AppCompatActivity() {
         }
 
         if (phone.startsWith("07")) {
+
             phone =
                 "+964" + phone.substring(1)
 
@@ -485,9 +500,11 @@ class NurseLoginActivity : AppCompatActivity() {
 
         val loading =
             ProgressDialog(this).apply {
+
                 setMessage(
                     "جاري إرسال رمز التحقق..."
                 )
+
                 setCancelable(false)
                 show()
             }
@@ -524,27 +541,8 @@ class NurseLoginActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "‹",
-                42f,
-                NAVY
-            ).apply {
-                gravity = Gravity.RIGHT
-                setOnClickListener {
-                    showPhoneScreen()
-                }
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(55)
-            )
-        )
-
-        addSpace(root, 20)
-
-        root.addView(
-            text(
                 "🔐",
-                58f,
+                55f,
                 NAVY
             )
         )
@@ -552,7 +550,7 @@ class NurseLoginActivity : AppCompatActivity() {
         root.addView(
             text(
                 "تأكيد رقم الممرض",
-                27f,
+                28f,
                 NAVY,
                 true
             )
@@ -567,7 +565,7 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(root, 20)
+        space(root, 25)
 
         val code =
             EditText(this).apply {
@@ -614,7 +612,7 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(root, 18)
+        space(root, 18)
 
         root.addView(
             primaryButton(
@@ -625,8 +623,10 @@ class NurseLoginActivity : AppCompatActivity() {
                     code.text.toString().trim()
 
                 if (value.length != 6) {
+
                     code.error =
                         "أدخل 6 أرقام"
+
                     return@primaryButton
                 }
 
@@ -638,7 +638,7 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(root, 10)
+        space(root, 10)
 
         root.addView(
             outlineButton(
@@ -652,7 +652,9 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        setContentView(scroll(root))
+        setContentView(
+            scroll(root)
+        )
     }
 
     private fun verifyOtp(
@@ -661,9 +663,11 @@ class NurseLoginActivity : AppCompatActivity() {
 
         val loading =
             ProgressDialog(this).apply {
+
                 setMessage(
                     "جاري التحقق..."
                 )
+
                 setCancelable(false)
                 show()
             }
@@ -703,15 +707,18 @@ class NurseLoginActivity : AppCompatActivity() {
                 .currentUserOrNull()
 
         if (user == null) {
+
             showPhoneScreen()
             return
         }
 
         val loading =
             ProgressDialog(this).apply {
+
                 setMessage(
                     "جاري التحقق من اعتماد الممرض..."
                 )
+
                 setCancelable(false)
                 show()
             }
@@ -720,52 +727,67 @@ class NurseLoginActivity : AppCompatActivity() {
 
             try {
 
+                /*
+                 * مهم جداً:
+                 * جدول nurses عندك يحتوي user_id
+                 * لذلك نبحث باستخدام user_id
+                 * وليس id.
+                 */
+
                 val nurses =
                     SupabaseManager.client
                         .from("nurses")
                         .select {
                             filter {
                                 eq(
-                                    "id",
+                                    "user_id",
                                     user.id
                                 )
                                 eq(
-                                    "active",
+                                    "is_verified",
                                     true
                                 )
                             }
                         }
-                        .decodeList<NurseProfile>()
+                        .decodeList<NurseLoginRecord>()
 
                 loading.dismiss()
 
                 if (nurses.isEmpty()) {
 
-                    /*
-                     * المستخدم موثق برقم الهاتف لكنه
-                     * ليس ضمن جدول الممرضين المعتمدين.
-                     */
-                    try {
-                        SupabaseManager.client.auth
-                            .signOut()
-                    } catch (_: Exception) {
-                    }
-
                     showError(
                         "الدخول غير مصرح",
-                        "هذا الرقم غير مسجل كممرض معتمد في النظام.\n\n" +
-                            "يرجى التواصل مع إدارة التمريض لإضافة الحساب."
+                        "هذا الرقم غير مسجل كممرض معتمد في النظام."
                     )
 
                     return@launch
                 }
 
-                startActivity(
-                    Intent(
+                val nurse =
+                    nurses.first()
+
+                val intent =
+                    android.content.Intent(
                         this@NurseLoginActivity,
                         NurseActivity::class.java
                     )
+
+                intent.putExtra(
+                    "nurse_id",
+                    nurse.id
                 )
+
+                intent.putExtra(
+                    "nurse_user_id",
+                    nurse.user_id ?: user.id
+                )
+
+                intent.putExtra(
+                    "nurse_name",
+                    nurse.full_name ?: "الممرض"
+                )
+
+                startActivity(intent)
 
                 finish()
 
@@ -774,9 +796,9 @@ class NurseLoginActivity : AppCompatActivity() {
                 loading.dismiss()
 
                 showError(
-                    "تعذر التحقق من الممرض",
-                    "تأكد من إنشاء جدول nurses في Supabase.\n\n" +
-                        (e.message ?: "")
+                    "خطأ في قاعدة البيانات",
+                    e.message
+                        ?: "تعذر قراءة بيانات الممرض."
                 )
             }
         }
@@ -786,8 +808,6 @@ class NurseLoginActivity : AppCompatActivity() {
         title: String,
         message: String
     ) {
-
-        if (isFinishing) return
 
         AlertDialog.Builder(this)
             .setTitle(title)
