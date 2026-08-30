@@ -20,6 +20,11 @@
             android:name=".NurseLoginActivity"
             android:exported="false" />
 
+        <!-- لوحة الإدارة واعتماد الممرضين -->
+        <activity
+            android:name=".AdminActivity"
+            android:exported="false" />
+
         <!-- لوحة الممرض -->
         <activity
             android:name=".NurseActivity"
