@@ -226,6 +226,67 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun medicalVisualCard(
+        icon: String,
+        title: String,
+        description: String
+    ): LinearLayout {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 20)
+            elevation = dp(2).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        card.addView(
+            text(
+                icon,
+                38f,
+                NAVY
+            ),
+            LinearLayout.LayoutParams(
+                dp(65),
+                dp(70)
+            )
+        )
+
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.RIGHT
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        info.addView(
+            text(
+                title,
+                17f,
+                NAVY,
+                true
+            )
+        )
+
+        info.addView(
+            text(
+                description,
+                13f,
+                GRAY
+            )
+        )
+
+        card.addView(
+            info,
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        return card
+    }
+
     private fun topBar(
         title: String,
         backAction: (() -> Unit)? = null
@@ -568,6 +629,26 @@ class MainActivity : AppCompatActivity() {
         )
 
         root.addView(emergency)
+
+        addSpace(root, 12)
+
+        root.addView(
+            medicalVisualCard(
+                "🔐",
+                "تسجيل آمن برقم الهاتف",
+                "رمز تحقق OTP لحماية حسابك وطلبات الرعاية المنزلية."
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "❤️",
+                "رعاية المريض أولاً",
+                "منصة محلية لخدمات التمريض والرعاية المنزلية في الأنبار."
+            )
+        )
 
         addSpace(root, 14)
 
@@ -1079,6 +1160,47 @@ class MainActivity : AppCompatActivity() {
         )
 
         root.addView(row2)
+
+        addSpace(root, 16)
+
+        root.addView(
+            text(
+                "الرعاية المنزلية باحتراف",
+                22f,
+                NAVY,
+                true
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "👩‍⚕️",
+                "ممرضون وممرضات",
+                "خدمة تمريض منزلية منظمة مع متابعة حالة الطلب."
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "🩺",
+                "عناية صحية منزلية",
+                "حقن، جروح، قياسات حيوية، ورعاية كبار السن."
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "📍",
+                "وصول أسهل للمريض",
+                "حدد موقع المريض والنقطة الدالة لمساعدة الممرض على الوصول."
+            )
+        )
 
         addSpace(root, 14)
 
@@ -1603,6 +1725,16 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        addSpace(root, 12)
+
+        root.addView(
+            medicalVisualCard(
+                "🛡️",
+                "تنبيه طبي",
+                "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. في الحالات الحرجة اتصل بالإسعاف فوراً."
+            )
+        )
+
         addSpace(root, 18)
 
         // ----------------------------------------------------
@@ -1859,6 +1991,16 @@ class MainActivity : AppCompatActivity() {
             topBar(
                 "الخدمات",
                 ::showHome
+            )
+        )
+
+        addSpace(root, 12)
+
+        root.addView(
+            medicalVisualCard(
+                "🏥",
+                "خدمات تمريض منزلية",
+                "اختر الخدمة المناسبة ثم أرسل طلبك ليتم التعامل معه من خلال النظام."
             )
         )
 
@@ -2773,6 +2915,9 @@ class MainActivity : AppCompatActivity() {
                     patientPhone = ""
                     selectedCity = ""
                     landmark = ""
+                    selectedLatitude = null
+                    selectedLongitude = null
+                    selectedAddress = ""
 
                     showPhoneLogin()
                 }
@@ -2849,7 +2994,8 @@ class MainActivity : AppCompatActivity() {
             .setTitle("عن التطبيق")
             .setMessage(
                 "التمريض المنزلي\n\n" +
-                    "منصة لخدمات التمريض والرعاية الصحية المنزلية في محافظة الأنبار - العراق."
+                    "منصة رقمية لخدمات التمريض والرعاية الصحية المنزلية في محافظة الأنبار - العراق.\n\n" +
+                    "تساعدك على تسجيل الدخول برقم الهاتف، اختيار الخدمة، إدخال بيانات المريض، تحديد الموقع، إرسال الطلب ومتابعة حالته."
             )
             .setPositiveButton("حسناً", null)
             .show()
