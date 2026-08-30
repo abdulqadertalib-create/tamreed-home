@@ -1038,9 +1038,9 @@ class NurseLoginActivity : AppCompatActivity() {
                 SupabaseManager
                     .client
                     .auth
-                    .verifyOtp(
+                    .verifyPhoneOtp(
                         type = OtpType.Phone.SMS,
-                        phone = phoneNumber,
+                        phoneNumber = phoneNumber,
                         token = token
                     )
 
