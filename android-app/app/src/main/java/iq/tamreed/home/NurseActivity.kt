@@ -33,7 +33,10 @@ data class NurseBookingRow(
     val address: String,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val scheduled_at: String,
+
+    // أصبح اختياريًا لأننا ألغينا الموعد والتاريخ والوقت
+    val scheduled_at: String? = null,
+
     val status: String,
     val notes: String? = null,
     val created_at: String
@@ -51,10 +54,13 @@ class NurseActivity : AppCompatActivity() {
     private val LIGHT_GRAY = Color.rgb(245, 247, 250)
 
     private val scope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        CoroutineScope(
+            SupervisorJob() + Dispatchers.Main
+        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         showHome()
     }
 
@@ -63,43 +69,65 @@ class NurseActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int {
+        return (
+            value * resources.displayMetrics.density
+        ).toInt()
+    }
 
-    private fun background(color: Int, radius: Int = 18): GradientDrawable =
-        GradientDrawable().apply {
+    private fun background(
+        color: Int,
+        radius: Int = 18
+    ): GradientDrawable {
+        return GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
         }
+    }
 
-    private fun root(): LinearLayout =
-        LinearLayout(this).apply {
+    private fun root(): LinearLayout {
+        return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             gravity = Gravity.TOP
             setBackgroundColor(Color.WHITE)
-            setPadding(dp(16), dp(20), dp(16), dp(20))
-        }
 
-    private fun scroll(view: View): ScrollView =
-        ScrollView(this).apply {
+            setPadding(
+                dp(16),
+                dp(20),
+                dp(16),
+                dp(20)
+            )
+        }
+    }
+
+    private fun scroll(view: View): ScrollView {
+        return ScrollView(this).apply {
             setBackgroundColor(Color.WHITE)
             addView(view)
         }
+    }
 
     private fun label(
         value: String,
         size: Float = 16f,
         color: Int = TEXT
-    ): TextView =
-        TextView(this).apply {
+    ): TextView {
+        return TextView(this).apply {
             text = value
             textSize = size
             setTextColor(color)
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(6), dp(6), dp(6), dp(6))
+
+            setPadding(
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
+            )
         }
+    }
 
     private fun addButton(
         container: LinearLayout,
@@ -107,98 +135,224 @@ class NurseActivity : AppCompatActivity() {
         color: Int = BLUE,
         action: () -> Unit
     ) {
-        val b = Button(this).apply {
+        val button = Button(this).apply {
             text = title
             textSize = 16f
             isAllCaps = false
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             background = background(color, 16)
-            setOnClickListener { action() }
+
+            setOnClickListener {
+                action()
+            }
         }
 
         container.addView(
-            b,
-            LinearLayout.LayoutParams(-1, dp(58)).apply {
-                setMargins(0, dp(4), 0, dp(6))
+            button,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            ).apply {
+                setMargins(
+                    0,
+                    dp(4),
+                    0,
+                    dp(6)
+                )
             }
         )
     }
 
     private fun showHome() {
+
         val root = root()
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(15), dp(25), dp(15), dp(25))
-            background = background(LIGHT_BLUE, 25)
+
+            setPadding(
+                dp(15),
+                dp(25),
+                dp(15),
+                dp(25)
+            )
+
+            background = background(
+                LIGHT_BLUE,
+                25
+            )
         }
 
-        header.addView(label("ðŸ‘¨â€âš•ï¸", 48f, DARK_BLUE))
-        header.addView(label("Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ù…Ø±Ø¶", 28f, DARK_BLUE))
-        header.addView(label("Ø¥Ø¯Ø§Ø±Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„ØªÙ…Ø±ÙŠØ¶ Ø§Ù„Ù…Ù†Ø²Ù„ÙŠ", 16f, GRAY))
+        header.addView(
+            label(
+                "👨‍⚕️",
+                48f,
+                DARK_BLUE
+            )
+        )
+
+        header.addView(
+            label(
+                "لوحة الممرض",
+                28f,
+                DARK_BLUE
+            )
+        )
+
+        header.addView(
+            label(
+                "إدارة طلبات التمريض المنزلي",
+                16f,
+                GRAY
+            )
+        )
 
         root.addView(
             header,
-            LinearLayout.LayoutParams(-1, -2).apply {
-                setMargins(0, 0, 0, dp(20))
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+                setMargins(
+                    0,
+                    0,
+                    0,
+                    dp(20)
+                )
             }
         )
 
-        addButton(root, "ðŸ“‹ Ø¹Ø±Ø¶ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ø±Ø¶Ù‰") { showBookings() }
-        addButton(root, "ðŸ”„ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø·Ù„Ø¨Ø§Øª") { showBookings() }
-        addButton(root, "ðŸ  Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„ØªØ·Ø¨ÙŠÙ‚") { finish() }
+        addButton(
+            root,
+            "📋 عرض طلبات المرضى"
+        ) {
+            showBookings()
+        }
+
+        addButton(
+            root,
+            "🔄 تحديث الطلبات"
+        ) {
+            showBookings()
+        }
+
+        addButton(
+            root,
+            "🏠 العودة للتطبيق"
+        ) {
+            finish()
+        }
 
         root.addView(
-            label("ÙŠÙ…ÙƒÙ† Ù„Ù„Ù…Ù…Ø±Ø¶ Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª ÙˆØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„ØªÙ‡Ø§.", 14f, GRAY)
+            label(
+                "يمكن للممرض متابعة الطلبات وتحديث حالتها.",
+                14f,
+                GRAY
+            )
         )
 
-        setContentView(scroll(root))
+        setContentView(
+            scroll(root)
+        )
     }
 
     private fun showBookings() {
+
         val root = root()
 
-        root.addView(label("ðŸ“‹ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ø±Ø¶Ù‰", 29f, DARK_BLUE))
-        root.addView(label("Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù…", 16f, GRAY))
+        root.addView(
+            label(
+                "📋 طلبات المرضى",
+                29f,
+                DARK_BLUE
+            )
+        )
 
-        val loading = label("â³ Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª...", 16f, GRAY)
+        root.addView(
+            label(
+                "الطلبات الموجودة في النظام",
+                16f,
+                GRAY
+            )
+        )
+
+        val loading = label(
+            "⏳ جاري تحميل الطلبات...",
+            16f,
+            GRAY
+        )
 
         root.addView(
             loading,
-            LinearLayout.LayoutParams(-1, dp(80))
+            LinearLayout.LayoutParams(
+                -1,
+                dp(80)
+            )
         )
 
-        addButton(root, "â†©ï¸ Ø§Ù„Ø¹ÙˆØ¯Ø©") { showHome() }
-        setContentView(scroll(root))
+        addButton(
+            root,
+            "↩️ العودة"
+        ) {
+            showHome()
+        }
+
+        setContentView(
+            scroll(root)
+        )
 
         scope.launch {
-            try {
-                val bookings = SupabaseManager.client
-                    .from("bookings")
-                    .select()
-                    .decodeList<NurseBookingRow>()
 
-                loading.visibility = View.GONE
+            try {
+
+                val bookings =
+                    SupabaseManager.client
+                        .from("bookings")
+                        .select()
+                        .decodeList<NurseBookingRow>()
+
+                loading.visibility =
+                    View.GONE
 
                 if (bookings.isEmpty()) {
+
                     root.addView(
-                        label("ðŸ“­\nÙ„Ø§ ØªÙˆØ¬Ø¯ Ø·Ù„Ø¨Ø§Øª Ø­Ø§Ù„ÙŠØ§Ù‹", 20f, DARK_BLUE),
-                        LinearLayout.LayoutParams(-1, dp(150))
+                        label(
+                            "📭\nلا توجد طلبات حالياً",
+                            20f,
+                            DARK_BLUE
+                        ),
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(150)
+                        )
                     )
+
                     return@launch
                 }
 
                 bookings
-                    .sortedByDescending { it.created_at }
-                    .forEach { addBooking(root, it) }
+                    .sortedByDescending {
+                        it.created_at
+                    }
+                    .forEach {
+                        addBooking(
+                            root,
+                            it
+                        )
+                    }
 
             } catch (e: Exception) {
+
                 loading.text =
-                    "âš ï¸ ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª\n\n" +
-                        (e.message ?: "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ")
+                    "⚠️ تعذر تحميل الطلبات\n\n" +
+                    (
+                        e.message
+                            ?: "خطأ غير معروف"
+                    )
             }
         }
     }
@@ -207,35 +361,69 @@ class NurseActivity : AppCompatActivity() {
         root: LinearLayout,
         booking: NurseBookingRow
     ) {
+
         val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            gravity = Gravity.RIGHT
-            setPadding(dp(14), dp(12), dp(14), dp(12))
-            background = background(LIGHT_GRAY, 20)
+
+            orientation =
+                LinearLayout.VERTICAL
+
+            layoutDirection =
+                View.LAYOUT_DIRECTION_RTL
+
+            gravity =
+                Gravity.RIGHT
+
+            setPadding(
+                dp(14),
+                dp(12),
+                dp(14),
+                dp(12)
+            )
+
+            background =
+                background(
+                    LIGHT_GRAY,
+                    20
+                )
         }
 
         card.addView(
-            label("ðŸ©º ${serviceName(booking.service_id)}", 19f, DARK_BLUE)
+            label(
+                "🩺 ${serviceName(booking.service_id)}",
+                19f,
+                DARK_BLUE
+            )
         )
-        card.addView(
-            label("ðŸ‘¤ Ø§Ù„Ù…Ø±ÙŠØ¶: ${booking.address}", 15f, TEXT)
-        )
-        card.addView(
-            label("ðŸ“… Ø§Ù„Ù…ÙˆØ¹Ø¯: ${booking.scheduled_at}", 14f, GRAY)
-        )
+
         card.addView(
             label(
-                "ðŸ“Œ ${statusText(booking.status)}",
+                "👤 المريض: ${booking.address}",
+                15f,
+                TEXT
+            )
+        )
+
+        /*
+         * تم إلغاء عرض التاريخ والوقت.
+         *
+         * لا نعرض scheduled_at للممرض.
+         */
+
+        card.addView(
+            label(
+                "📌 ${statusText(booking.status)}",
                 16f,
-                statusColor(booking.status)
+                statusColor(
+                    booking.status
+                )
             )
         )
 
         if (!booking.nurse_id.isNullOrBlank()) {
+
             card.addView(
                 label(
-                    "ðŸ‘¨â€âš•ï¸ ØªÙ… ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ù…Ù…Ø±Ø¶ Ù„Ù‡Ø°Ø§ Ø§Ù„Ø·Ù„Ø¨",
+                    "👨‍⚕️ تم تعيين الممرض لهذا الطلب",
                     14f,
                     GREEN
                 )
@@ -243,63 +431,148 @@ class NurseActivity : AppCompatActivity() {
         }
 
         if (!booking.notes.isNullOrBlank()) {
-            card.addView(label("ðŸ“ ${booking.notes}", 14f, GRAY))
+
+            card.addView(
+                label(
+                    "📝 ${booking.notes}",
+                    14f,
+                    GRAY
+                )
+            )
         }
 
         root.addView(
             card,
-            LinearLayout.LayoutParams(-1, -2).apply {
-                setMargins(0, dp(5), 0, dp(3))
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            ).apply {
+
+                setMargins(
+                    0,
+                    dp(5),
+                    0,
+                    dp(3)
+                )
             }
         )
 
         when (booking.status) {
-            "PENDING" -> addButton(root, "âœ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨", GREEN) {
-                acceptBooking(booking.id)
+
+            "PENDING" -> {
+
+                addButton(
+                    root,
+                    "✅ قبول الطلب",
+                    GREEN
+                ) {
+
+                    acceptBooking(
+                        booking.id
+                    )
+                }
             }
 
-            "ACCEPTED" -> addButton(root, "ðŸš— Ø§Ù„Ù…Ù…Ø±Ø¶ ÙÙŠ Ø§Ù„Ø·Ø±ÙŠÙ‚") {
-                changeStatus(booking.id, "ON_THE_WAY")
+            "ACCEPTED" -> {
+
+                addButton(
+                    root,
+                    "🚗 الممرض في الطريق"
+                ) {
+
+                    changeStatus(
+                        booking.id,
+                        "ON_THE_WAY"
+                    )
+                }
             }
 
-            "ON_THE_WAY" -> addButton(root, "ðŸ©º Ø¨Ø¯Ø£Øª Ø§Ù„Ø²ÙŠØ§Ø±Ø©") {
-                changeStatus(booking.id, "IN_PROGRESS")
+            "ON_THE_WAY" -> {
+
+                addButton(
+                    root,
+                    "🩺 بدأت الزيارة"
+                ) {
+
+                    changeStatus(
+                        booking.id,
+                        "IN_PROGRESS"
+                    )
+                }
             }
 
-            "IN_PROGRESS" -> addButton(root, "âœ… Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù„Ø²ÙŠØ§Ø±Ø©", GREEN) {
-                changeStatus(booking.id, "COMPLETED")
+            "IN_PROGRESS" -> {
+
+                addButton(
+                    root,
+                    "✅ إنهاء الزيارة",
+                    GREEN
+                ) {
+
+                    changeStatus(
+                        booking.id,
+                        "COMPLETED"
+                    )
+                }
             }
         }
 
-        if (booking.latitude != null && booking.longitude != null) {
-            addButton(root, "ðŸ—ºï¸ ÙØªØ­ Ù…ÙˆÙ‚Ø¹ Ø§Ù„Ù…Ø±ÙŠØ¶") {
-                openMaps(booking.latitude, booking.longitude)
+        if (
+            booking.latitude != null &&
+            booking.longitude != null
+        ) {
+
+            addButton(
+                root,
+                "🗺️ فتح موقع المريض"
+            ) {
+
+                openMaps(
+                    booking.latitude,
+                    booking.longitude
+                )
             }
         }
     }
 
-    private fun acceptBooking(bookingId: String) {
+    private fun acceptBooking(
+        bookingId: String
+    ) {
+
         val currentUser =
-            SupabaseManager.client.auth.currentUserOrNull()
+            SupabaseManager.client
+                .auth
+                .currentUserOrNull()
 
         if (currentUser == null) {
+
             showError(
-                "Ù„Ù… ÙŠØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„ Ø§Ù„Ù…Ù…Ø±Ø¶.\n\n" +
-                    "ÙŠØ¬Ø¨ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ø§Ù‹ Ø«Ù… Ù…Ø­Ø§ÙˆÙ„Ø© Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨."
+                "لم يتم تسجيل دخول الممرض.\n\n" +
+                "يجب تسجيل الدخول أولاً ثم محاولة قبول الطلب."
             )
+
             return
         }
 
-        val nurseId = currentUser.id
+        val nurseId =
+            currentUser.id
 
-        val loading = ProgressDialog(this).apply {
-            setMessage("Ø¬Ø§Ø±ÙŠ Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨...")
-            setCancelable(false)
-            show()
-        }
+        val loading =
+            ProgressDialog(this).apply {
+
+                setMessage(
+                    "جاري قبول الطلب..."
+                )
+
+                setCancelable(false)
+
+                show()
+            }
 
         scope.launch {
+
             try {
+
                 SupabaseManager.client
                     .from("bookings")
                     .update(
@@ -308,9 +581,18 @@ class NurseActivity : AppCompatActivity() {
                             "status" to "ACCEPTED"
                         )
                     ) {
+
                         filter {
-                            eq("id", bookingId)
-                            eq("status", "PENDING")
+
+                            eq(
+                                "id",
+                                bookingId
+                            )
+
+                            eq(
+                                "status",
+                                "PENDING"
+                            )
                         }
                     }
 
@@ -318,18 +600,22 @@ class NurseActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseActivity,
-                    "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨ Ø¨Ù†Ø¬Ø§Ø­ âœ…",
+                    "تم قبول الطلب بنجاح ✅",
                     Toast.LENGTH_SHORT
                 ).show()
 
                 showBookings()
 
             } catch (e: Exception) {
+
                 loading.dismiss()
 
                 showError(
-                    "ØªØ¹Ø°Ø± Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨\n\n" +
-                        (e.message ?: "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ")
+                    "تعذر قبول الطلب\n\n" +
+                    (
+                        e.message
+                            ?: "خطأ غير معروف"
+                    )
                 )
             }
         }
@@ -339,28 +625,56 @@ class NurseActivity : AppCompatActivity() {
         bookingId: String,
         status: String
     ) {
+
         val currentUser =
-            SupabaseManager.client.auth.currentUserOrNull()
+            SupabaseManager.client
+                .auth
+                .currentUserOrNull()
 
         if (currentUser == null) {
-            showError("Ù„Ù… ÙŠØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„ Ø§Ù„Ù…Ù…Ø±Ø¶.")
+
+            showError(
+                "لم يتم تسجيل دخول الممرض."
+            )
+
             return
         }
 
-        val loading = ProgressDialog(this).apply {
-            setMessage("Ø¬Ø§Ø±ÙŠ ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨...")
-            setCancelable(false)
-            show()
-        }
+        val loading =
+            ProgressDialog(this).apply {
+
+                setMessage(
+                    "جاري تحديث حالة الطلب..."
+                )
+
+                setCancelable(false)
+
+                show()
+            }
 
         scope.launch {
+
             try {
+
                 SupabaseManager.client
                     .from("bookings")
-                    .update(mapOf("status" to status)) {
+                    .update(
+                        mapOf(
+                            "status" to status
+                        )
+                    ) {
+
                         filter {
-                            eq("id", bookingId)
-                            eq("nurse_id", currentUser.id)
+
+                            eq(
+                                "id",
+                                bookingId
+                            )
+
+                            eq(
+                                "nurse_id",
+                                currentUser.id
+                            )
                         }
                     }
 
@@ -368,26 +682,42 @@ class NurseActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseActivity,
-                    "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­ âœ…",
+                    "تم تحديث الحالة بنجاح ✅",
                     Toast.LENGTH_SHORT
                 ).show()
 
                 showBookings()
 
             } catch (e: Exception) {
+
                 loading.dismiss()
-                showError(e.message ?: "ØªØ¹Ø°Ø± ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©")
+
+                showError(
+                    e.message
+                        ?: "تعذر تحديث الحالة"
+                )
             }
         }
     }
 
-    private fun showError(message: String) {
-        if (isFinishing || isDestroyed) return
+    private fun showError(
+        message: String
+    ) {
+
+        if (
+            isFinishing ||
+            isDestroyed
+        ) {
+            return
+        }
 
         AlertDialog.Builder(this)
-            .setTitle("ØªÙ†Ø¨ÙŠÙ‡")
+            .setTitle("تنبيه")
             .setMessage(message)
-            .setPositiveButton("Ø­Ø³Ù†Ù‹Ø§", null)
+            .setPositiveButton(
+                "حسناً",
+                null
+            )
             .show()
     }
 
@@ -395,78 +725,112 @@ class NurseActivity : AppCompatActivity() {
         latitude: Double,
         longitude: Double
     ) {
+
         try {
+
             val uri =
-                Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude")
+                Uri.parse(
+                    "geo:$latitude,$longitude?q=$latitude,$longitude"
+                )
 
             startActivity(
-                Intent(Intent.ACTION_VIEW, uri)
+                Intent(
+                    Intent.ACTION_VIEW,
+                    uri
+                )
             )
 
         } catch (_: Exception) {
+
             Toast.makeText(
                 this,
-                "ØªØ¹Ø°Ø± ÙØªØ­ Ø§Ù„Ø®Ø±Ø§Ø¦Ø·",
+                "تعذر فتح الخرائط",
                 Toast.LENGTH_SHORT
             ).show()
         }
     }
 
-    private fun serviceName(id: String): String =
-        when (id) {
+    private fun serviceName(
+        id: String
+    ): String {
+
+        return when (id) {
+
             "11111111-1111-4111-8111-111111111111" ->
-                "Ø²ÙŠØ§Ø±Ø© ØªÙ…Ø±ÙŠØ¶ Ù…Ù†Ø²Ù„ÙŠØ©"
+                "زيارة تمريض منزلية"
 
             "22222222-2222-4222-8222-222222222222" ->
-                "Ù‚ÙŠØ§Ø³ Ø¶ØºØ· ÙˆØ³ÙƒØ±"
+                "قياس ضغط وسكر"
 
             "33333333-3333-4333-8333-333333333333" ->
-                "ØªØºÙŠÙŠØ± Ø§Ù„Ø¶Ù…Ø§Ø¯"
+                "تغيير الضماد"
 
             "44444444-4444-4444-8444-444444444444" ->
-                "Ø¥Ø¹Ø·Ø§Ø¡ Ø§Ù„Ø­Ù‚Ù†"
+                "إعطاء الحقن"
 
             "55555555-5555-4555-8555-555555555555" ->
-                "ØªØ±ÙƒÙŠØ¨ Ø§Ù„Ù…Ø­Ø§Ù„ÙŠÙ„"
+                "تركيب المحاليل"
 
             "66666666-6666-4666-8666-666666666666" ->
-                "Ø±Ø¹Ø§ÙŠØ© ÙƒØ¨Ø§Ø± Ø§Ù„Ø³Ù†"
+                "رعاية كبار السن"
 
             else ->
-                "Ø®Ø¯Ù…Ø© ØªÙ…Ø±ÙŠØ¶ÙŠØ©"
+                "خدمة تمريضية"
         }
+    }
 
-    private fun statusText(status: String): String =
-        when (status) {
+    private fun statusText(
+        status: String
+    ): String {
+
+        return when (status) {
+
             "PENDING" ->
-                "ðŸŸ¡ Ø¨Ø§Ù†ØªØ¸Ø§Ø± Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ù…Ù…Ø±Ø¶"
+                "🟡 بانتظار قبول الممرض"
 
             "ACCEPTED" ->
-                "ðŸ”µ ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨"
+                "🔵 تم قبول الطلب"
 
             "ON_THE_WAY" ->
-                "ðŸš— Ø§Ù„Ù…Ù…Ø±Ø¶ ÙÙŠ Ø§Ù„Ø·Ø±ÙŠÙ‚"
+                "🚗 الممرض في الطريق"
 
             "IN_PROGRESS" ->
-                "ðŸ©º Ø¨Ø¯Ø£Øª Ø§Ù„Ø²ÙŠØ§Ø±Ø©"
+                "🩺 بدأت الزيارة"
 
             "COMPLETED" ->
-                "ðŸŸ¢ Ø§ÙƒØªÙ…Ù„Øª Ø§Ù„Ø²ÙŠØ§Ø±Ø©"
+                "🟢 اكتملت الزيارة"
 
             "CANCELLED" ->
-                "ðŸ”´ ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø·Ù„Ø¨"
+                "🔴 تم إلغاء الطلب"
 
             else ->
                 status
         }
+    }
 
-    private fun statusColor(status: String): Int =
-        when (status) {
-            "COMPLETED" -> GREEN
-            "CANCELLED" -> RED
+    private fun statusColor(
+        status: String
+    ): Int {
+
+        return when (status) {
+
+            "COMPLETED" ->
+                GREEN
+
+            "CANCELLED" ->
+                RED
+
             "ACCEPTED",
             "ON_THE_WAY",
-            "IN_PROGRESS" -> BLUE
-            else -> Color.rgb(185, 125, 0)
+            "IN_PROGRESS" ->
+                BLUE
+
+            else ->
+                Color.rgb(
+                    185,
+                    125,
+                    0
+                )
         }
+    }
 }
