@@ -92,6 +92,26 @@ data class NurseProfile(
 )
 
 
+@Serializable
+data class ChatMessage(
+    val id: String,
+    val booking_id: String,
+    val sender_id: String,
+    val receiver_id: String,
+    val message: String,
+    val created_at: String
+)
+
+
+@Serializable
+data class ChatMessageInsert(
+    val booking_id: String,
+    val sender_id: String,
+    val receiver_id: String,
+    val message: String
+)
+
+
 class MainActivity : AppCompatActivity() {
 
     private val NAVY = Color.rgb(5, 62, 105)
@@ -125,6 +145,7 @@ class MainActivity : AppCompatActivity() {
     // =========================================================
     private val NOTIFICATION_CHANNEL_ID = "tamreed_booking_updates"
     private var bookingMonitorJob: Job? = null
+    private var chatMonitorJob: Job? = null
     private val lastBookingStatuses = mutableMapOf<String, String>()
     private val appNotifications = mutableListOf<String>()
 
@@ -150,6 +171,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         bookingMonitorJob?.cancel()
+        chatMonitorJob?.cancel()
         scope.cancel()
         super.onDestroy()
     }
@@ -3613,33 +3635,33 @@ class MainActivity : AppCompatActivity() {
 
         val root = baseLayout()
 
-        root.addView(topBar("المحادثات"))
+        root.addView(
+            topBar(
+                "المحادثات",
+                ::showHome
+            )
+        )
 
         addSpace(root, 10)
 
-        val search =
-            EditText(this).apply {
+        root.addView(
+            medicalVisualCard(
+                "💬",
+                "محادثات التمريض",
+                "تواصل مباشرة مع الممرض المكلّف بطلبك بعد قبول الطلب."
+            )
+        )
 
-                hint = "ابحث..."
+        addSpace(root, 12)
 
-                textSize = 16f
-
-                gravity = Gravity.RIGHT
-
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        15
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(5),
-                    dp(15),
-                    dp(5)
-                )
-            }
+        val search = EditText(this).apply {
+            hint = "ابحث برقم الطلب..."
+            textSize = 16f
+            gravity = Gravity.RIGHT
+            setSingleLine(true)
+            background = bordered(WHITE, BORDER, 15)
+            setPadding(dp(15), dp(5), dp(15), dp(5))
+        }
 
         root.addView(
             search,
@@ -3649,41 +3671,588 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(root, 20)
+        addSpace(root, 12)
 
-        root.addView(
-            chatCard(
-                "🛡️",
-                "دعم التمريض",
-                "تواصل مع فريق التمريض",
-                true
-            ) {
-
-                Toast.makeText(
-                    this,
-                    "سيتم فتح المحادثة في المرحلة التالية",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+        val loading = text(
+            "جاري تحميل محادثاتك...",
+            15f,
+            GRAY
         )
+        root.addView(loading)
 
-        addSpace(root, 20)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        root.addView(container)
+
+        addSpace(root, 10)
+        root.addView(bottomNavigation("chat"))
+
+        setContentView(scroll(root))
+
+        val user =
+            SupabaseManager.client.auth.currentUserOrNull()
+
+        if (user == null) {
+            loading.text = "سجل الدخول لعرض المحادثات"
+            return
+        }
+
+        scope.launch {
+            try {
+
+                val bookings =
+                    SupabaseManager.client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("patient_id", user.id)
+                            }
+                        }
+                        .decodeList<PatientBooking>()
+                        .filter {
+                            !it.nurse_id.isNullOrBlank() &&
+                                !it.status.equals("CANCELLED", true)
+                        }
+                        .sortedByDescending { it.created_at }
+
+                loading.visibility = View.GONE
+
+                fun render(filter: String = "") {
+                    container.removeAllViews()
+
+                    val q = filter.trim()
+                    val filtered =
+                        if (q.isBlank()) {
+                            bookings
+                        } else {
+                            bookings.filter {
+                                it.id.contains(q, true)
+                            }
+                        }
+
+                    if (filtered.isEmpty()) {
+                        container.addView(
+                            emptyState(
+                                "💬",
+                                "لا توجد محادثات",
+                                "ستظهر المحادثة هنا بعد تعيين ممرض للطلب."
+                            )
+                        )
+                        return
+                    }
+
+                    filtered.forEach { booking ->
+
+                        val status =
+                            statusText(booking.status)
+
+                        val card = chatCard(
+                            "👨‍⚕️",
+                            "محادثة طلب التمريض",
+                            "طلب: ${booking.id}\n$status",
+                            true
+                        ) {
+                            showChatScreen(booking)
+                        }
+
+                        container.addView(
+                            card,
+                            LinearLayout.LayoutParams(
+                                -1,
+                                -2
+                            ).apply {
+                                bottomMargin = dp(10)
+                            }
+                        )
+                    }
+                }
+
+                search.addTextChangedListener(
+                    object : android.text.TextWatcher {
+
+                        override fun beforeTextChanged(
+                            s: CharSequence?,
+                            start: Int,
+                            count: Int,
+                            after: Int
+                        ) = Unit
+
+                        override fun onTextChanged(
+                            s: CharSequence?,
+                            start: Int,
+                            before: Int,
+                            count: Int
+                        ) {
+                            render(s?.toString() ?: "")
+                        }
+
+                        override fun afterTextChanged(
+                            s: android.text.Editable?
+                        ) = Unit
+                    }
+                )
+
+                render()
+
+            } catch (e: Exception) {
+
+                loading.text =
+                    "تعذر تحميل المحادثات\n\n" +
+                        (e.message ?: "خطأ غير معروف")
+            }
+        }
+    }
+
+    /*
+     * =========================================================
+     * المرحلة العاشرة: محادثة حقيقية بين المريض والممرض
+     * =========================================================
+     *
+     * تعتمد هذه الشاشة على جدول chat_messages في Supabase.
+     * كل رسالة مرتبطة برقم الطلب booking_id.
+     */
+    private fun showChatScreen(
+        booking: PatientBooking
+    ) {
+
+        val nurseId = booking.nurse_id
+
+        if (nurseId.isNullOrBlank()) {
+            showError(
+                "المحادثة غير متاحة",
+                "لم يتم تعيين ممرض لهذا الطلب بعد."
+            )
+            return
+        }
+
+        val user =
+            SupabaseManager.client.auth.currentUserOrNull()
+
+        if (user == null) {
+            showPhoneLogin()
+            return
+        }
+
+        chatMonitorJob?.cancel()
+
+        val root = baseLayout()
 
         root.addView(
-            emptyState(
-                "💬",
-                "لا توجد محادثات بعد",
-                "ستظهر محادثاتك هنا عند بدء التواصل"
+            topBar(
+                "محادثة الطلب",
+                ::showChats
             )
         )
 
-        addSpace(root, 15)
+        addSpace(root, 8)
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(NAVY, 20)
+            setPadding(
+                dp(14),
+                dp(14),
+                dp(14),
+                dp(14)
+            )
+        }
+
+        header.addView(
+            text(
+                "👨‍⚕️",
+                40f,
+                WHITE,
+                true
+            )
+        )
+
+        header.addView(
+            text(
+                "الممرض المكلّف بالطلب",
+                19f,
+                WHITE,
+                true
+            )
+        )
+
+        header.addView(
+            text(
+                "رقم الطلب: ${booking.id}",
+                13f,
+                Color.rgb(225, 238, 247)
+            )
+        )
 
         root.addView(
-            bottomNavigation("chat")
+            header,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(125)
+            )
+        )
+
+        addSpace(root, 10)
+
+        val messagesScroll = ScrollView(this).apply {
+            setBackgroundColor(LIGHT_GRAY)
+            isFillViewport = true
+        }
+
+        val messagesContainer =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+                setPadding(
+                    dp(4),
+                    dp(4),
+                    dp(4),
+                    dp(4)
+                )
+            }
+
+        messagesScroll.addView(messagesContainer)
+
+        root.addView(
+            messagesScroll,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(330)
+            )
+        )
+
+        addSpace(root, 8)
+
+        val inputRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val messageInput = EditText(this).apply {
+            hint = "اكتب رسالتك..."
+            textSize = 16f
+            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+            inputType =
+                InputType.TYPE_CLASS_TEXT or
+                    InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            maxLines = 4
+            background =
+                bordered(WHITE, BORDER, 15)
+            setPadding(
+                dp(12),
+                dp(8),
+                dp(12),
+                dp(8)
+            )
+        }
+
+        inputRow.addView(
+            messageInput,
+            LinearLayout.LayoutParams(
+                0,
+                dp(58),
+                1f
+            ).apply {
+                marginEnd = dp(6)
+            }
+        )
+
+        val sendButton =
+            button("إرسال") {
+                val value =
+                    messageInput.text
+                        .toString()
+                        .trim()
+
+                if (value.isBlank()) {
+                    messageInput.error =
+                        "اكتب الرسالة أولاً"
+                    return@button
+                }
+
+                sendChatMessage(
+                    booking = booking,
+                    senderId = user.id,
+                    receiverId = nurseId,
+                    message = value,
+                    onSuccess = {
+                        messageInput.setText("")
+                    },
+                    onError = { error ->
+                        showError(
+                            "تعذر إرسال الرسالة",
+                            error
+                        )
+                    }
+                )
+            }
+
+        inputRow.addView(
+            sendButton,
+            LinearLayout.LayoutParams(
+                dp(105),
+                dp(58)
+            )
+        )
+
+        root.addView(inputRow)
+
+        addSpace(root, 8)
+
+        root.addView(
+            outlineButton("↻ تحديث المحادثة") {
+                loadChatMessages(
+                    booking,
+                    user.id,
+                    messagesContainer,
+                    messagesScroll
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(52)
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "🛡️",
+                "خصوصية المحادثة",
+                "استخدم المحادثة لتنسيق الزيارة والخدمة فقط، ولا ترسل بيانات حساسة غير ضرورية."
+            )
         )
 
         setContentView(scroll(root))
+
+        loadChatMessages(
+            booking,
+            user.id,
+            messagesContainer,
+            messagesScroll
+        )
+
+        chatMonitorJob = scope.launch {
+
+            while (true) {
+
+                delay(5000)
+
+                if (isFinishing) {
+                    break
+                }
+
+                loadChatMessages(
+                    booking,
+                    user.id,
+                    messagesContainer,
+                    messagesScroll
+                )
+            }
+        }
+    }
+
+    private fun loadChatMessages(
+        booking: PatientBooking,
+        currentUserId: String,
+        container: LinearLayout,
+        scrollView: ScrollView
+    ) {
+
+        val nurseId = booking.nurse_id
+
+        if (nurseId.isNullOrBlank()) {
+            return
+        }
+
+        scope.launch {
+
+            try {
+
+                val messages =
+                    SupabaseManager.client
+                        .from("chat_messages")
+                        .select {
+                            filter {
+                                eq(
+                                    "booking_id",
+                                    booking.id
+                                )
+                            }
+                        }
+                        .decodeList<ChatMessage>()
+                        .sortedBy { it.created_at }
+
+                container.removeAllViews()
+
+                if (messages.isEmpty()) {
+
+                    container.addView(
+                        emptyState(
+                            "💬",
+                            "ابدأ المحادثة",
+                            "أرسل رسالة للممرض المكلّف بهذا الطلب."
+                        )
+                    )
+
+                } else {
+
+                    messages.forEach { message ->
+
+                        val mine =
+                            message.sender_id ==
+                                currentUserId
+
+                        val bubble =
+                            LinearLayout(this@MainActivity)
+                                .apply {
+
+                                    orientation =
+                                        LinearLayout.VERTICAL
+
+                                    layoutDirection =
+                                        View.LAYOUT_DIRECTION_RTL
+
+                                    background =
+                                        rounded(
+                                            if (mine)
+                                                LIGHT_BLUE
+                                            else
+                                                WHITE,
+                                            16
+                                        )
+
+                                    setPadding(
+                                        dp(12),
+                                        dp(8),
+                                        dp(12),
+                                        dp(8)
+                                    )
+
+                                    elevation =
+                                        dp(1).toFloat()
+                                }
+
+                        bubble.addView(
+                            text(
+                                if (mine)
+                                    "أنت"
+                                else
+                                    "الممرض",
+                                12f,
+                                if (mine)
+                                    NAVY
+                                else
+                                    GREEN,
+                                true
+                            )
+                        )
+
+                        bubble.addView(
+                            text(
+                                message.message,
+                                16f,
+                                TEXT,
+                                false
+                            )
+                        )
+
+                        bubble.addView(
+                            text(
+                                formatChatTime(
+                                    message.created_at
+                                ),
+                                11f,
+                                GRAY
+                            )
+                        )
+
+                        container.addView(
+                            bubble,
+                            LinearLayout.LayoutParams(
+                                -1,
+                                -2
+                            ).apply {
+                                topMargin = dp(5)
+                                bottomMargin = dp(5)
+                            }
+                        )
+                    }
+                }
+
+                scrollView.post {
+                    scrollView.fullScroll(
+                        View.FOCUS_DOWN
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                container.removeAllViews()
+
+                container.addView(
+                    emptyState(
+                        "⚠️",
+                        "تعذر تحميل الرسائل",
+                        e.message
+                            ?: "تأكد من إنشاء جدول chat_messages في Supabase."
+                    )
+                )
+            }
+        }
+    }
+
+    private fun sendChatMessage(
+        booking: PatientBooking,
+        senderId: String,
+        receiverId: String,
+        message: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+
+        scope.launch {
+
+            try {
+
+                val payload =
+                    ChatMessageInsert(
+                        booking_id = booking.id,
+                        sender_id = senderId,
+                        receiver_id = receiverId,
+                        message = message
+                    )
+
+                SupabaseManager.client
+                    .from("chat_messages")
+                    .insert(payload)
+
+                onSuccess()
+
+            } catch (e: Exception) {
+
+                onError(
+                    e.message
+                        ?: "خطأ غير معروف"
+                )
+            }
+        }
+    }
+
+    private fun formatChatTime(
+        value: String
+    ): String {
+
+        return value
+            .replace("T", " ")
+            .replace("Z", "")
+            .take(16)
     }
 
     private fun chatCard(
