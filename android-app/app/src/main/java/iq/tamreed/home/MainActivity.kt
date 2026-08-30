@@ -33,6 +33,9 @@ data class BookingInsert(
     val patient_id: String,
     val service_id: String,
     val address: String,
+    val city: String,
+    val landmark: String,
+    val patient_phone: String,
     val latitude: Double? = null,
     val longitude: Double? = null,
     val status: String = "PENDING",
@@ -47,6 +50,9 @@ data class PatientBooking(
     val nurse_id: String? = null,
     val service_id: String,
     val address: String,
+    val city: String? = null,
+    val landmark: String? = null,
+    val patient_phone: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
     val status: String,
@@ -74,6 +80,9 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var phoneNumber = ""
+    private var patientPhone = ""
+    private var selectedCity = ""
+    private var landmark = ""
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var selectedAddress = ""
@@ -1181,7 +1190,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "خدمة التمريض",
+                "بيانات طلب التمريض",
                 25f,
                 NAVY,
                 true
@@ -1190,13 +1199,17 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "اختر الخدمة التي تحتاجها الآن",
+                "أدخل معلومات المريض والموقع بالتفصيل",
                 15f,
                 GRAY
             )
         )
 
         addSpace(root, 15)
+
+        // ----------------------------------------------------
+        // الخدمة
+        // ----------------------------------------------------
 
         val service = Spinner(this)
 
@@ -1230,6 +1243,10 @@ class MainActivity : AppCompatActivity() {
         )
 
         addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // اسم المريض
+        // ----------------------------------------------------
 
         val patient =
             EditText(this).apply {
@@ -1268,6 +1285,168 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 12)
 
+        // ----------------------------------------------------
+        // رقم هاتف المريض
+        // ----------------------------------------------------
+
+        val patientPhoneInput =
+            EditText(this).apply {
+
+                hint = "رقم هاتف المريض للتواصل"
+
+                textSize = 17f
+
+                gravity = Gravity.CENTER
+
+                inputType =
+                    InputType.TYPE_CLASS_PHONE
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_LTR
+
+                background =
+                    bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+
+                setPadding(
+                    dp(15),
+                    dp(5),
+                    dp(15),
+                    dp(5)
+                )
+
+                /*
+                 * نضع رقم تسجيل الدخول افتراضياً.
+                 * يستطيع المستخدم تغييره إذا كان رقم المريض مختلفاً.
+                 */
+                setText(
+                    phoneNumber
+                )
+            }
+
+        root.addView(
+            patientPhoneInput,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            )
+        )
+
+        addSpace(root, 6)
+
+        root.addView(
+            text(
+                "سيستخدم الممرض هذا الرقم للتواصل مع المريض عند الحاجة.",
+                13f,
+                GRAY
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // مدينة / قضاء الأنبار
+        // ----------------------------------------------------
+
+        root.addView(
+            text(
+                "المدينة / القضاء",
+                16f,
+                NAVY,
+                true
+            )
+        )
+
+        addSpace(root, 4)
+
+        val citySpinner =
+            Spinner(this)
+
+        val anbarCities =
+            arrayOf(
+                "اختر المدينة / القضاء",
+                "الرمادي",
+                "الفلوجة",
+                "الكرمة",
+                "الحبانية",
+                "الخالدية",
+                "هيت",
+                "حديثة",
+                "عانة",
+                "راوة",
+                "القائم",
+                "الرطبة",
+                "البغدادي",
+                "عامرية الصمود"
+            )
+
+        citySpinner.adapter =
+            ArrayAdapter(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                anbarCities
+            )
+
+        root.addView(
+            citySpinner,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // أقرب نقطة دالة
+        // ----------------------------------------------------
+
+        val landmarkInput =
+            EditText(this).apply {
+
+                hint = "أقرب نقطة دالة (جامع، مدرسة، مستشفى، شارع...)"
+
+                textSize = 16f
+
+                gravity =
+                    Gravity.RIGHT
+
+                inputType =
+                    InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_TEXT_FLAG_MULTI_LINE
+
+                background =
+                    bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+
+                setPadding(
+                    dp(15),
+                    dp(12),
+                    dp(15),
+                    dp(12)
+                )
+            }
+
+        root.addView(
+            landmarkInput,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(75)
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // الموقع
+        // ----------------------------------------------------
+
         root.addView(
             button(
                 "📍  تحديد موقع المريض"
@@ -1294,6 +1473,10 @@ class MainActivity : AppCompatActivity() {
         )
 
         addSpace(root, 10)
+
+        // ----------------------------------------------------
+        // الملاحظات
+        // ----------------------------------------------------
 
         val notes =
             EditText(this).apply {
@@ -1336,6 +1519,10 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 18)
 
+        // ----------------------------------------------------
+        // إرسال الطلب
+        // ----------------------------------------------------
+
         root.addView(
             button(
                 "📨  إرسال طلب التمريض الآن"
@@ -1364,6 +1551,59 @@ class MainActivity : AppCompatActivity() {
 
                     return@button
                 }
+
+                val enteredPhone =
+                    normalizeIraqPhone(
+                        patientPhoneInput.text
+                            .toString()
+                            .trim()
+                    )
+
+                if (enteredPhone == null) {
+
+                    patientPhoneInput.error =
+                        "أدخل رقم هاتف عراقي صحيح"
+
+                    return@button
+                }
+
+                if (citySpinner.selectedItemPosition == 0) {
+
+                    Toast.makeText(
+                        this,
+                        "اختر المدينة / القضاء",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@button
+                }
+
+                val selectedCityValue =
+                    citySpinner.selectedItem
+                        .toString()
+                        .trim()
+
+                val enteredLandmark =
+                    landmarkInput.text
+                        .toString()
+                        .trim()
+
+                if (enteredLandmark.isEmpty()) {
+
+                    landmarkInput.error =
+                        "أدخل أقرب نقطة دالة"
+
+                    return@button
+                }
+
+                patientPhone =
+                    enteredPhone
+
+                selectedCity =
+                    selectedCityValue
+
+                landmark =
+                    enteredLandmark
 
                 createBooking(
                     service.selectedItem.toString(),
@@ -1409,14 +1649,23 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val phoneForBooking =
+            if (patientPhone.isBlank())
+                phoneNumber
+            else
+                patientPhone
+
         AlertDialog.Builder(this)
             .setTitle("تأكيد الطلب")
             .setMessage(
                 "الخدمة: $service\n\n" +
                     "المريض: $patient\n\n" +
+                    "الهاتف: $phoneForBooking\n\n" +
+                    "المدينة: $selectedCity\n\n" +
+                    "أقرب نقطة دالة: $landmark\n\n" +
                     "سيتم إرسال الطلب فوراً إلى الممرضين المتاحين."
             )
-            .setNegativeButton("إلغاء", null)
+            .setNegativeButton("تعديل", null)
             .setPositiveButton("إرسال") { _, _ ->
 
                 val loading =
@@ -1436,13 +1685,14 @@ class MainActivity : AppCompatActivity() {
                                 service_id = service,
                                 address =
                                     if (selectedAddress.isBlank())
-                                        patient
+                                        "$selectedCity - $landmark"
                                     else
                                         selectedAddress,
-                                latitude =
-                                    selectedLatitude,
-                                longitude =
-                                    selectedLongitude,
+                                city = selectedCity,
+                                landmark = landmark,
+                                patient_phone = phoneForBooking,
+                                latitude = selectedLatitude,
+                                longitude = selectedLongitude,
                                 status = "PENDING",
                                 notes =
                                     if (notes.isBlank())
@@ -1458,11 +1708,18 @@ class MainActivity : AppCompatActivity() {
 
                         loading.dismiss()
 
+                        selectedLatitude = null
+                        selectedLongitude = null
+                        selectedAddress = ""
+                        selectedCity = ""
+                        landmark = ""
+                        patientPhone = ""
+
                         AlertDialog.Builder(this@MainActivity)
                             .setTitle("تم إرسال الطلب ✅")
                             .setMessage(
                                 "تم إرسال طلب التمريض بنجاح.\n\n" +
-                                    "يمكنك متابعة حالته من صفحة الطلبات."
+                                    "سيتمكن الممرض المقبول من رؤية رقم هاتف المريض وبيانات الموقع للتواصل والوصول."
                             )
                             .setPositiveButton(
                                 "متابعة الطلب"
@@ -1478,7 +1735,7 @@ class MainActivity : AppCompatActivity() {
                         showError(
                             "تعذر إرسال الطلب",
                             e.message
-                                ?: "حدث خطأ أثناء حفظ الطلب."
+                                ?: "تأكد من إضافة أعمدة المدينة والنقطة الدالة ورقم الهاتف إلى جدول bookings."
                         )
                     }
                 }
@@ -1900,6 +2157,77 @@ class MainActivity : AppCompatActivity() {
                 TEXT
             )
         )
+
+        if (!booking.city.isNullOrBlank()) {
+            card.addView(
+                text(
+                    "🏙️  المدينة: ${booking.city}",
+                    14f,
+                    TEXT
+                )
+            )
+        }
+
+        if (!booking.landmark.isNullOrBlank()) {
+            card.addView(
+                text(
+                    "📌  أقرب نقطة دالة: ${booking.landmark}",
+                    14f,
+                    TEXT
+                )
+            )
+        }
+
+        if (!booking.patient_phone.isNullOrBlank()) {
+
+            card.addView(
+                text(
+                    "📞  هاتف المريض: ${booking.patient_phone}",
+                    14f,
+                    NAVY,
+                    true
+                )
+            )
+
+            card.addView(
+                outlineButton(
+                    "اتصال بالمريض"
+                ) {
+
+                    try {
+
+                        val intent =
+                            Intent(
+                                Intent.ACTION_DIAL,
+                                Uri.parse(
+                                    "tel:${booking.patient_phone}"
+                                )
+                            )
+
+                        startActivity(intent)
+
+                    } catch (_: Exception) {
+
+                        Toast.makeText(
+                            this,
+                            "تعذر فتح الاتصال",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(50)
+                ).apply {
+                    setMargins(
+                        0,
+                        dp(8),
+                        0,
+                        0
+                    )
+                }
+            )
+        }
 
         card.addView(
             text(
@@ -2339,6 +2667,9 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     phoneNumber = ""
+                    patientPhone = ""
+                    selectedCity = ""
+                    landmark = ""
 
                     showPhoneLogin()
                 }
