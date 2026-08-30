@@ -6,15 +6,8 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.location.Address
-import android.location.Geocoder
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.text.InputFilter
 import android.text.InputType
 import android.view.Gravity
@@ -47,6 +40,13 @@ data class BookingInsert(
     val longitude: Double? = null,
     val status: String = "PENDING",
     val notes: String? = null
+)
+
+
+@Serializable
+data class ServiceRecord(
+    val id: String,
+    val name_ar: String
 )
 
 
@@ -94,10 +94,6 @@ class MainActivity : AppCompatActivity() {
     private var selectedLongitude: Double? = null
     private var selectedAddress = ""
 
-    private var locationListener: LocationListener? = null
-    private val locationHandler = Handler(Looper.getMainLooper())
-    private val LOCATION_PERMISSION_REQUEST_CODE = 7001
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -116,7 +112,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        stopLocationUpdates()
         scope.cancel()
         super.onDestroy()
     }
@@ -1244,25 +1239,14 @@ class MainActivity : AppCompatActivity() {
 
         val service = Spinner(this)
 
-        val services =
-            arrayOf(
-                "اختر الخدمة",
-                "إعطاء حقنة",
-                "تغيير الضماد",
-                "قياس السكر",
-                "قياس ضغط الدم",
-                "تركيب المحلول",
-                "رعاية كبار السن",
-                "رعاية المرضى في المنزل",
-                "متابعة حالة صحية",
-                "خدمة تمريض أخرى"
-            )
+        val serviceNames = mutableListOf("جاري تحميل الخدمات...")
+        val serviceItems = mutableListOf<ServiceRecord>()
 
         service.adapter =
             ArrayAdapter(
                 this,
                 android.R.layout.simple_spinner_dropdown_item,
-                services
+                serviceNames
             )
 
         root.addView(
@@ -1273,6 +1257,49 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        // تحميل الخدمات الحقيقية من جدول services.
+        scope.launch {
+            try {
+                val loadedServices =
+                    SupabaseManager.client
+                        .from("services")
+                        .select {
+                            filter {
+                                eq("is_active", true)
+                            }
+                        }
+                        .decodeList<ServiceRecord>()
+
+                serviceItems.clear()
+                serviceNames.clear()
+                serviceNames.add("اختر الخدمة")
+
+                serviceItems.addAll(loadedServices)
+                serviceNames.addAll(loadedServices.map { it.name_ar })
+
+                service.adapter =
+                    ArrayAdapter(
+                        this@MainActivity,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        serviceNames
+                    )
+            } catch (e: Exception) {
+                serviceNames.clear()
+                serviceNames.add("تعذر تحميل الخدمات")
+                service.adapter =
+                    ArrayAdapter(
+                        this@MainActivity,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        serviceNames
+                    )
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "تعذر تحميل الخدمات: ${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
         addSpace(root, 12)
 
         // ----------------------------------------------------
@@ -1636,8 +1663,23 @@ class MainActivity : AppCompatActivity() {
                 landmark =
                     enteredLandmark
 
+                if (serviceItems.isEmpty() ||
+                    service.selectedItemPosition <= 0 ||
+                    service.selectedItemPosition > serviceItems.size
+                ) {
+                    Toast.makeText(
+                        this,
+                        "اختر خدمة متاحة أولاً",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@button
+                }
+
+                val selectedService =
+                    serviceItems[service.selectedItemPosition - 1]
+
                 createBooking(
-                    service.selectedItem.toString(),
+                    selectedService,
                     patientName,
                     notes.text.toString().trim()
                 )
@@ -1664,7 +1706,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createBooking(
-        service: String,
+        service: ServiceRecord,
         patient: String,
         notes: String
     ) {
@@ -1680,16 +1722,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (selectedLatitude == null || selectedLongitude == null) {
-            Toast.makeText(
-                this,
-                "حدد موقع المريض أولاً قبل إرسال الطلب",
-                Toast.LENGTH_LONG
-            ).show()
-            showLocation()
-            return
-        }
-
         val phoneForBooking =
             if (patientPhone.isBlank())
                 phoneNumber
@@ -1699,7 +1731,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("تأكيد الطلب")
             .setMessage(
-                "الخدمة: $service\n\n" +
+                "الخدمة: ${service.name_ar}\n\n" +
                     "المريض: $patient\n\n" +
                     "الهاتف: $phoneForBooking\n\n" +
                     "المدينة: $selectedCity\n\n" +
@@ -1723,7 +1755,9 @@ class MainActivity : AppCompatActivity() {
                         val booking =
                             BookingInsert(
                                 patient_id = user.id,
-                                service_id = service,
+                                // مهم: service_id في قاعدة البيانات UUID،
+                                // لذلك نرسل id الحقيقي للخدمة وليس الاسم العربي.
+                                service_id = service.id,
                                 address =
                                     if (selectedAddress.isBlank())
                                         "$selectedCity - $landmark"
@@ -1955,19 +1989,37 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "سيتم استخدام GPS الحقيقي من هاتفك لمساعدة الممرض على الوصول إليك",
+                "يساعد الموقع الممرض على الوصول إليك بسهولة",
                 15f,
                 GRAY
             )
         )
 
-        addSpace(root, 20)
+        addSpace(root, 25)
 
         root.addView(
             button(
-                "📍 استخدام موقعي الحالي"
+                "📍  فتح خرائط Google"
             ) {
-                requestCurrentLocation()
+
+                try {
+
+                    val intent =
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("geo:33.3500,43.7833")
+                        )
+
+                    startActivity(intent)
+
+                } catch (_: Exception) {
+
+                    Toast.makeText(
+                        this,
+                        "تعذر فتح الخرائط",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             },
             LinearLayout.LayoutParams(
                 -1,
@@ -1979,9 +2031,24 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             outlineButton(
-                "🗺️ فتح موقعي على خرائط Google"
+                "📌 استخدام موقعي الحالي"
             ) {
-                openSelectedLocationInMaps()
+
+                /*
+                 * مؤقتاً: موقع الفلوجة.
+                 * في الخطوة التالية سنستبدله بـ GPS الحقيقي.
+                 */
+                selectedLatitude = 33.3500
+                selectedLongitude = 43.7833
+                selectedAddress = "الفلوجة - محافظة الأنبار"
+
+                Toast.makeText(
+                    this,
+                    "تم تحديد الموقع",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                showRequestScreen()
             },
             LinearLayout.LayoutParams(
                 -1,
@@ -1991,329 +2058,18 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 20)
 
-        val locationText =
-            if (selectedLatitude != null && selectedLongitude != null) {
-                "✅ تم تحديد الموقع\n" +
-                    "خط العرض: ${"%.6f".format(selectedLatitude)}\n" +
-                    "خط الطول: ${"%.6f".format(selectedLongitude)}\n\n" +
-                    if (selectedAddress.isBlank())
-                        "الموقع الجغرافي الحالي"
-                    else
-                        selectedAddress
-            } else {
-                "لم يتم تحديد الموقع بعد\nاضغط على «استخدام موقعي الحالي»"
-            }
-
         root.addView(
             emptyState(
                 "📍",
-                locationText,
+                if (selectedAddress.isBlank())
+                    "لم يتم تحديد الموقع"
+                else
+                    selectedAddress,
                 "يمكنك تغيير الموقع قبل إرسال الطلب"
             )
         )
 
         setContentView(scroll(root))
-    }
-
-    private fun requestCurrentLocation() {
-
-        val fineGranted =
-            checkSelfPermission(
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-        val coarseGranted =
-            checkSelfPermission(
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-        if (!fineGranted && !coarseGranted) {
-            requestPermissions(
-                arrayOf(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                LOCATION_PERMISSION_REQUEST_CODE
-            )
-            return
-        }
-
-        val locationManager =
-            getSystemService(LOCATION_SERVICE) as LocationManager
-
-        val gpsEnabled = try {
-            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        } catch (_: Exception) {
-            false
-        }
-
-        val networkEnabled = try {
-            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        } catch (_: Exception) {
-            false
-        }
-
-        if (!gpsEnabled && !networkEnabled) {
-            AlertDialog.Builder(this)
-                .setTitle("الموقع غير مفعّل")
-                .setMessage(
-                    "فعّل خدمة الموقع (GPS) من إعدادات الهاتف، ثم اضغط «استخدام موقعي الحالي» مرة أخرى."
-                )
-                .setNegativeButton("إلغاء", null)
-                .setPositiveButton("فتح الإعدادات") { _, _ ->
-                    try {
-                        startActivity(
-                            Intent(
-                                android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
-                            )
-                        )
-                    } catch (_: Exception) {
-                        Toast.makeText(
-                            this,
-                            "تعذر فتح إعدادات الموقع",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-                .show()
-            return
-        }
-
-        val loading =
-            ProgressDialog(this).apply {
-                setMessage("جاري تحديد موقعك الحالي...\nيرجى الانتظار")
-                setCancelable(false)
-                show()
-            }
-
-        stopLocationUpdates()
-
-        val listener = object : LocationListener {
-            override fun onLocationChanged(location: Location) {
-                stopLocationUpdates()
-                loading.dismiss()
-
-                selectedLatitude = location.latitude
-                selectedLongitude = location.longitude
-                selectedAddress = "الموقع الحالي عبر GPS"
-
-                scope.launch(Dispatchers.IO) {
-                    val addressText = try {
-                        if (Geocoder.isPresent()) {
-                            val geocoder = Geocoder(this@MainActivity)
-                            @Suppress("DEPRECATION")
-                            val addresses: List<Address>? =
-                                geocoder.getFromLocation(
-                                    location.latitude,
-                                    location.longitude,
-                                    1
-                                )
-
-                            val address = addresses?.firstOrNull()
-                            if (address != null) {
-                                listOfNotNull(
-                                    address.getAddressLine(0),
-                                    address.locality,
-                                    address.subAdminArea
-                                )
-                                    .distinct()
-                                    .joinToString(" - ")
-                                    .ifBlank { "الموقع الحالي عبر GPS" }
-                            } else {
-                                "الموقع الحالي عبر GPS"
-                            }
-                        } else {
-                            "الموقع الحالي عبر GPS"
-                        }
-                    } catch (_: Exception) {
-                        "الموقع الحالي عبر GPS"
-                    }
-
-                    runOnUiThread {
-                        selectedAddress = addressText
-
-                        Toast.makeText(
-                            this@MainActivity,
-                            "تم تحديد موقعك بنجاح 📍",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        showRequestScreen()
-                    }
-                }
-            }
-
-            override fun onProviderDisabled(provider: String) {
-                // يتم التعامل مع تعطيل الموقع في الشاشة التالية عند الحاجة.
-            }
-        }
-
-        locationListener = listener
-
-        try {
-            if (fineGranted || coarseGranted) {
-                if (gpsEnabled) {
-                    locationManager.requestLocationUpdates(
-                        LocationManager.GPS_PROVIDER,
-                        1000L,
-                        1f,
-                        listener,
-                        Looper.getMainLooper()
-                    )
-                }
-
-                if (networkEnabled) {
-                    locationManager.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER,
-                        1000L,
-                        1f,
-                        listener,
-                        Looper.getMainLooper()
-                    )
-                }
-
-                val lastGps = try {
-                    if (gpsEnabled)
-                        locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                    else null
-                } catch (_: Exception) {
-                    null
-                }
-
-                val lastNetwork = try {
-                    if (networkEnabled)
-                        locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                    else null
-                } catch (_: Exception) {
-                    null
-                }
-
-                val lastLocation = listOfNotNull(lastGps, lastNetwork)
-                    .maxByOrNull { it.time }
-
-                if (lastLocation != null) {
-                    listener.onLocationChanged(lastLocation)
-                    return
-                }
-
-                locationHandler.postDelayed({
-                    if (locationListener === listener) {
-                        stopLocationUpdates()
-                        if (loading.isShowing) loading.dismiss()
-
-                        Toast.makeText(
-                            this,
-                            "تعذر تحديد الموقع الآن. تأكد من تفعيل GPS وحاول مرة أخرى.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }, 15000L)
-            }
-        } catch (e: SecurityException) {
-            stopLocationUpdates()
-            loading.dismiss()
-
-            Toast.makeText(
-                this,
-                "لم يتم السماح للتطبيق بالوصول إلى الموقع.",
-                Toast.LENGTH_LONG
-            ).show()
-        } catch (e: Exception) {
-            stopLocationUpdates()
-            loading.dismiss()
-
-            Toast.makeText(
-                this,
-                "حدث خطأ أثناء تحديد الموقع: ${e.message ?: "خطأ غير معروف"}",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    private fun stopLocationUpdates() {
-        val listener = locationListener ?: return
-
-        try {
-            val locationManager =
-                getSystemService(LOCATION_SERVICE) as LocationManager
-            locationManager.removeUpdates(listener)
-        } catch (_: Exception) {
-        }
-
-        locationHandler.removeCallbacksAndMessages(null)
-        locationListener = null
-    }
-
-    private fun openSelectedLocationInMaps() {
-        val latitude = selectedLatitude
-        val longitude = selectedLongitude
-
-        if (latitude == null || longitude == null) {
-            Toast.makeText(
-                this,
-                "حدد موقعك الحالي أولاً",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        try {
-            val uri = Uri.parse(
-                "geo:$latitude,$longitude?q=$latitude,$longitude(موقع المريض)"
-            )
-
-            startActivity(
-                Intent(Intent.ACTION_VIEW, uri).apply {
-                    setPackage("com.google.android.apps.maps")
-                }
-            )
-        } catch (_: Exception) {
-            try {
-                startActivity(
-                    Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("geo:$latitude,$longitude")
-                    )
-                )
-            } catch (_: Exception) {
-                Toast.makeText(
-                    this,
-                    "تعذر فتح الخرائط",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(
-            requestCode,
-            permissions,
-            grantResults
-        )
-
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            val granted =
-                grantResults.any {
-                    it == android.content.pm.PackageManager.PERMISSION_GRANTED
-                }
-
-            if (granted) {
-                requestCurrentLocation()
-            } else {
-                AlertDialog.Builder(this)
-                    .setTitle("صلاحية الموقع مطلوبة")
-                    .setMessage(
-                        "لا يمكن تحديد موقع المريض بدون السماح للتطبيق باستخدام الموقع. يمكنك السماح بالصلاحية من إعدادات التطبيق."
-                    )
-                    .setPositiveButton("حسناً", null)
-                    .show()
-            }
-        }
     }
 
     /*
