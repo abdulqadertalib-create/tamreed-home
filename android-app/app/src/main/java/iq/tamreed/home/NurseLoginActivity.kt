@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
-import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +36,19 @@ data class NurseLoginRecord(
     val longitude: Double? = null,
     val is_available: Boolean? = true,
     val is_verified: Boolean? = false
+)
+
+@Serializable
+data class NurseCreateRecord(
+    val user_id: String,
+    val full_name: String,
+    val phone: String,
+    val specialty: String,
+    val experience_years: Int,
+    val city: String,
+    val address: String,
+    val is_available: Boolean = true,
+    val is_verified: Boolean = false
 )
 
 class NurseLoginActivity : AppCompatActivity() {
@@ -209,6 +221,10 @@ class NurseLoginActivity : AppCompatActivity() {
         )
     }
 
+    // ---------------------------------------------------------
+    // شاشة رقم الهاتف
+    // ---------------------------------------------------------
+
     private fun showPhoneScreen() {
 
         val root = rootLayout()
@@ -350,7 +366,6 @@ class NurseLoginActivity : AppCompatActivity() {
 
                 sendOtp()
             },
-
             LinearLayout.LayoutParams(
                 -1,
                 dp(62)
@@ -407,7 +422,7 @@ class NurseLoginActivity : AppCompatActivity() {
 
         info.addView(
             text(
-                "الدخول مقصور على الممرضين المسجلين والمعتمدين.",
+                "إذا كنت ممرضًا جديدًا يمكنك إنشاء حساب بعد تأكيد رقم الهاتف.",
                 14f,
                 NAVY,
                 true
@@ -439,6 +454,10 @@ class NurseLoginActivity : AppCompatActivity() {
             scroll(root)
         )
     }
+
+    // ---------------------------------------------------------
+    // توحيد رقم الهاتف العراقي
+    // ---------------------------------------------------------
 
     private fun normalizeIraqPhone(
         value: String
@@ -496,6 +515,10 @@ class NurseLoginActivity : AppCompatActivity() {
         return null
     }
 
+    // ---------------------------------------------------------
+    // إرسال OTP
+    // ---------------------------------------------------------
+
     private fun sendOtp() {
 
         val loading =
@@ -534,6 +557,10 @@ class NurseLoginActivity : AppCompatActivity() {
             }
         }
     }
+
+    // ---------------------------------------------------------
+    // شاشة OTP
+    // ---------------------------------------------------------
 
     private fun showOtpScreen() {
 
@@ -652,10 +679,28 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
+        space(root, 10)
+
+        root.addView(
+            outlineButton(
+                "تغيير رقم الهاتف"
+            ) {
+                showPhoneScreen()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            )
+        )
+
         setContentView(
             scroll(root)
         )
     }
+
+    // ---------------------------------------------------------
+    // التحقق من OTP
+    // ---------------------------------------------------------
 
     private fun verifyOtp(
         code: String
@@ -700,6 +745,13 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
+    // ---------------------------------------------------------
+    // بعد OTP:
+    // موجود ومعتمد -> دخول
+    // غير موجود -> إنشاء حساب
+    // موجود وغير معتمد -> انتظار اعتماد
+    // ---------------------------------------------------------
+
     private fun checkNurseAndContinue() {
 
         val user =
@@ -716,7 +768,7 @@ class NurseLoginActivity : AppCompatActivity() {
             ProgressDialog(this).apply {
 
                 setMessage(
-                    "جاري التحقق من اعتماد الممرض..."
+                    "جاري التحقق من بيانات الممرض..."
                 )
 
                 setCancelable(false)
@@ -727,13 +779,6 @@ class NurseLoginActivity : AppCompatActivity() {
 
             try {
 
-                /*
-                 * مهم جداً:
-                 * جدول nurses عندك يحتوي user_id
-                 * لذلك نبحث باستخدام user_id
-                 * وليس id.
-                 */
-
                 val nurses =
                     SupabaseManager.client
                         .from("nurses")
@@ -743,22 +788,16 @@ class NurseLoginActivity : AppCompatActivity() {
                                     "user_id",
                                     user.id
                                 )
-                                eq(
-                                    "is_verified",
-                                    true
-                                )
                             }
                         }
                         .decodeList<NurseLoginRecord>()
 
                 loading.dismiss()
 
+                // لا يوجد حساب ممرض بهذا المستخدم
                 if (nurses.isEmpty()) {
 
-                    showError(
-                        "الدخول غير مصرح",
-                        "هذا الرقم غير مسجل كممرض معتمد في النظام."
-                    )
+                    showNurseRegistrationScreen()
 
                     return@launch
                 }
@@ -766,30 +805,19 @@ class NurseLoginActivity : AppCompatActivity() {
                 val nurse =
                     nurses.first()
 
-                val intent =
-                    android.content.Intent(
-                        this@NurseLoginActivity,
-                        NurseActivity::class.java
-                    )
+                // الحساب موجود لكنه غير معتمد
+                if (nurse.is_verified != true) {
 
-                intent.putExtra(
-                    "nurse_id",
-                    nurse.id
+                    showPendingApproval()
+
+                    return@launch
+                }
+
+                // الحساب موجود ومعتمد
+                openNurseHome(
+                    nurse,
+                    user.id
                 )
-
-                intent.putExtra(
-                    "nurse_user_id",
-                    nurse.user_id ?: user.id
-                )
-
-                intent.putExtra(
-                    "nurse_name",
-                    nurse.full_name ?: "الممرض"
-                )
-
-                startActivity(intent)
-
-                finish()
 
             } catch (e: Exception) {
 
@@ -804,6 +832,548 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
+    // ---------------------------------------------------------
+    // شاشة إنشاء حساب ممرض جديد
+    // ---------------------------------------------------------
+
+    private fun showNurseRegistrationScreen() {
+
+        val root = rootLayout()
+
+        root.addView(
+            text(
+                "🩺",
+                55f,
+                NAVY
+            )
+        )
+
+        root.addView(
+            text(
+                "إنشاء حساب ممرض",
+                29f,
+                NAVY,
+                true
+            )
+        )
+
+        root.addView(
+            text(
+                "أكمل بياناتك للتسجيل في منصة التمريض المنزلي",
+                15f,
+                GRAY
+            )
+        )
+
+        space(root, 18)
+
+        val card =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                background =
+                    rounded(WHITE, 20)
+
+                setPadding(
+                    dp(18),
+                    dp(20),
+                    dp(18),
+                    dp(20)
+                )
+            }
+
+        card.addView(
+            text(
+                "بيانات الممرض",
+                20f,
+                NAVY,
+                true
+            )
+        )
+
+        space(card, 12)
+
+        // الاسم الكامل
+        card.addView(
+            text(
+                "الاسم الكامل",
+                15f,
+                NAVY,
+                true
+            )
+        )
+
+        val fullName =
+            createField(
+                "مثال: أحمد محمد علي",
+                InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            )
+
+        card.addView(
+            fullName,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        space(card, 10)
+
+        // الاختصاص
+        card.addView(
+            text(
+                "الاختصاص",
+                15f,
+                NAVY,
+                true
+            )
+        )
+
+        val specialty =
+            createField(
+                "تمريض عام / طوارئ / عناية مركزة...",
+                InputType.TYPE_CLASS_TEXT
+            )
+
+        card.addView(
+            specialty,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        space(card, 10)
+
+        // سنوات الخبرة
+        card.addView(
+            text(
+                "سنوات الخبرة",
+                15f,
+                NAVY,
+                true
+            )
+        )
+
+        val experience =
+            createField(
+                "مثال: 5",
+                InputType.TYPE_CLASS_NUMBER
+            )
+
+        card.addView(
+            experience,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        space(card, 10)
+
+        // المدينة
+        card.addView(
+            text(
+                "المدينة",
+                15f,
+                NAVY,
+                true
+            )
+        )
+
+        val city =
+            createField(
+                "الفلوجة",
+                InputType.TYPE_CLASS_TEXT
+            )
+
+        card.addView(
+            city,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        space(card, 10)
+
+        // العنوان
+        card.addView(
+            text(
+                "العنوان",
+                15f,
+                NAVY,
+                true
+            )
+        )
+
+        val address =
+            createField(
+                "الحي / المنطقة / الشارع",
+                InputType.TYPE_CLASS_TEXT
+            )
+
+        card.addView(
+            address,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        space(card, 15)
+
+        card.addView(
+            text(
+                "رقم الهاتف المؤكد",
+                14f,
+                GRAY,
+                true
+            )
+        )
+
+        card.addView(
+            text(
+                phoneNumber,
+                18f,
+                NAVY,
+                true
+            )
+        )
+
+        space(card, 15)
+
+        card.addView(
+            primaryButton(
+                "إنشاء حساب الممرض"
+            ) {
+
+                val nameValue =
+                    fullName.text.toString().trim()
+
+                val specialtyValue =
+                    specialty.text.toString().trim()
+
+                val experienceValue =
+                    experience.text.toString().trim()
+
+                val cityValue =
+                    city.text.toString().trim()
+
+                val addressValue =
+                    address.text.toString().trim()
+
+                if (nameValue.length < 3) {
+
+                    fullName.error =
+                        "أدخل الاسم الكامل"
+
+                    return@primaryButton
+                }
+
+                if (specialtyValue.isEmpty()) {
+
+                    specialty.error =
+                        "أدخل الاختصاص"
+
+                    return@primaryButton
+                }
+
+                val years =
+                    experienceValue.toIntOrNull()
+
+                if (years == null ||
+                    years < 0 ||
+                    years > 60
+                ) {
+
+                    experience.error =
+                        "أدخل سنوات خبرة صحيحة"
+
+                    return@primaryButton
+                }
+
+                if (cityValue.isEmpty()) {
+
+                    city.error =
+                        "أدخل المدينة"
+
+                    return@primaryButton
+                }
+
+                if (addressValue.isEmpty()) {
+
+                    address.error =
+                        "أدخل العنوان"
+
+                    return@primaryButton
+                }
+
+                createNurseAccount(
+                    nameValue,
+                    specialtyValue,
+                    years,
+                    cityValue,
+                    addressValue
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(64)
+            )
+        )
+
+        root.addView(
+            card,
+            LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+        )
+
+        space(root, 15)
+
+        root.addView(
+            text(
+                "بعد إنشاء الحساب سيتم مراجعته من الإدارة قبل السماح باستقبال طلبات المرضى.",
+                14f,
+                GRAY,
+                true
+            )
+        )
+
+        setContentView(
+            scroll(root)
+        )
+    }
+
+    // ---------------------------------------------------------
+    // إنشاء EditText
+    // ---------------------------------------------------------
+
+    private fun createField(
+        hintText: String,
+        type: Int
+    ): EditText {
+
+        return EditText(this).apply {
+
+            hint = hintText
+
+            textSize = 17f
+
+            gravity = Gravity.CENTER
+
+            inputType = type
+
+            layoutDirection =
+                View.LAYOUT_DIRECTION_RTL
+
+            background =
+                bordered(
+                    WHITE,
+                    BORDER,
+                    15
+                )
+
+            setPadding(
+                dp(15),
+                dp(5),
+                dp(15),
+                dp(5)
+            )
+        }
+    }
+
+    // ---------------------------------------------------------
+    // إنشاء حساب الممرض في Supabase
+    // ---------------------------------------------------------
+
+    private fun createNurseAccount(
+        fullName: String,
+        specialty: String,
+        experienceYears: Int,
+        city: String,
+        address: String
+    ) {
+
+        val user =
+            SupabaseManager.client.auth
+                .currentUserOrNull()
+
+        if (user == null) {
+
+            showError(
+                "انتهت الجلسة",
+                "يرجى تسجيل الدخول مرة أخرى."
+            )
+
+            showPhoneScreen()
+            return
+        }
+
+        val loading =
+            ProgressDialog(this).apply {
+
+                setMessage(
+                    "جاري إنشاء حساب الممرض..."
+                )
+
+                setCancelable(false)
+                show()
+            }
+
+        scope.launch {
+
+            try {
+
+                val existing =
+                    SupabaseManager.client
+                        .from("nurses")
+                        .select {
+                            filter {
+                                eq(
+                                    "user_id",
+                                    user.id
+                                )
+                            }
+                        }
+                        .decodeList<NurseLoginRecord>()
+
+                if (existing.isNotEmpty()) {
+
+                    loading.dismiss()
+
+                    showPendingApproval()
+
+                    return@launch
+                }
+
+                val record =
+                    NurseCreateRecord(
+                        user_id = user.id,
+                        full_name = fullName,
+                        phone = phoneNumber,
+                        specialty = specialty,
+                        experience_years = experienceYears,
+                        city = city,
+                        address = address,
+                        is_available = true,
+                        is_verified = false
+                    )
+
+                SupabaseManager.client
+                    .from("nurses")
+                    .insert(record)
+
+                loading.dismiss()
+
+                showSuccessAndWait()
+
+            } catch (e: Exception) {
+
+                loading.dismiss()
+
+                showError(
+                    "تعذر إنشاء الحساب",
+                    e.message
+                        ?: "حدث خطأ أثناء حفظ بيانات الممرض."
+                )
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // الحساب بانتظار الاعتماد
+    // ---------------------------------------------------------
+
+    private fun showPendingApproval() {
+
+        AlertDialog.Builder(this)
+            .setTitle("الحساب بانتظار الاعتماد")
+            .setMessage(
+                "حساب الممرض موجود، لكنه لم يعتمد من الإدارة بعد.\n\n" +
+                        "سيتمكن الممرض من الدخول بعد اعتماد الحساب."
+            )
+            .setPositiveButton(
+                "حسنًا"
+            ) { _, _ ->
+
+                SupabaseManager.client.auth.signOut()
+
+                showPhoneScreen()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    // ---------------------------------------------------------
+    // نجاح إنشاء الحساب
+    // ---------------------------------------------------------
+
+    private fun showSuccessAndWait() {
+
+        AlertDialog.Builder(this)
+            .setTitle("تم إنشاء الحساب بنجاح ✅")
+            .setMessage(
+                "تم تسجيل بياناتك كممرض بنجاح.\n\n" +
+                        "الحساب الآن بانتظار مراجعة واعتماد الإدارة.\n\n" +
+                        "بعد اعتماد الحساب يمكنك تسجيل الدخول باستخدام رقم هاتفك."
+            )
+            .setPositiveButton(
+                "حسنًا"
+            ) { _, _ ->
+
+                SupabaseManager.client.auth.signOut()
+
+                showPhoneScreen()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    // ---------------------------------------------------------
+    // فتح الصفحة الرئيسية للممرض
+    // ---------------------------------------------------------
+
+    private fun openNurseHome(
+        nurse: NurseLoginRecord,
+        userId: String
+    ) {
+
+        val intent =
+            android.content.Intent(
+                this@NurseLoginActivity,
+                NurseActivity::class.java
+            )
+
+        intent.putExtra(
+            "nurse_id",
+            nurse.id
+        )
+
+        intent.putExtra(
+            "nurse_user_id",
+            nurse.user_id ?: userId
+        )
+
+        intent.putExtra(
+            "nurse_name",
+            nurse.full_name ?: "الممرض"
+        )
+
+        startActivity(intent)
+
+        finish()
+    }
+
+    // ---------------------------------------------------------
+    // رسائل الخطأ
+    // ---------------------------------------------------------
+
     private fun showError(
         title: String,
         message: String
@@ -813,7 +1383,7 @@ class NurseLoginActivity : AppCompatActivity() {
             .setTitle(title)
             .setMessage(message)
             .setPositiveButton(
-                "حسناً",
+                "حسنًا",
                 null
             )
             .show()
