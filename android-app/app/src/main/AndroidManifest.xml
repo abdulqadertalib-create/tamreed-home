@@ -25,6 +25,16 @@
             android:name=".NurseActivity"
             android:exported="false" />
 
+        <!-- طلبات المريض -->
+        <activity
+            android:name=".MyBookingsActivity"
+            android:exported="false" />
+
+        <!-- طلبات الممرض -->
+        <activity
+            android:name=".NurseRequestsActivity"
+            android:exported="false" />
+
         <!-- التطبيق الرئيسي -->
         <activity
             android:name=".MainActivity"
