@@ -1040,7 +1040,7 @@ class NurseLoginActivity : AppCompatActivity() {
                     .auth
                     .verifyPhoneOtp(
                         type = OtpType.Phone.SMS,
-                        phoneNumber = phoneNumber,
+                        phone = phoneNumber,
                         token = token
                     )
 
