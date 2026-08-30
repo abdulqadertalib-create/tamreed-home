@@ -22,6 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
+
 @Serializable
 data class NurseLoginRecord(
     val id: String,
@@ -38,6 +39,7 @@ data class NurseLoginRecord(
     val is_verified: Boolean? = false
 )
 
+
 @Serializable
 data class NurseCreateRecord(
     val user_id: String,
@@ -50,6 +52,7 @@ data class NurseCreateRecord(
     val is_available: Boolean = true,
     val is_verified: Boolean = false
 )
+
 
 class NurseLoginActivity : AppCompatActivity() {
 
@@ -66,6 +69,7 @@ class NurseLoginActivity : AppCompatActivity() {
 
     private var phoneNumber = ""
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -79,36 +83,43 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
+
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
     }
 
+
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
     }
+
 
     private fun rounded(
         color: Int,
         radius: Int = 18
     ): GradientDrawable {
+
         return GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
         }
     }
+
 
     private fun bordered(
         color: Int = WHITE,
         strokeColor: Int = BORDER,
         radius: Int = 16
     ): GradientDrawable {
+
         return GradientDrawable().apply {
             setColor(color)
             setStroke(dp(1), strokeColor)
             cornerRadius = dp(radius).toFloat()
         }
     }
+
 
     private fun text(
         value: String,
@@ -118,6 +129,7 @@ class NurseLoginActivity : AppCompatActivity() {
     ): TextView {
 
         return TextView(this).apply {
+
             text = value
             textSize = size
             setTextColor(color)
@@ -137,12 +149,14 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
+
     private fun primaryButton(
         title: String,
         action: () -> Unit
     ): Button {
 
         return Button(this).apply {
+
             text = title
             textSize = 17f
             isAllCaps = false
@@ -156,17 +170,20 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
+
     private fun outlineButton(
         title: String,
         action: () -> Unit
     ): Button {
 
         return Button(this).apply {
+
             text = title
             textSize = 16f
             isAllCaps = false
             setTextColor(NAVY)
             gravity = Gravity.CENTER
+
             background = bordered(
                 WHITE,
                 NAVY,
@@ -179,9 +196,11 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
+
     private fun rootLayout(): LinearLayout {
 
         return LinearLayout(this).apply {
+
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -196,16 +215,18 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun scroll(
-        view: View
-    ): ScrollView {
+
+    private fun scroll(view: View): ScrollView {
 
         return ScrollView(this).apply {
+
             isFillViewport = true
             setBackgroundColor(LIGHT_GRAY)
+
             addView(view)
         }
     }
+
 
     private fun space(
         parent: LinearLayout,
@@ -221,9 +242,10 @@ class NurseLoginActivity : AppCompatActivity() {
         )
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // شاشة رقم الهاتف
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showPhoneScreen() {
 
@@ -298,7 +320,7 @@ class NurseLoginActivity : AppCompatActivity() {
         val phone =
             EditText(this).apply {
 
-                hint = "07701234567"
+                hint = "07810056006"
 
                 textSize = 19f
 
@@ -455,9 +477,10 @@ class NurseLoginActivity : AppCompatActivity() {
         )
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // توحيد رقم الهاتف العراقي
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun normalizeIraqPhone(
         value: String
@@ -515,9 +538,10 @@ class NurseLoginActivity : AppCompatActivity() {
         return null
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // إرسال OTP
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun sendOtp() {
 
@@ -558,9 +582,10 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // شاشة OTP
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showOtpScreen() {
 
@@ -698,9 +723,10 @@ class NurseLoginActivity : AppCompatActivity() {
         )
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // التحقق من OTP
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun verifyOtp(
         code: String
@@ -745,12 +771,14 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------
-    // بعد OTP:
-    // موجود ومعتمد -> دخول
-    // غير موجود -> إنشاء حساب
-    // موجود وغير معتمد -> انتظار اعتماد
-    // ---------------------------------------------------------
+
+    // =========================================================
+    // فحص حساب الممرض
+    //
+    // موجود ومعتمد     -> دخول
+    // موجود غير معتمد  -> انتظار
+    // غير موجود        -> إنشاء حساب
+    // =========================================================
 
     private fun checkNurseAndContinue() {
 
@@ -779,31 +807,38 @@ class NurseLoginActivity : AppCompatActivity() {
 
             try {
 
+                /*
+                 * لا نستخدم:
+                 *
+                 * filter { eq(...) }
+                 *
+                 * لأن هذه الصيغة هي التي سببت
+                 * أخطاء الـ Build في مشروعك.
+                 *
+                 * نقرأ السجلات المسموح بها ثم
+                 * نبحث عن user_id داخل Kotlin.
+                 */
+
                 val nurses =
                     SupabaseManager.client
                         .from("nurses")
-                        .select {
-                            filter {
-                                eq(
-                                    "user_id",
-                                    user.id
-                                )
-                            }
-                        }
+                        .select()
                         .decodeList<NurseLoginRecord>()
+
+                val nurse =
+                    nurses.firstOrNull {
+                        it.user_id == user.id
+                    }
 
                 loading.dismiss()
 
-                // لا يوجد حساب ممرض بهذا المستخدم
-                if (nurses.isEmpty()) {
+                // لا يوجد حساب ممرض
+                if (nurse == null) {
 
                     showNurseRegistrationScreen()
 
                     return@launch
                 }
-
-                val nurse =
-                    nurses.first()
 
                 // الحساب موجود لكنه غير معتمد
                 if (nurse.is_verified != true) {
@@ -832,9 +867,10 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------
-    // شاشة إنشاء حساب ممرض جديد
-    // ---------------------------------------------------------
+
+    // =========================================================
+    // شاشة إنشاء حساب ممرض
+    // =========================================================
 
     private fun showNurseRegistrationScreen() {
 
@@ -874,7 +910,10 @@ class NurseLoginActivity : AppCompatActivity() {
                     LinearLayout.VERTICAL
 
                 background =
-                    rounded(WHITE, 20)
+                    rounded(
+                        WHITE,
+                        20
+                    )
 
                 setPadding(
                     dp(18),
@@ -895,7 +934,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
         space(card, 12)
 
+
         // الاسم الكامل
+
         card.addView(
             text(
                 "الاسم الكامل",
@@ -922,7 +963,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
         space(card, 10)
 
+
         // الاختصاص
+
         card.addView(
             text(
                 "الاختصاص",
@@ -948,7 +991,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
         space(card, 10)
 
+
         // سنوات الخبرة
+
         card.addView(
             text(
                 "سنوات الخبرة",
@@ -974,7 +1019,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
         space(card, 10)
 
+
         // المدينة
+
         card.addView(
             text(
                 "المدينة",
@@ -1000,7 +1047,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
         space(card, 10)
 
+
         // العنوان
+
         card.addView(
             text(
                 "العنوان",
@@ -1026,6 +1075,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
         space(card, 15)
 
+
+        // رقم الهاتف
+
         card.addView(
             text(
                 "رقم الهاتف المؤكد",
@@ -1045,6 +1097,9 @@ class NurseLoginActivity : AppCompatActivity() {
         )
 
         space(card, 15)
+
+
+        // زر إنشاء الحساب
 
         card.addView(
             primaryButton(
@@ -1066,6 +1121,7 @@ class NurseLoginActivity : AppCompatActivity() {
                 val addressValue =
                     address.text.toString().trim()
 
+
                 if (nameValue.length < 3) {
 
                     fullName.error =
@@ -1073,6 +1129,7 @@ class NurseLoginActivity : AppCompatActivity() {
 
                     return@primaryButton
                 }
+
 
                 if (specialtyValue.isEmpty()) {
 
@@ -1082,10 +1139,12 @@ class NurseLoginActivity : AppCompatActivity() {
                     return@primaryButton
                 }
 
+
                 val years =
                     experienceValue.toIntOrNull()
 
-                if (years == null ||
+                if (
+                    years == null ||
                     years < 0 ||
                     years > 60
                 ) {
@@ -1096,6 +1155,7 @@ class NurseLoginActivity : AppCompatActivity() {
                     return@primaryButton
                 }
 
+
                 if (cityValue.isEmpty()) {
 
                     city.error =
@@ -1104,6 +1164,7 @@ class NurseLoginActivity : AppCompatActivity() {
                     return@primaryButton
                 }
 
+
                 if (addressValue.isEmpty()) {
 
                     address.error =
@@ -1111,6 +1172,7 @@ class NurseLoginActivity : AppCompatActivity() {
 
                     return@primaryButton
                 }
+
 
                 createNurseAccount(
                     nameValue,
@@ -1150,9 +1212,10 @@ class NurseLoginActivity : AppCompatActivity() {
         )
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // إنشاء EditText
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun createField(
         hintText: String,
@@ -1188,9 +1251,10 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // إنشاء حساب الممرض في Supabase
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun createNurseAccount(
         fullName: String,
@@ -1230,27 +1294,40 @@ class NurseLoginActivity : AppCompatActivity() {
 
             try {
 
-                val existing =
+                /*
+                 * لا نستخدم filter / eq هنا أيضًا.
+                 */
+
+                val allNurses =
                     SupabaseManager.client
                         .from("nurses")
-                        .select {
-                            filter {
-                                eq(
-                                    "user_id",
-                                    user.id
-                                )
-                            }
-                        }
+                        .select()
                         .decodeList<NurseLoginRecord>()
 
-                if (existing.isNotEmpty()) {
+                val existing =
+                    allNurses.firstOrNull {
+                        it.user_id == user.id
+                    }
+
+                if (existing != null) {
 
                     loading.dismiss()
 
-                    showPendingApproval()
+                    if (existing.is_verified == true) {
+
+                        openNurseHome(
+                            existing,
+                            user.id
+                        )
+
+                    } else {
+
+                        showPendingApproval()
+                    }
 
                     return@launch
                 }
+
 
                 val record =
                     NurseCreateRecord(
@@ -1265,9 +1342,11 @@ class NurseLoginActivity : AppCompatActivity() {
                         is_verified = false
                     )
 
+
                 SupabaseManager.client
                     .from("nurses")
                     .insert(record)
+
 
                 loading.dismiss()
 
@@ -1286,14 +1365,17 @@ class NurseLoginActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // الحساب بانتظار الاعتماد
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showPendingApproval() {
 
         AlertDialog.Builder(this)
-            .setTitle("الحساب بانتظار الاعتماد")
+            .setTitle(
+                "الحساب بانتظار الاعتماد"
+            )
             .setMessage(
                 "حساب الممرض موجود، لكنه لم يعتمد من الإدارة بعد.\n\n" +
                         "سيتمكن الممرض من الدخول بعد اعتماد الحساب."
@@ -1302,22 +1384,23 @@ class NurseLoginActivity : AppCompatActivity() {
                 "حسنًا"
             ) { _, _ ->
 
-                SupabaseManager.client.auth.signOut()
-
-                showPhoneScreen()
+                signOutAndShowPhone()
             }
             .setCancelable(false)
             .show()
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // نجاح إنشاء الحساب
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showSuccessAndWait() {
 
         AlertDialog.Builder(this)
-            .setTitle("تم إنشاء الحساب بنجاح ✅")
+            .setTitle(
+                "تم إنشاء الحساب بنجاح ✅"
+            )
             .setMessage(
                 "تم تسجيل بياناتك كممرض بنجاح.\n\n" +
                         "الحساب الآن بانتظار مراجعة واعتماد الإدارة.\n\n" +
@@ -1327,17 +1410,38 @@ class NurseLoginActivity : AppCompatActivity() {
                 "حسنًا"
             ) { _, _ ->
 
-                SupabaseManager.client.auth.signOut()
-
-                showPhoneScreen()
+                signOutAndShowPhone()
             }
             .setCancelable(false)
             .show()
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
+    // تسجيل الخروج بطريقة صحيحة
+    // =========================================================
+
+    private fun signOutAndShowPhone() {
+
+        scope.launch {
+
+            try {
+
+                SupabaseManager.client.auth
+                    .signOut()
+
+            } catch (_: Exception) {
+                // لا نوقف التطبيق إذا فشل تسجيل الخروج
+            }
+
+            showPhoneScreen()
+        }
+    }
+
+
+    // =========================================================
     // فتح الصفحة الرئيسية للممرض
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun openNurseHome(
         nurse: NurseLoginRecord,
@@ -1370,9 +1474,10 @@ class NurseLoginActivity : AppCompatActivity() {
         finish()
     }
 
-    // ---------------------------------------------------------
+
+    // =========================================================
     // رسائل الخطأ
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showError(
         title: String,
