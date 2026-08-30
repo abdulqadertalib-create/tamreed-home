@@ -74,6 +74,16 @@ data class PatientBooking(
     val created_at: String
 )
 
+@Serializable
+data class NurseProfile(
+    val id: String,
+    val full_name: String? = null,
+    val phone: String? = null,
+    val avatar_url: String? = null,
+    val is_active: Boolean? = null,
+    val rating: Double? = null
+)
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -2895,6 +2905,26 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        if (!booking.nurse_id.isNullOrBlank()) {
+            card.addView(
+                text(
+                    "👨‍⚕️ تم تعيين ممرض للطلب",
+                    13f,
+                    GREEN,
+                    true
+                )
+            )
+        } else if (booking.status.equals("PENDING", true)) {
+            card.addView(
+                text(
+                    "⏳ بانتظار تعيين الممرض",
+                    13f,
+                    ORANGE,
+                    true
+                )
+            )
+        }
+
         card.addView(
             outlineButton("عرض التفاصيل") {
                 showBookingDetails(booking)
@@ -3003,6 +3033,64 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        // المرحلة السابعة: إظهار الممرض المرتبط بالطلب.
+        if (!booking.nurse_id.isNullOrBlank()) {
+
+            val nurseBox = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                background = rounded(LIGHT_BLUE, 16)
+                setPadding(
+                    dp(12),
+                    dp(10),
+                    dp(12),
+                    dp(10)
+                )
+            }
+
+            nurseBox.addView(
+                text(
+                    "👨‍⚕️ الممرض المكلّف",
+                    17f,
+                    NAVY,
+                    true
+                )
+            )
+
+            val nurseInfo = text(
+                "جاري تحميل بيانات الممرض...",
+                14f,
+                GRAY
+            )
+            nurseBox.addView(nurseInfo)
+
+            content.addView(
+                nurseBox,
+                LinearLayout.LayoutParams(
+                    -1,
+                    -2
+                ).apply {
+                    topMargin = dp(10)
+                }
+            )
+
+            loadNurseProfile(
+                booking.nurse_id,
+                nurseInfo,
+                nurseBox
+            )
+
+        } else {
+
+            content.addView(
+                text(
+                    "👨‍⚕️ الممرض\nلم يتم تعيين ممرض لهذا الطلب بعد.",
+                    14f,
+                    GRAY
+                )
+            )
+        }
+
         if (booking.latitude != null &&
             booking.longitude != null
         ) {
@@ -3024,7 +3112,8 @@ class MainActivity : AppCompatActivity() {
 
         if (!booking.patient_phone.isNullOrBlank()) {
             content.addView(
-                outlineButton("📞 الاتصال بالمريض") {
+                outlineButton("📞 الاتصال بالممرض/المريض") {
+                    // رقم المريض يبقى متاحاً للمستخدم كما هو في الطلب.
                     try {
                         startActivity(
                             Intent(
@@ -3066,6 +3155,95 @@ class MainActivity : AppCompatActivity() {
             .setView(content)
             .setPositiveButton("إغلاق", null)
             .show()
+    }
+
+    private fun loadNurseProfile(
+        nurseId: String,
+        infoView: TextView,
+        nurseBox: LinearLayout
+    ) {
+
+        scope.launch {
+
+            try {
+
+                val profile =
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .select {
+                            filter {
+                                eq("id", nurseId)
+                            }
+                        }
+                        .decodeList<NurseProfile>()
+                        .firstOrNull()
+
+                if (profile == null) {
+                    infoView.text =
+                        "تم تعيين الممرض، لكن بيانات الملف غير متاحة."
+                    return@launch
+                }
+
+                val name =
+                    profile.full_name
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "الممرض"
+
+                val rating =
+                    profile.rating?.let {
+                        "⭐ ${String.format("%.1f", it)}"
+                    } ?: "⭐ غير متوفر"
+
+                val active =
+                    if (profile.is_active == true)
+                        "🟢 متاح"
+                    else
+                        "⚪ غير متاح"
+
+                infoView.text =
+                    "الاسم: $name\n" +
+                    "$rating   $active"
+
+                if (!profile.phone.isNullOrBlank()) {
+
+                    nurseBox.addView(
+                        outlineButton("📞 الاتصال بالممرض") {
+
+                            try {
+                                startActivity(
+                                    Intent(
+                                        Intent.ACTION_DIAL,
+                                        Uri.parse(
+                                            "tel:${profile.phone}"
+                                        )
+                                    )
+                                )
+                            } catch (_: Exception) {
+
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "تعذر فتح الاتصال",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(48)
+                        ).apply {
+                            topMargin = dp(8)
+                        }
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                infoView.text =
+                    "تم تعيين الممرض.\n" +
+                    "تعذر تحميل بياناته حالياً."
+            }
+        }
     }
 
     private fun openBookingLocation(
