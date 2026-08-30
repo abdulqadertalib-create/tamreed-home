@@ -1,20 +1,22 @@
 package iq.tamreed.home
 
-import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
-import android.text.InputFilter
-import android.text.InputType
 import android.view.Gravity
 import android.view.View
-import android.widget.*
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Space
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,18 +26,31 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class NurseProfile(
+data class NurseBooking(
     val id: String,
-    val full_name: String? = null,
-    val phone: String? = null,
-    val active: Boolean = true
+    val patient_id: String,
+    val nurse_id: String? = null,
+    val service_id: String,
+    val address: String? = null,
+    val city: String? = null,
+    val landmark: String? = null,
+    val patient_phone: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val status: String = "PENDING",
+    val notes: String? = null,
+    val created_at: String? = null
 )
 
-class NurseLoginActivity : AppCompatActivity() {
+class NurseActivity : AppCompatActivity() {
 
     private val NAVY = Color.rgb(5, 62, 105)
+    private val DARK_NAVY = Color.rgb(3, 45, 78)
     private val BLUE = Color.rgb(31, 115, 176)
     private val LIGHT_BLUE = Color.rgb(235, 245, 251)
+    private val GREEN = Color.rgb(45, 145, 80)
+    private val ORANGE = Color.rgb(225, 145, 35)
+    private val RED = Color.rgb(200, 60, 60)
     private val TEXT = Color.rgb(45, 45, 45)
     private val GRAY = Color.rgb(120, 120, 120)
     private val LIGHT_GRAY = Color.rgb(247, 248, 249)
@@ -45,19 +60,22 @@ class NurseLoginActivity : AppCompatActivity() {
     private val scope =
         CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    private var phoneNumber = ""
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val user =
-            SupabaseManager.client.auth.currentUserOrNull()
+        val user = SupabaseManager.client.auth.currentUserOrNull()
 
-        if (user != null) {
-            checkNurseAndContinue()
-        } else {
-            showPhoneScreen()
+        if (user == null) {
+            Toast.makeText(
+                this,
+                "يجب تسجيل دخول الممرض أولاً",
+                Toast.LENGTH_LONG
+            ).show()
+            finish()
+            return
         }
+
+        showBookings()
     }
 
     override fun onDestroy() {
@@ -91,14 +109,14 @@ class NurseLoginActivity : AppCompatActivity() {
     private fun rootLayout(): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.TOP
             layoutDirection = View.LAYOUT_DIRECTION_RTL
+            gravity = Gravity.TOP
             setBackgroundColor(LIGHT_GRAY)
             setPadding(
                 dp(14),
                 dp(12),
                 dp(14),
-                dp(80)
+                dp(90)
             )
         }
 
@@ -125,10 +143,10 @@ class NurseLoginActivity : AppCompatActivity() {
                 setTypeface(null, Typeface.BOLD)
             }
             setPadding(
-                dp(6),
-                dp(6),
-                dp(6),
-                dp(6)
+                dp(5),
+                dp(5),
+                dp(5),
+                dp(5)
             )
         }
 
@@ -138,11 +156,27 @@ class NurseLoginActivity : AppCompatActivity() {
     ): Button =
         Button(this).apply {
             text = title
-            textSize = 17f
+            textSize = 16f
             isAllCaps = false
             setTextColor(WHITE)
             gravity = Gravity.CENTER
-            background = rounded(NAVY, 15)
+            background = rounded(NAVY, 14)
+            setOnClickListener {
+                action()
+            }
+        }
+
+    private fun greenButton(
+        title: String,
+        action: () -> Unit
+    ): Button =
+        Button(this).apply {
+            text = title
+            textSize = 16f
+            isAllCaps = false
+            setTextColor(WHITE)
+            gravity = Gravity.CENTER
+            background = rounded(GREEN, 14)
             setOnClickListener {
                 action()
             }
@@ -154,14 +188,14 @@ class NurseLoginActivity : AppCompatActivity() {
     ): Button =
         Button(this).apply {
             text = title
-            textSize = 16f
+            textSize = 15f
             isAllCaps = false
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             background = bordered(
                 WHITE,
                 NAVY,
-                15
+                14
             )
             setOnClickListener {
                 action()
@@ -181,39 +215,59 @@ class NurseLoginActivity : AppCompatActivity() {
         )
     }
 
-    private fun showPhoneScreen() {
+    private fun addButton(
+        parent: LinearLayout,
+        button: Button,
+        height: Int = 56
+    ) {
+        parent.addView(
+            button,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(height)
+            ).apply {
+                setMargins(
+                    0,
+                    dp(5),
+                    0,
+                    dp(5)
+                )
+            }
+        )
+    }
+
+    private fun showBookings() {
 
         val root = rootLayout()
 
-        val header =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-                background =
-                    rounded(NAVY, 24)
-                setPadding(
-                    dp(15),
-                    dp(20),
-                    dp(15),
-                    dp(20)
-                )
-            }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(
+                NAVY,
+                24
+            )
+            setPadding(
+                dp(16),
+                dp(18),
+                dp(16),
+                dp(18)
+            )
+        }
 
         header.addView(
             text(
                 "🩺",
-                55f,
+                42f,
                 WHITE
             )
         )
 
         header.addView(
             text(
-                "دخول الممرض",
-                29f,
+                "لوحة الممرض",
+                27f,
                 WHITE,
                 true
             )
@@ -221,8 +275,8 @@ class NurseLoginActivity : AppCompatActivity() {
 
         header.addView(
             text(
-                "منصة التمريض المنزلي - الأنبار",
-                15f,
+                "طلبات التمريض المنزلي - محافظة الأنبار",
+                14f,
                 WHITE
             )
         )
@@ -231,128 +285,264 @@ class NurseLoginActivity : AppCompatActivity() {
             header,
             LinearLayout.LayoutParams(
                 -1,
-                dp(180)
+                dp(165)
             )
         )
 
-        addSpace(root, 25)
+        addSpace(root, 14)
 
-        root.addView(
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(
+                LIGHT_BLUE,
+                18
+            )
+            setPadding(
+                dp(12),
+                dp(10),
+                dp(12),
+                dp(10)
+            )
+        }
+
+        info.addView(
             text(
-                "تسجيل دخول الممرض",
-                27f,
+                "الطلبات الجديدة",
+                20f,
                 NAVY,
                 true
             )
         )
 
-        root.addView(
+        info.addView(
             text(
-                "أدخل رقم الهاتف المسجل لدى إدارة التمريض",
-                15f,
+                "اقبل الطلب ثم تحرك إلى موقع المريض",
+                14f,
                 GRAY
             )
         )
 
-        addSpace(root, 18)
+        root.addView(
+            info,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(92)
+            )
+        )
 
-        val card =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                gravity =
-                    Gravity.CENTER
-                background =
-                    rounded(WHITE, 20)
-                setPadding(
-                    dp(18),
-                    dp(20),
-                    dp(18),
-                    dp(20)
-                )
+        addSpace(root, 10)
+
+        val loading = text(
+            "⏳ جاري تحميل الطلبات...",
+            17f,
+            GRAY
+        )
+
+        root.addView(
+            loading,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(80)
+            )
+        )
+
+        addButton(
+            root,
+            primaryButton(
+                "🔄 تحديث الطلبات"
+            ) {
+                showBookings()
             }
+        )
+
+        addButton(
+            root,
+            outlineButton(
+                "🏠 العودة إلى التطبيق"
+            ) {
+                finish()
+            }
+        )
+
+        setContentView(scroll(root))
+
+        loadBookings(
+            root,
+            loading
+        )
+    }
+
+    private fun loadBookings(
+        root: LinearLayout,
+        loading: TextView
+    ) {
+        scope.launch {
+
+            try {
+
+                val bookings =
+                    SupabaseManager.client
+                        .from("bookings")
+                        .select()
+                        .decodeList<NurseBooking>()
+
+                loading.visibility = View.GONE
+
+                if (bookings.isEmpty()) {
+
+                    root.addView(
+                        text(
+                            "📭\n\nلا توجد طلبات حالياً",
+                            20f,
+                            NAVY,
+                            true
+                        ),
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(180)
+                        )
+                    )
+
+                    return@launch
+                }
+
+                val sorted =
+                    bookings.sortedByDescending {
+                        it.created_at ?: ""
+                    }
+
+                sorted.forEach { booking ->
+                    addBookingCard(
+                        root,
+                        booking
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                loading.text =
+                    "⚠️ تعذر تحميل الطلبات\n\n" +
+                    (e.message ?: "خطأ غير معروف")
+
+                loading.setTextColor(RED)
+            }
+        }
+    }
+
+    private fun addBookingCard(
+        root: LinearLayout,
+        booking: NurseBooking
+    ) {
+
+        addSpace(root, 8)
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.RIGHT
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(
+                WHITE,
+                20
+            )
+            setPadding(
+                dp(15),
+                dp(14),
+                dp(15),
+                dp(14)
+            )
+            elevation = dp(2).toFloat()
+        }
 
         card.addView(
             text(
-                "📱",
-                42f,
-                NAVY
+                "🩺 ${serviceName(booking.service_id)}",
+                21f,
+                NAVY,
+                true
+            )
+        )
+
+        card.addView(
+            text(
+                "👤 رقم الطلب: ${booking.id}",
+                12f,
+                GRAY
+            )
+        )
+
+        card.addView(
+            text(
+                "🏙️ المدينة: ${booking.city?.ifBlank { "غير محددة" } ?: "غير محددة"}",
+                16f,
+                TEXT,
+                true
+            )
+        )
+
+        card.addView(
+            text(
+                "📌 أقرب نقطة دالة: " +
+                    (booking.landmark?.ifBlank {
+                        "غير محددة"
+                    } ?: "غير محددة"),
+                15f,
+                TEXT
+            )
+        )
+
+        card.addView(
+            text(
+                "📍 العنوان: " +
+                    (booking.address?.ifBlank {
+                        "الموقع محدد بالخريطة"
+                    } ?: "الموقع محدد بالخريطة"),
+                15f,
+                TEXT
             )
         )
 
         val phone =
-            EditText(this).apply {
-
-                hint = "07701234567"
-
-                textSize = 19f
-
-                gravity = Gravity.CENTER
-
-                inputType =
-                    InputType.TYPE_CLASS_PHONE
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_LTR
-
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        15
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(5),
-                    dp(15),
-                    dp(5)
-                )
-            }
+            booking.patient_phone
+                ?.trim()
+                .orEmpty()
 
         card.addView(
-            phone,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(65)
+            text(
+                if (phone.isNotBlank()) {
+                    "📞 هاتف المريض: $phone"
+                } else {
+                    "📞 هاتف المريض: غير مسجل"
+                },
+                16f,
+                if (phone.isNotBlank()) {
+                    NAVY
+                } else {
+                    GRAY
+                },
+                true
             )
         )
 
         card.addView(
             text(
-                "سيتم إرسال رمز تحقق SMS",
-                13f,
-                GRAY
+                "📌 الحالة: ${statusText(booking.status)}",
+                16f,
+                statusColor(booking.status),
+                true
             )
         )
 
-        addSpace(card, 12)
-
-        card.addView(
-            primaryButton(
-                "إرسال رمز التحقق"
-            ) {
-
-                val normalized =
-                    normalizeIraqPhone(
-                        phone.text.toString()
-                    )
-
-                if (normalized == null) {
-                    phone.error =
-                        "رقم هاتف عراقي غير صحيح"
-                    return@primaryButton
-                }
-
-                phoneNumber = normalized
-
-                sendOtp()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
+        if (!booking.notes.isNullOrBlank()) {
+            card.addView(
+                text(
+                    "📝 ملاحظات المريض: ${booking.notes}",
+                    14f,
+                    GRAY
+                )
             )
-        )
+        }
 
         root.addView(
             card,
@@ -362,354 +552,152 @@ class NurseLoginActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(root, 18)
+        if (
+            booking.latitude != null &&
+            booking.longitude != null
+        ) {
 
-        val security =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-                background =
-                    rounded(LIGHT_BLUE, 18)
-                setPadding(
-                    dp(12),
-                    dp(10),
-                    dp(12),
-                    dp(10)
-                )
-            }
-
-        security.addView(
-            text(
-                "🔐",
-                32f,
-                NAVY
-            ),
-            LinearLayout.LayoutParams(
-                dp(55),
-                dp(55)
-            )
-        )
-
-        security.addView(
-            text(
-                "الدخول مقصور على الممرضين المسجلين والمعتمدين.",
-                14f,
-                NAVY,
-                true
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
-        root.addView(security)
-
-        addSpace(root, 15)
-
-        root.addView(
-            outlineButton(
-                "العودة إلى تسجيل دخول المريض"
-            ) {
-                finish()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
-        )
-
-        setContentView(scroll(root))
-    }
-
-    private fun normalizeIraqPhone(
-        value: String
-    ): String? {
-
-        var phone =
-            value
-                .trim()
-                .replace(" ", "")
-                .replace("-", "")
-                .replace("(", "")
-                .replace(")", "")
-
-        if (phone.startsWith("+964")) {
-            return if (
-                phone.length == 14 &&
-                phone.getOrNull(4) == '7'
-            ) {
-                phone
-            } else {
-                null
-            }
-        }
-
-        if (phone.startsWith("00964")) {
-            phone =
-                "+" + phone.substring(2)
-
-            return if (
-                phone.length == 14 &&
-                phone.getOrNull(4) == '7'
-            ) {
-                phone
-            } else {
-                null
-            }
-        }
-
-        if (phone.startsWith("07")) {
-            phone =
-                "+964" + phone.substring(1)
-
-            return if (
-                phone.length == 14
-            ) {
-                phone
-            } else {
-                null
-            }
-        }
-
-        return null
-    }
-
-    private fun sendOtp() {
-
-        val loading =
-            ProgressDialog(this).apply {
-                setMessage(
-                    "جاري إرسال رمز التحقق..."
-                )
-                setCancelable(false)
-                show()
-            }
-
-        scope.launch {
-
-            try {
-
-                SupabaseManager.client.auth
-                    .signInWith(OTP) {
-                        phone = phoneNumber
-                    }
-
-                loading.dismiss()
-
-                showOtpScreen()
-
-            } catch (e: Exception) {
-
-                loading.dismiss()
-
-                showError(
-                    "تعذر إرسال الرمز",
-                    e.message
-                        ?: "تأكد من إعداد Phone Auth في Supabase."
-                )
-            }
-        }
-    }
-
-    private fun showOtpScreen() {
-
-        val root = rootLayout()
-
-        root.addView(
-            text(
-                "‹",
-                42f,
-                NAVY
-            ).apply {
-                gravity = Gravity.RIGHT
-                setOnClickListener {
-                    showPhoneScreen()
-                }
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(55)
-            )
-        )
-
-        addSpace(root, 20)
-
-        root.addView(
-            text(
-                "🔐",
-                58f,
-                NAVY
-            )
-        )
-
-        root.addView(
-            text(
-                "تأكيد رقم الممرض",
-                27f,
-                NAVY,
-                true
-            )
-        )
-
-        root.addView(
-            text(
-                phoneNumber,
-                18f,
-                NAVY,
-                true
-            )
-        )
-
-        addSpace(root, 20)
-
-        val code =
-            EditText(this).apply {
-
-                hint = "000000"
-
-                textSize = 28f
-
-                gravity = Gravity.CENTER
-
-                inputType =
-                    InputType.TYPE_CLASS_NUMBER
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_LTR
-
-                maxLines = 1
-
-                filters =
-                    arrayOf(
-                        InputFilter.LengthFilter(6)
+            addButton(
+                root,
+                primaryButton(
+                    "🗺️ فتح موقع المريض في الخرائط"
+                ) {
+                    openMaps(
+                        booking.latitude,
+                        booking.longitude
                     )
-
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        15
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(5),
-                    dp(15),
-                    dp(5)
-                )
-            }
-
-        root.addView(
-            code,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(70)
-            )
-        )
-
-        addSpace(root, 18)
-
-        root.addView(
-            primaryButton(
-                "تأكيد الرمز"
-            ) {
-
-                val value =
-                    code.text.toString().trim()
-
-                if (value.length != 6) {
-                    code.error =
-                        "أدخل 6 أرقام"
-                    return@primaryButton
                 }
-
-                verifyOtp(value)
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
             )
-        )
+        }
 
-        addSpace(root, 10)
+        if (phone.isNotBlank()) {
 
-        root.addView(
-            outlineButton(
-                "إرسال الرمز مرة أخرى"
-            ) {
-                sendOtp()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
+            addButton(
+                root,
+                greenButton(
+                    "📞 الاتصال بالمريض"
+                ) {
+                    callPatient(phone)
+                }
             )
-        )
+        }
 
-        setContentView(scroll(root))
+        addStatusButton(
+            root,
+            booking
+        )
     }
 
-    private fun verifyOtp(
-        code: String
+    private fun addStatusButton(
+        root: LinearLayout,
+        booking: NurseBooking
     ) {
 
-        val loading =
-            ProgressDialog(this).apply {
-                setMessage(
-                    "جاري التحقق..."
+        when (
+            booking.status
+                .uppercase()
+                .trim()
+        ) {
+
+            "PENDING" -> {
+
+                addButton(
+                    root,
+                    greenButton(
+                        "✅ قبول الطلب"
+                    ) {
+                        acceptBooking(
+                            booking.id
+                        )
+                    }
                 )
-                setCancelable(false)
-                show()
             }
 
-        scope.launch {
+            "ACCEPTED" -> {
 
-            try {
+                addButton(
+                    root,
+                    primaryButton(
+                        "🚗 الممرض في الطريق"
+                    ) {
+                        updateStatus(
+                            booking.id,
+                            "ON_THE_WAY"
+                        )
+                    }
+                )
+            }
 
-                SupabaseManager.client.auth
-                    .verifyPhoneOtp(
-                        type = OtpType.Phone.SMS,
-                        phone = phoneNumber,
-                        token = code
-                    )
+            "ON_THE_WAY" -> {
 
-                loading.dismiss()
+                addButton(
+                    root,
+                    primaryButton(
+                        "📍 وصلت إلى موقع المريض"
+                    ) {
+                        updateStatus(
+                            booking.id,
+                            "IN_PROGRESS"
+                        )
+                    }
+                )
+            }
 
-                checkNurseAndContinue()
+            "IN_PROGRESS" -> {
 
-            } catch (e: Exception) {
+                addButton(
+                    root,
+                    greenButton(
+                        "✅ إنهاء الزيارة"
+                    ) {
+                        updateStatus(
+                            booking.id,
+                            "COMPLETED"
+                        )
+                    }
+                )
+            }
 
-                loading.dismiss()
+            "COMPLETED" -> {
 
-                showError(
-                    "فشل التحقق",
-                    e.message
-                        ?: "رمز التحقق غير صحيح."
+                addButton(
+                    root,
+                    outlineButton(
+                        "✔️ الطلب مكتمل"
+                    ) {
+                        Toast.makeText(
+                            this,
+                            "هذا الطلب مكتمل",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 )
             }
         }
     }
 
-    private fun checkNurseAndContinue() {
+    private fun acceptBooking(
+        bookingId: String
+    ) {
 
         val user =
-            SupabaseManager.client.auth
+            SupabaseManager.client
+                .auth
                 .currentUserOrNull()
 
         if (user == null) {
-            showPhoneScreen()
+            Toast.makeText(
+                this,
+                "يجب تسجيل الدخول أولاً",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
         val loading =
             ProgressDialog(this).apply {
                 setMessage(
-                    "جاري التحقق من اعتماد الممرض..."
+                    "جاري قبول الطلب..."
                 )
                 setCancelable(false)
                 show()
@@ -719,82 +707,297 @@ class NurseLoginActivity : AppCompatActivity() {
 
             try {
 
-                val nurses =
-                    SupabaseManager.client
-                        .from("nurses")
-                        .select {
-                            filter {
-                                eq(
-                                    "id",
-                                    user.id
-                                )
-                                eq(
-                                    "active",
-                                    true
-                                )
-                            }
+                SupabaseManager.client
+                    .from("bookings")
+                    .update(
+                        mapOf(
+                            "nurse_id" to user.id,
+                            "status" to "ACCEPTED"
+                        )
+                    ) {
+                        filter {
+                            eq(
+                                "id",
+                                bookingId
+                            )
+                            eq(
+                                "status",
+                                "PENDING"
+                            )
                         }
-                        .decodeList<NurseProfile>()
+                    }
 
                 loading.dismiss()
 
-                if (nurses.isEmpty()) {
+                Toast.makeText(
+                    this@NurseActivity,
+                    "تم قبول الطلب بنجاح ✅",
+                    Toast.LENGTH_SHORT
+                ).show()
 
-                    /*
-                     * المستخدم موثق برقم الهاتف لكنه
-                     * ليس ضمن جدول الممرضين المعتمدين.
-                     */
-                    try {
-                        SupabaseManager.client.auth
-                            .signOut()
-                    } catch (_: Exception) {
-                    }
-
-                    showError(
-                        "الدخول غير مصرح",
-                        "هذا الرقم غير مسجل كممرض معتمد في النظام.\n\n" +
-                            "يرجى التواصل مع إدارة التمريض لإضافة الحساب."
-                    )
-
-                    return@launch
-                }
-
-                startActivity(
-                    Intent(
-                        this@NurseLoginActivity,
-                        NurseActivity::class.java
-                    )
-                )
-
-                finish()
+                showBookings()
 
             } catch (e: Exception) {
 
                 loading.dismiss()
 
-                showError(
-                    "تعذر التحقق من الممرض",
-                    "تأكد من إنشاء جدول nurses في Supabase.\n\n" +
-                        (e.message ?: "")
-                )
+                Toast.makeText(
+                    this@NurseActivity,
+                    "تعذر قبول الطلب:\n" +
+                        (e.message ?: "خطأ غير معروف"),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
 
-    private fun showError(
-        title: String,
-        message: String
+    private fun updateStatus(
+        bookingId: String,
+        newStatus: String
     ) {
 
-        if (isFinishing) return
+        val user =
+            SupabaseManager.client
+                .auth
+                .currentUserOrNull()
 
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setPositiveButton(
-                "حسناً",
-                null
+        if (user == null) {
+            Toast.makeText(
+                this,
+                "يجب تسجيل الدخول أولاً",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val loading =
+            ProgressDialog(this).apply {
+                setMessage(
+                    "جاري تحديث حالة الطلب..."
+                )
+                setCancelable(false)
+                show()
+            }
+
+        scope.launch {
+
+            try {
+
+                SupabaseManager.client
+                    .from("bookings")
+                    .update(
+                        mapOf(
+                            "status" to newStatus
+                        )
+                    ) {
+                        filter {
+                            eq(
+                                "id",
+                                bookingId
+                            )
+                            eq(
+                                "nurse_id",
+                                user.id
+                            )
+                        }
+                    }
+
+                loading.dismiss()
+
+                Toast.makeText(
+                    this@NurseActivity,
+                    "تم تحديث حالة الطلب ✅",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                showBookings()
+
+            } catch (e: Exception) {
+
+                loading.dismiss()
+
+                Toast.makeText(
+                    this@NurseActivity,
+                    "تعذر تحديث الحالة:\n" +
+                        (e.message ?: "خطأ غير معروف"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun callPatient(
+        phone: String
+    ) {
+
+        val intent =
+            Intent(
+                Intent.ACTION_DIAL,
+                Uri.parse(
+                    "tel:$phone"
+                )
             )
-            .show()
+
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "تعذر فتح تطبيق الاتصال",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun openMaps(
+        latitude: Double,
+        longitude: Double
+    ) {
+
+        val geoUri =
+            Uri.parse(
+                "geo:$latitude,$longitude?q=$latitude,$longitude"
+            )
+
+        val intent =
+            Intent(
+                Intent.ACTION_VIEW,
+                geoUri
+            )
+
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+
+            val webUri =
+                Uri.parse(
+                    "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude"
+                )
+
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    webUri
+                )
+            )
+        }
+    }
+
+    private fun serviceName(
+        serviceId: String
+    ): String {
+
+        val key =
+            serviceId
+                .trim()
+                .lowercase()
+
+        return when {
+
+            key.contains("حقن") ||
+                key.contains("injection") ->
+                "إعطاء الحقن"
+
+            key.contains("ضماد") ||
+                key.contains("dressing") ->
+                "تغيير الضماد"
+
+            key.contains("سكر") ||
+                key.contains("glucose") ||
+                key.contains("sugar") ->
+                "قياس السكر"
+
+            key.contains("ضغط") ||
+                key.contains("pressure") ->
+                "قياس ضغط الدم"
+
+            key.contains("محلول") ||
+                key.contains("iv fluid") ||
+                key.contains("infusion") ->
+                "تركيب المحلول"
+
+            key.contains("كانيولا") ||
+                key.contains("cannula") ||
+                key.contains("iv cannula") ->
+                "تركيب الكانيولا"
+
+            key.contains("قسطرة") ||
+                key.contains("urinary") ||
+                key.contains("catheter") ->
+                "وضع القسطرة البولية"
+
+            key.contains("كبار") ||
+                key.contains("elderly") ->
+                "رعاية كبار السن"
+
+            key.contains("مرضى") ||
+                key.contains("patient care") ->
+                "رعاية المرضى في المنزل"
+
+            key.contains("متابعة") ||
+                key.contains("follow") ->
+                "متابعة حالة صحية"
+
+            else ->
+                serviceId
+        }
+    }
+
+    private fun statusText(
+        status: String
+    ): String {
+
+        return when (
+            status.uppercase().trim()
+        ) {
+
+            "PENDING" ->
+                "بانتظار قبول الممرض"
+
+            "ACCEPTED" ->
+                "تم قبول الطلب"
+
+            "ON_THE_WAY" ->
+                "الممرض في الطريق"
+
+            "IN_PROGRESS" ->
+                "الزيارة جارية"
+
+            "COMPLETED" ->
+                "تم إكمال الزيارة"
+
+            "CANCELLED" ->
+                "تم إلغاء الطلب"
+
+            else ->
+                status
+        }
+    }
+
+    private fun statusColor(
+        status: String
+    ): Int {
+
+        return when (
+            status.uppercase().trim()
+        ) {
+
+            "PENDING" ->
+                ORANGE
+
+            "ACCEPTED",
+            "ON_THE_WAY",
+            "IN_PROGRESS" ->
+                BLUE
+
+            "COMPLETED" ->
+                GREEN
+
+            "CANCELLED" ->
+                RED
+
+            else ->
+                GRAY
+        }
     }
 }
