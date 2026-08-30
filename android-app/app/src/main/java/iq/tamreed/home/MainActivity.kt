@@ -1860,16 +1860,6 @@ class MainActivity : AppCompatActivity() {
         // ----------------------------------------------------
 
         root.addView(
-            medicalVisualCard(
-                "📋",
-                "راجع بيانات الطلب قبل الإرسال",
-                "تأكد من اسم المريض والهاتف والمدينة والموقع والخدمة المختارة."
-            )
-        )
-
-        addSpace(root, 12)
-
-        root.addView(
             button(
                 "📨  إرسال طلب التمريض الآن"
             ) {
@@ -2082,12 +2072,8 @@ class MainActivity : AppCompatActivity() {
                             .setTitle("تم إرسال الطلب ✅")
                             .setMessage(
                                 "تم إرسال طلب التمريض بنجاح.\n\n" +
-                                    "رقم الطلب محفوظ في حسابك ويمكنك متابعة حالته من قسم طلباتي.\n\n" +
                                     "سيتمكن الممرض المقبول من رؤية رقم هاتف المريض وبيانات الموقع للتواصل والوصول."
                             )
-                            .setNegativeButton("العودة للرئيسية") { _, _ ->
-                                showHome()
-                            }
                             .setPositiveButton(
                                 "متابعة الطلب"
                             ) { _, _ ->
@@ -2531,37 +2517,111 @@ class MainActivity : AppCompatActivity() {
         val root = baseLayout()
 
         root.addView(
-            topBar("الطلبات")
+            topBar(
+                "طلباتي",
+                ::showHome
+            )
         )
 
         addSpace(root, 10)
 
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(NAVY, 22)
+            setPadding(dp(15), dp(16), dp(15), dp(16))
+        }
+
+        header.addView(text("📋", 40f, WHITE, true))
+        header.addView(text("متابعة طلبات التمريض", 23f, WHITE, true))
+        header.addView(
+            text(
+                "تابع حالة كل طلب من لحظة الإرسال حتى اكتمال الزيارة.",
+                14f,
+                Color.rgb(225, 238, 247)
+            )
+        )
+
         root.addView(
-            button("＋   إنشاء طلب") {
+            header,
+            LinearLayout.LayoutParams(-1, dp(145))
+        )
+
+        addSpace(root, 12)
+
+        val actionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        actionRow.addView(
+            button("＋ إنشاء طلب") {
                 checkLoginBeforeRequest()
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
-            )
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+                marginEnd = dp(5)
+            }
         )
 
-        addSpace(root, 15)
+        actionRow.addView(
+            outlineButton("↻ تحديث") {
+                showBookings()
+            },
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+                marginStart = dp(5)
+            }
+        )
 
-        val loading =
-            text(
-                "جاري تحميل الطلبات...",
-                16f,
-                GRAY
-            )
+        root.addView(actionRow)
+        addSpace(root, 14)
 
+        val filterRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val filterSpinner = Spinner(this)
+        val filters = arrayOf(
+            "كل الطلبات",
+            "بانتظار القبول",
+            "مقبولة",
+            "في الطريق",
+            "الزيارة جارية",
+            "مكتملة",
+            "ملغاة"
+        )
+
+        filterSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            filters
+        )
+
+        filterRow.addView(
+            filterSpinner,
+            LinearLayout.LayoutParams(0, dp(58), 1f)
+        )
+
+        root.addView(filterRow)
+        addSpace(root, 12)
+
+        val loading = text(
+            "جاري تحميل الطلبات...",
+            16f,
+            GRAY
+        )
         root.addView(loading)
 
-        addSpace(root, 15)
+        addSpace(root, 10)
 
-        root.addView(
-            bottomNavigation("orders")
-        )
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        root.addView(content)
+
+        root.addView(bottomNavigation("orders"))
 
         setContentView(scroll(root))
 
@@ -2572,15 +2632,11 @@ class MainActivity : AppCompatActivity() {
                 .currentUserOrNull()
 
         if (user == null) {
-
-            loading.text =
-                "سجل الدخول لعرض طلباتك"
-
+            loading.text = "سجل الدخول لعرض طلباتك"
             return
         }
 
         scope.launch {
-
             try {
 
                 val bookings =
@@ -2596,34 +2652,102 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                         .decodeList<PatientBooking>()
-
-                loading.visibility =
-                    View.GONE
-
-                if (bookings.isEmpty()) {
-
-                    root.addView(
-                        emptyState(
-                            "📭",
-                            "لا توجد طلبات بعد",
-                            "عند إنشاء طلب تمريض سيظهر هنا"
-                        ),
-                        root.indexOfChild(loading) + 1
-                    )
-
-                } else {
-
-                    bookings
                         .sortedByDescending {
                             it.created_at
                         }
-                        .forEach {
-                            addBookingCard(
-                                root,
-                                it
-                            )
-                        }
+
+                loading.visibility = View.GONE
+
+                fun selectedStatus(): String? {
+                    return when (filterSpinner.selectedItemPosition) {
+                        1 -> "PENDING"
+                        2 -> "ACCEPTED"
+                        3 -> "ON_THE_WAY"
+                        4 -> "IN_PROGRESS"
+                        5 -> "COMPLETED"
+                        6 -> "CANCELLED"
+                        else -> null
+                    }
                 }
+
+                fun renderBookings() {
+
+                    content.removeAllViews()
+
+                    val wanted = selectedStatus()
+
+                    val filtered =
+                        if (wanted == null) {
+                            bookings
+                        } else {
+                            bookings.filter {
+                                it.status.equals(
+                                    wanted,
+                                    ignoreCase = true
+                                )
+                            }
+                        }
+
+                    val countText =
+                        if (wanted == null) {
+                            "إجمالي الطلبات: ${bookings.size}"
+                        } else {
+                            "الطلبات المعروضة: ${filtered.size}"
+                        }
+
+                    content.addView(
+                        text(
+                            countText,
+                            14f,
+                            GRAY,
+                            true
+                        )
+                    )
+
+                    addSpace(content, 8)
+
+                    if (filtered.isEmpty()) {
+
+                        content.addView(
+                            emptyState(
+                                "📭",
+                                "لا توجد طلبات",
+                                if (wanted == null)
+                                    "عند إنشاء طلب تمريض سيظهر هنا."
+                                else
+                                    "لا توجد طلبات بهذه الحالة حالياً."
+                            )
+                        )
+
+                        return
+                    }
+
+                    filtered.forEach {
+                        addBookingCard(
+                            content,
+                            it
+                        )
+                    }
+                }
+
+                filterSpinner.onItemSelectedListener =
+                    object : AdapterView.OnItemSelectedListener {
+
+                        override fun onItemSelected(
+                            parent: AdapterView<*>?,
+                            view: View?,
+                            position: Int,
+                            id: Long
+                        ) {
+                            renderBookings()
+                        }
+
+                        override fun onNothingSelected(
+                            parent: AdapterView<*>?
+                        ) = Unit
+                    }
+
+                renderBookings()
 
             } catch (e: Exception) {
 
@@ -2644,48 +2768,44 @@ class MainActivity : AppCompatActivity() {
 
         val card =
             LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(WHITE, 20)
-
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                background = rounded(WHITE, 20)
                 setPadding(
                     dp(15),
                     dp(15),
                     dp(15),
                     dp(15)
                 )
-
-                elevation =
-                    dp(2).toFloat()
+                elevation = dp(2).toFloat()
+                setOnClickListener {
+                    showBookingDetails(booking)
+                }
             }
 
         card.addView(
             text(
-                "🩺  ${booking.service_id}",
+                "🩺  طلب تمريض",
                 19f,
                 NAVY,
                 true
             )
         )
 
+        addSpace(card, 4)
+
         card.addView(
             text(
-                "👤  ${booking.address}",
-                15f,
-                TEXT
+                "🔖 رقم الطلب: ${booking.id}",
+                12f,
+                GRAY
             )
         )
 
         if (!booking.city.isNullOrBlank()) {
             card.addView(
                 text(
-                    "🏙️  المدينة: ${booking.city}",
+                    "🏙️  ${booking.city}",
                     14f,
                     TEXT
                 )
@@ -2695,83 +2815,97 @@ class MainActivity : AppCompatActivity() {
         if (!booking.landmark.isNullOrBlank()) {
             card.addView(
                 text(
-                    "📌  أقرب نقطة دالة: ${booking.landmark}",
+                    "📌  ${booking.landmark}",
                     14f,
                     TEXT
                 )
             )
         }
 
-        if (!booking.patient_phone.isNullOrBlank()) {
-
-            card.addView(
-                text(
-                    "📞  هاتف المريض: ${booking.patient_phone}",
-                    14f,
-                    NAVY,
-                    true
-                )
+        val statusBox = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bordered(
+                LIGHT_GRAY,
+                statusColor(booking.status),
+                14
             )
-
-            card.addView(
-                outlineButton(
-                    "اتصال بالمريض"
-                ) {
-
-                    try {
-
-                        val intent =
-                            Intent(
-                                Intent.ACTION_DIAL,
-                                Uri.parse(
-                                    "tel:${booking.patient_phone}"
-                                )
-                            )
-
-                        startActivity(intent)
-
-                    } catch (_: Exception) {
-
-                        Toast.makeText(
-                            this,
-                            "تعذر فتح الاتصال",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                },
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(50)
-                ).apply {
-                    setMargins(
-                        0,
-                        dp(8),
-                        0,
-                        0
-                    )
-                }
+            setPadding(
+                dp(10),
+                dp(4),
+                dp(10),
+                dp(4)
             )
         }
 
-        card.addView(
+        statusBox.addView(
             text(
-                "الحالة: ${statusText(booking.status)}",
+                "●",
                 16f,
                 statusColor(booking.status),
                 true
+            ),
+            LinearLayout.LayoutParams(dp(28), dp(40))
+        )
+
+        statusBox.addView(
+            text(
+                statusText(booking.status),
+                15f,
+                statusColor(booking.status),
+                true
+            ),
+            LinearLayout.LayoutParams(0, dp(40), 1f)
+        )
+
+        card.addView(
+            statusBox,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(48)
+            ).apply {
+                topMargin = dp(10)
+            }
+        )
+
+        val hint =
+            when (booking.status.uppercase()) {
+                "PENDING" ->
+                    "سيتم إشعارك عند قبول الطلب."
+                "ACCEPTED" ->
+                    "تم قبول الطلب ويمكنك متابعة التفاصيل."
+                "ON_THE_WAY" ->
+                    "الممرض في الطريق إلى الموقع."
+                "IN_PROGRESS" ->
+                    "الزيارة التمريضية جارية."
+                "COMPLETED" ->
+                    "اكتملت الزيارة بنجاح."
+                "CANCELLED" ->
+                    "هذا الطلب ملغى."
+                else ->
+                    "اضغط لعرض تفاصيل الطلب."
+            }
+
+        card.addView(
+            text(
+                hint,
+                13f,
+                GRAY
             )
         )
 
-        if (!booking.notes.isNullOrBlank()) {
-
-            card.addView(
-                text(
-                    "📝 ${booking.notes}",
-                    14f,
-                    GRAY
-                )
-            )
-        }
+        card.addView(
+            outlineButton("عرض التفاصيل") {
+                showBookingDetails(booking)
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(50)
+            ).apply {
+                topMargin = dp(8)
+            }
+        )
 
         root.addView(
             card,
@@ -2787,6 +2921,179 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         )
+    }
+
+    private fun showBookingDetails(
+        booking: PatientBooking
+    ) {
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(
+                dp(18),
+                dp(8),
+                dp(18),
+                dp(5)
+            )
+        }
+
+        content.addView(
+            text(
+                "الحالة الحالية",
+                14f,
+                GRAY,
+                true
+            )
+        )
+
+        content.addView(
+            text(
+                statusText(booking.status),
+                22f,
+                statusColor(booking.status),
+                true
+            )
+        )
+
+        addSpace(content, 8)
+
+        content.addView(
+            text(
+                "🔖 رقم الطلب\n${booking.id}",
+                13f,
+                TEXT
+            )
+        )
+
+        content.addView(
+            text(
+                "🩺 الخدمة\n${booking.service_id}",
+                14f,
+                TEXT,
+                true
+            )
+        )
+
+        if (!booking.city.isNullOrBlank()) {
+            content.addView(
+                text(
+                    "🏙️ المدينة\n${booking.city}",
+                    14f,
+                    TEXT
+                )
+            )
+        }
+
+        if (!booking.landmark.isNullOrBlank()) {
+            content.addView(
+                text(
+                    "📌 أقرب نقطة دالة\n${booking.landmark}",
+                    14f,
+                    TEXT
+                )
+            )
+        }
+
+        content.addView(
+            text(
+                "📍 العنوان\n${booking.address}",
+                14f,
+                TEXT
+            )
+        )
+
+        if (booking.latitude != null &&
+            booking.longitude != null
+        ) {
+            content.addView(
+                outlineButton("🗺️ فتح الموقع في الخرائط") {
+                    openBookingLocation(
+                        booking.latitude,
+                        booking.longitude
+                    )
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(50)
+                ).apply {
+                    topMargin = dp(8)
+                }
+            )
+        }
+
+        if (!booking.patient_phone.isNullOrBlank()) {
+            content.addView(
+                outlineButton("📞 الاتصال بالمريض") {
+                    try {
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_DIAL,
+                                Uri.parse(
+                                    "tel:${booking.patient_phone}"
+                                )
+                            )
+                        )
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            this,
+                            "تعذر فتح الاتصال",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(50)
+                ).apply {
+                    topMargin = dp(8)
+                }
+            )
+        }
+
+        if (!booking.notes.isNullOrBlank()) {
+            content.addView(
+                text(
+                    "📝 الملاحظات\n${booking.notes}",
+                    14f,
+                    GRAY
+                )
+            )
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("تفاصيل طلب التمريض")
+            .setView(content)
+            .setPositiveButton("إغلاق", null)
+            .show()
+    }
+
+    private fun openBookingLocation(
+        latitude: Double,
+        longitude: Double
+    ) {
+
+        try {
+
+            val uri = Uri.parse(
+                "geo:$latitude,$longitude?q=$latitude,$longitude"
+            )
+
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    uri
+                )
+            )
+
+        } catch (_: Exception) {
+
+            Toast.makeText(
+                this,
+                "تعذر فتح الخرائط",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun statusText(
