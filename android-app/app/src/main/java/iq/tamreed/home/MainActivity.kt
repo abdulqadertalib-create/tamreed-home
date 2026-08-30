@@ -12,6 +12,10 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Notification
 import android.text.InputFilter
 import android.text.InputType
 import android.view.Gravity
@@ -32,6 +36,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 
 
@@ -113,6 +120,14 @@ class MainActivity : AppCompatActivity() {
     private var currentLocationText = "لم يتم تحديد الموقع"
     private val LOCATION_REQUEST_CODE = 2001
 
+    // =========================================================
+    // المرحلة التاسعة: إشعارات ومتابعة حالة الطلب
+    // =========================================================
+    private val NOTIFICATION_CHANNEL_ID = "tamreed_booking_updates"
+    private var bookingMonitorJob: Job? = null
+    private val lastBookingStatuses = mutableMapOf<String, String>()
+    private val appNotifications = mutableListOf<String>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -121,6 +136,9 @@ class MainActivity : AppCompatActivity() {
          * إذا كان المستخدم مسجلاً مسبقاً في Supabase
          * ننتقل مباشرة إلى الرئيسية.
          */
+        createNotificationChannel()
+        requestNotificationPermissionIfNeeded()
+
         val user = SupabaseManager.client.auth.currentUserOrNull()
 
         if (user == null) {
@@ -131,6 +149,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        bookingMonitorJob?.cancel()
         scope.cancel()
         super.onDestroy()
     }
@@ -343,8 +362,13 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        val notificationButton = text("🔔", 23f, NAVY).apply {
+            setOnClickListener { showNotifications() }
+            contentDescription = "الإشعارات"
+        }
+
         bar.addView(
-            text("🔔", 23f, NAVY),
+            notificationButton,
             LinearLayout.LayoutParams(dp(55), dp(55))
         )
 
@@ -1396,6 +1420,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(bottomNavigation("home"))
 
         setContentView(scroll(root))
+        startBookingStatusMonitor()
     }
 
     private fun serviceCard(
@@ -2520,6 +2545,281 @@ class MainActivity : AppCompatActivity() {
                     .show()
             }
         }
+    }
+
+
+    // =========================================================
+    // المرحلة التاسعة: نظام الإشعارات ومراقبة الطلبات
+    // =========================================================
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager =
+                getSystemService(NotificationManager::class.java)
+
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "تحديثات طلبات التمريض",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "إشعارات قبول وتحديث حالة طلبات التمريض المنزلي"
+            }
+
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                9001
+            )
+        }
+    }
+
+    private fun startBookingStatusMonitor() {
+        val user = SupabaseManager.client.auth.currentUserOrNull() ?: return
+
+        bookingMonitorJob?.cancel()
+
+        bookingMonitorJob = scope.launch(Dispatchers.IO) {
+            var firstLoad = true
+
+            while (true) {
+                try {
+                    val bookings =
+                        SupabaseManager.client
+                            .from("bookings")
+                            .select {
+                                filter {
+                                    eq("patient_id", user.id)
+                                }
+                            }
+                            .decodeList<PatientBooking>()
+
+                    val changedMessages = mutableListOf<String>()
+
+                    bookings.forEach { booking ->
+                        val oldStatus =
+                            lastBookingStatuses[booking.id]
+
+                        val newStatus = booking.status
+
+                        if (oldStatus == null) {
+                            lastBookingStatuses[booking.id] = newStatus
+
+                            // لا نرسل إشعاراً للطلبات الموجودة عند فتح التطبيق.
+                            if (!firstLoad) {
+                                changedMessages.add(
+                                    "تم تحديث طلب جديد إلى: ${bookingStatusArabic(newStatus)}"
+                                )
+                            }
+                        } else if (oldStatus != newStatus) {
+                            lastBookingStatuses[booking.id] = newStatus
+
+                            changedMessages.add(
+                                bookingStatusArabic(newStatus)
+                            )
+                        }
+                    }
+
+                    if (changedMessages.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            changedMessages.forEach { message ->
+                                addAppNotification(message)
+                            }
+                        }
+                    }
+
+                    firstLoad = false
+                } catch (_: Exception) {
+                    // إذا انقطع الإنترنت نستمر بالمحاولة في الدورة التالية.
+                }
+
+                delay(15000)
+            }
+        }
+    }
+
+    private fun bookingStatusArabic(status: String): String {
+        return when (status.uppercase()) {
+            "PENDING" -> "⏳ طلبك قيد الانتظار"
+            "ACCEPTED" -> "✅ تم قبول طلبك من الممرض"
+            "CONFIRMED" -> "✅ تم تأكيد طلب التمريض"
+            "ON_THE_WAY" -> "🚗 الممرض في الطريق إليك"
+            "EN_ROUTE" -> "🚗 الممرض في الطريق إليك"
+            "STARTED" -> "🩺 بدأت زيارة التمريض"
+            "IN_PROGRESS" -> "🩺 بدأت زيارة التمريض"
+            "COMPLETED" -> "🎉 تم إكمال طلب التمريض"
+            "CANCELLED" -> "❌ تم إلغاء طلب التمريض"
+            "REJECTED" -> "⚠️ تعذر قبول طلب التمريض"
+            else -> "🔔 تم تحديث حالة طلبك: $status"
+        }
+    }
+
+    private fun addAppNotification(message: String) {
+        val fullMessage =
+            "${java.text.SimpleDateFormat(
+                "HH:mm",
+                java.util.Locale.getDefault()
+            ).format(java.util.Date())} — $message"
+
+        appNotifications.add(0, fullMessage)
+
+        if (appNotifications.size > 30) {
+            appNotifications.removeAt(appNotifications.lastIndex)
+        }
+
+        showSystemNotification(message)
+    }
+
+    private fun showSystemNotification(message: String) {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val manager =
+            getSystemService(NotificationManager::class.java)
+
+        val notification =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(
+                    this,
+                    NOTIFICATION_CHANNEL_ID
+                )
+            } else {
+                Notification.Builder(this)
+            }
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("التمريض المنزلي")
+                .setContentText(message)
+                .setAutoCancel(true)
+                .setCategory(Notification.CATEGORY_STATUS)
+                .build()
+
+        manager.notify(
+            (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
+            notification
+        )
+    }
+
+    private fun showNotifications() {
+        val user =
+            SupabaseManager.client.auth.currentUserOrNull()
+
+        if (user == null) {
+            showPhoneLogin()
+            return
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(18), dp(8), dp(18), dp(8))
+        }
+
+        if (appNotifications.isEmpty()) {
+            content.addView(
+                text(
+                    "🔔",
+                    50f,
+                    NAVY,
+                    true
+                )
+            )
+            content.addView(
+                text(
+                    "لا توجد إشعارات جديدة",
+                    18f,
+                    NAVY,
+                    true
+                )
+            )
+            content.addView(
+                text(
+                    "ستظهر هنا تحديثات حالة طلبات التمريض.",
+                    14f,
+                    GRAY
+                )
+            )
+        } else {
+            appNotifications.take(12).forEach { item ->
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutDirection = View.LAYOUT_DIRECTION_RTL
+                    background = bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+                    setPadding(
+                        dp(10),
+                        dp(8),
+                        dp(10),
+                        dp(8)
+                    )
+                }
+
+                row.addView(
+                    text("🔔", 25f, NAVY),
+                    LinearLayout.LayoutParams(
+                        dp(45),
+                        dp(50)
+                    )
+                )
+
+                row.addView(
+                    text(
+                        item,
+                        14f,
+                        TEXT,
+                        true
+                    ),
+                    LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1f
+                    )
+                )
+
+                content.addView(
+                    row,
+                    LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                    ).apply {
+                        bottomMargin = dp(7)
+                    }
+                )
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("🔔 الإشعارات")
+            .setView(content)
+            .setNegativeButton("مسح الإشعارات") { _, _ ->
+                appNotifications.clear()
+                Toast.makeText(
+                    this,
+                    "تم مسح الإشعارات",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .setPositiveButton("إغلاق", null)
+            .show()
     }
 
     private fun showBookings() {
@@ -3664,6 +3964,10 @@ class MainActivity : AppCompatActivity() {
             .setMessage("هل تريد تسجيل الخروج؟")
             .setNegativeButton("إلغاء", null)
             .setPositiveButton("خروج") { _, _ ->
+
+                bookingMonitorJob?.cancel()
+                lastBookingStatuses.clear()
+                appNotifications.clear()
 
                 scope.launch {
 
