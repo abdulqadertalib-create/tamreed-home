@@ -588,6 +588,34 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        addSpace(root, 12)
+
+        /*
+         * =====================================================
+         * دخول الإدارة
+         *
+         * يفتح AdminActivity.
+         * شاشة الإدارة نفسها تتحقق من صلاحية المستخدم
+         * داخل جدول admin_users قبل إظهار لوحة الإدارة.
+         * =====================================================
+         */
+        root.addView(
+            outlineButton(
+                "🛡️ دخول الإدارة"
+            ) {
+                startActivity(
+                    Intent(
+                        this,
+                        AdminActivity::class.java
+                    )
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            )
+        )
+
         setContentView(scroll(root))
     }
 
