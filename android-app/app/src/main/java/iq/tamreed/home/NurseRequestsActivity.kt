@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 
 import kotlinx.coroutines.CoroutineScope
@@ -89,11 +90,8 @@ class NurseRequestsActivity : AppCompatActivity() {
     ): GradientDrawable {
 
         return GradientDrawable().apply {
-
             setColor(color)
-
-            cornerRadius =
-                dp(radius).toFloat()
+            cornerRadius = dp(radius).toFloat()
         }
     }
 
@@ -105,16 +103,9 @@ class NurseRequestsActivity : AppCompatActivity() {
     ): GradientDrawable {
 
         return GradientDrawable().apply {
-
             setColor(color)
-
-            setStroke(
-                dp(1),
-                strokeColor
-            )
-
-            cornerRadius =
-                dp(radius).toFloat()
+            setStroke(dp(1), strokeColor)
+            cornerRadius = dp(radius).toFloat()
         }
     }
 
@@ -129,18 +120,14 @@ class NurseRequestsActivity : AppCompatActivity() {
         return TextView(this).apply {
 
             text = value
-
             textSize = size
-
             setTextColor(color)
-
             gravity = Gravity.CENTER
 
             layoutDirection =
                 View.LAYOUT_DIRECTION_RTL
 
             if (bold) {
-
                 setTypeface(
                     null,
                     Typeface.BOLD
@@ -164,7 +151,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 .auth
                 .currentUserOrNull()
 
-
         if (user == null) {
 
             Toast.makeText(
@@ -174,10 +160,8 @@ class NurseRequestsActivity : AppCompatActivity() {
             ).show()
 
             finish()
-
             return
         }
-
 
         scope.launch {
 
@@ -208,7 +192,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     finish()
-
                     return@launch
                 }
 
@@ -226,7 +209,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     finish()
-
                     return@launch
                 }
 
@@ -251,7 +233,6 @@ class NurseRequestsActivity : AppCompatActivity() {
 
         val id =
             nurseId ?: return
-
 
         scope.launch {
 
@@ -327,7 +308,6 @@ class NurseRequestsActivity : AppCompatActivity() {
             ScrollView(this).apply {
 
                 isFillViewport = true
-
                 addView(root)
             }
 
@@ -353,9 +333,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             Button(this).apply {
 
                 text = "رجوع"
-
                 textSize = 15f
-
                 isAllCaps = false
 
                 setTextColor(NAVY)
@@ -368,7 +346,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
 
                 setOnClickListener {
-
                     finish()
                 }
             }
@@ -408,9 +385,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 -1,
                 dp(70)
             ).apply {
-
-                bottomMargin =
-                    dp(10)
+                bottomMargin = dp(10)
             }
         )
 
@@ -495,9 +470,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     -1,
                     dp(220)
                 ).apply {
-
-                    topMargin =
-                        dp(20)
+                    topMargin = dp(20)
                 }
             )
 
@@ -513,9 +486,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     -1,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-
-                    bottomMargin =
-                        dp(16)
+                    bottomMargin = dp(16)
                 }
             )
         }
@@ -621,10 +592,21 @@ class NurseRequestsActivity : AppCompatActivity() {
         addRow(
             card,
             "حالة الطلب",
-            statusArabic(
-                request.status
-            )
+            statusArabic(request.status)
         )
+
+
+        if (
+            request.latitude != null &&
+            request.longitude != null
+        ) {
+
+            addRow(
+                card,
+                "الموقع",
+                "${request.latitude}, ${request.longitude}"
+            )
+        }
 
 
         val buttons =
@@ -651,11 +633,8 @@ class NurseRequestsActivity : AppCompatActivity() {
         val acceptButton =
             Button(this).apply {
 
-                text =
-                    "✓ قبول الطلب"
-
+                text = "✓ قبول الطلب"
                 textSize = 16f
-
                 isAllCaps = false
 
                 setTextColor(WHITE)
@@ -667,10 +646,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
 
                 setOnClickListener {
-
-                    acceptRequest(
-                        request
-                    )
+                    acceptRequest(request)
                 }
             }
 
@@ -678,11 +654,8 @@ class NurseRequestsActivity : AppCompatActivity() {
         val rejectButton =
             Button(this).apply {
 
-                text =
-                    "✕ رفض"
-
+                text = "✕ رفض"
                 textSize = 16f
-
                 isAllCaps = false
 
                 setTextColor(WHITE)
@@ -694,10 +667,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
 
                 setOnClickListener {
-
-                    rejectRequest(
-                        request
-                    )
+                    rejectRequest(request)
                 }
             }
 
@@ -709,9 +679,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(58),
                 1f
             ).apply {
-
-                marginEnd =
-                    dp(6)
+                marginEnd = dp(6)
             }
         )
 
@@ -723,9 +691,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(58),
                 1f
             ).apply {
-
-                marginStart =
-                    dp(6)
+                marginStart = dp(6)
             }
         )
 
@@ -875,11 +841,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                             "accepted"
                         )
 
-                        set(
-                            "accepted_at",
-                            "now()"
-                        )
-
                     }) {
 
                         filter {
@@ -905,7 +866,7 @@ class NurseRequestsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
-                    "تعذر قبول الطلب",
+                    "تعذر قبول الطلب: ${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -971,7 +932,7 @@ class NurseRequestsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
-                    "تعذر رفض الطلب",
+                    "تعذر رفض الطلب: ${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
