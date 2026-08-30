@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -27,10 +28,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 
-// ============================================================
-// نموذج الطلب
-// ============================================================
-
 @Serializable
 data class BookingInsert(
     val patient_id: String,
@@ -42,10 +39,6 @@ data class BookingInsert(
     val notes: String? = null
 )
 
-
-// ============================================================
-// نموذج عرض الطلب
-// ============================================================
 
 @Serializable
 data class PatientBooking(
@@ -62,142 +55,83 @@ data class PatientBooking(
 )
 
 
-// ============================================================
-// MainActivity
-// ============================================================
-
 class MainActivity : AppCompatActivity() {
-
-    // --------------------------------------------------------
-    // الألوان
-    // --------------------------------------------------------
 
     private val NAVY = Color.rgb(5, 62, 105)
     private val DARK_NAVY = Color.rgb(3, 45, 78)
     private val BLUE = Color.rgb(31, 115, 176)
     private val LIGHT_BLUE = Color.rgb(235, 245, 251)
-
     private val GREEN = Color.rgb(50, 150, 85)
     private val ORANGE = Color.rgb(230, 145, 45)
     private val RED = Color.rgb(205, 65, 65)
-
     private val TEXT = Color.rgb(45, 45, 45)
     private val GRAY = Color.rgb(125, 125, 125)
     private val LIGHT_GRAY = Color.rgb(247, 248, 249)
     private val BORDER = Color.rgb(220, 225, 230)
-
     private val WHITE = Color.WHITE
 
-    // --------------------------------------------------------
-    // Coroutine
-    // --------------------------------------------------------
-
     private val scope =
-        CoroutineScope(
-            SupervisorJob() + Dispatchers.Main
-        )
-
-    // --------------------------------------------------------
-    // بيانات المستخدم
-    // --------------------------------------------------------
+        CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var phoneNumber = ""
-
-    // --------------------------------------------------------
-    // حالة الموقع
-    // --------------------------------------------------------
-
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var selectedAddress = ""
 
-    // --------------------------------------------------------
-    // عند إنشاء التطبيق
-    // --------------------------------------------------------
-
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
 
-        showHome()
+        /*
+         * أول شاشة للمستخدم هي تسجيل الدخول.
+         * إذا كان المستخدم مسجلاً مسبقاً في Supabase
+         * ننتقل مباشرة إلى الرئيسية.
+         */
+        val user = SupabaseManager.client.auth.currentUserOrNull()
+
+        if (user == null) {
+            showPhoneLogin()
+        } else {
+            showHome()
+        }
     }
 
-    // --------------------------------------------------------
-    // عند إغلاق الشاشة
-    // --------------------------------------------------------
-
     override fun onDestroy() {
-
         scope.cancel()
-
         super.onDestroy()
     }
 
-    // ========================================================
-    // أدوات التصميم
-    // ========================================================
-
     private fun dp(value: Int): Int {
-
-        return (
-            value * resources.displayMetrics.density
-        ).toInt()
+        return (value * resources.displayMetrics.density).toInt()
     }
-
 
     private fun rounded(
         color: Int,
         radius: Int = 18
     ): GradientDrawable {
-
         return GradientDrawable().apply {
-
             setColor(color)
-
-            cornerRadius =
-                dp(radius).toFloat()
+            cornerRadius = dp(radius).toFloat()
         }
     }
-
 
     private fun bordered(
         color: Int,
         strokeColor: Int = BORDER,
         radius: Int = 18
     ): GradientDrawable {
-
         return GradientDrawable().apply {
-
             setColor(color)
-
-            setStroke(
-                dp(1),
-                strokeColor
-            )
-
-            cornerRadius =
-                dp(radius).toFloat()
+            setStroke(dp(1), strokeColor)
+            cornerRadius = dp(radius).toFloat()
         }
     }
 
-
     private fun baseLayout(): LinearLayout {
-
         return LinearLayout(this).apply {
-
-            orientation =
-                LinearLayout.VERTICAL
-
-            gravity =
-                Gravity.TOP
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
-            setBackgroundColor(
-                LIGHT_GRAY
-            )
-
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(LIGHT_GRAY)
             setPadding(
                 dp(14),
                 dp(10),
@@ -207,23 +141,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    private fun scroll(
-        view: View
-    ): ScrollView {
-
+    private fun scroll(view: View): ScrollView {
         return ScrollView(this).apply {
-
-            setBackgroundColor(
-                LIGHT_GRAY
-            )
-
+            setBackgroundColor(LIGHT_GRAY)
             isFillViewport = true
-
             addView(view)
         }
     }
-
 
     private fun text(
         value: String,
@@ -231,202 +155,91 @@ class MainActivity : AppCompatActivity() {
         color: Int = TEXT,
         bold: Boolean = false
     ): TextView {
-
         return TextView(this).apply {
-
             text = value
-
             textSize = size
-
             setTextColor(color)
-
-            gravity =
-                Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
             if (bold) {
-
-                setTypeface(
-                    null,
-                    android.graphics.Typeface.BOLD
-                )
+                setTypeface(null, Typeface.BOLD)
             }
-
-            setPadding(
-                dp(6),
-                dp(6),
-                dp(6),
-                dp(6)
-            )
+            setPadding(dp(6), dp(6), dp(6), dp(6))
         }
     }
-
 
     private fun button(
         value: String,
         action: () -> Unit
     ): Button {
-
         return Button(this).apply {
-
             text = value
-
             textSize = 17f
-
             isAllCaps = false
-
             setTextColor(WHITE)
-
-            gravity =
-                Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
-            background =
-                rounded(
-                    NAVY,
-                    15
-                )
-
-            setPadding(
-                dp(10),
-                dp(5),
-                dp(10),
-                dp(5)
-            )
-
-            setOnClickListener {
-
-                action()
-            }
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(NAVY, 15)
+            setPadding(dp(10), dp(5), dp(10), dp(5))
+            setOnClickListener { action() }
         }
     }
-
 
     private fun outlineButton(
         value: String,
         action: () -> Unit
     ): Button {
-
         return Button(this).apply {
-
             text = value
-
             textSize = 16f
-
             isAllCaps = false
-
-            setTextColor(
-                NAVY
-            )
-
-            gravity =
-                Gravity.CENTER
-
-            background =
-                bordered(
-                    WHITE,
-                    NAVY,
-                    14
-                )
-
-            setOnClickListener {
-
-                action()
-            }
+            setTextColor(NAVY)
+            gravity = Gravity.CENTER
+            background = bordered(WHITE, NAVY, 14)
+            setOnClickListener { action() }
         }
     }
-
 
     private fun addSpace(
         root: LinearLayout,
         height: Int
     ) {
-
         root.addView(
             Space(this),
-            LinearLayout.LayoutParams(
-                1,
-                dp(height)
-            )
+            LinearLayout.LayoutParams(1, dp(height))
         )
     }
-
-
-    // ========================================================
-    // الشريط العلوي
-    // ========================================================
 
     private fun topBar(
         title: String,
         backAction: (() -> Unit)? = null
     ): LinearLayout {
 
-        val bar =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setPadding(
-                    dp(8),
-                    dp(8),
-                    dp(8),
-                    dp(8)
-                )
-
-                setBackgroundColor(
-                    WHITE
-                )
-            }
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setBackgroundColor(WHITE)
+        }
 
         if (backAction != null) {
-
-            val back =
-                TextView(this).apply {
-
-                    text = "‹"
-
-                    textSize = 40f
-
-                    setTextColor(
-                        NAVY
-                    )
-
-                    gravity =
-                        Gravity.CENTER
-
-                    setOnClickListener {
-
-                        backAction()
-                    }
-                }
+            val back = TextView(this).apply {
+                text = "‹"
+                textSize = 40f
+                setTextColor(NAVY)
+                gravity = Gravity.CENTER
+                setOnClickListener { backAction() }
+            }
 
             bar.addView(
                 back,
-                LinearLayout.LayoutParams(
-                    dp(55),
-                    dp(55)
-                )
+                LinearLayout.LayoutParams(dp(55), dp(55))
             )
         }
 
         bar.addView(
-            text(
-                title,
-                22f,
-                NAVY,
-                true
-            ),
+            text(title, 22f, NAVY, true),
             LinearLayout.LayoutParams(
                 0,
                 dp(55),
@@ -434,79 +247,30 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        val bell =
-            TextView(this).apply {
-
-                text = "🔔"
-
-                textSize = 24f
-
-                gravity =
-                    Gravity.CENTER
-            }
-
         bar.addView(
-            bell,
-            LinearLayout.LayoutParams(
-                dp(55),
-                dp(55)
-            )
+            text("🔔", 23f, NAVY),
+            LinearLayout.LayoutParams(dp(55), dp(55))
         )
 
-        val cart =
-            TextView(this).apply {
-
-                text = "🛒"
-
-                textSize = 23f
-
-                gravity =
-                    Gravity.CENTER
-            }
-
         bar.addView(
-            cart,
-            LinearLayout.LayoutParams(
-                dp(55),
-                dp(55)
-            )
+            text("🛒", 22f, NAVY),
+            LinearLayout.LayoutParams(dp(55), dp(55))
         )
 
         return bar
     }
 
-
-    // ========================================================
-    // الشريط السفلي
-    // ========================================================
-
     private fun bottomNavigation(
         selected: String
     ): LinearLayout {
 
-        val nav =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setBackgroundColor(
-                    Color.rgb(
-                        248,
-                        251,
-                        253
-                    )
-                )
-
-                elevation =
-                    dp(8).toFloat()
-            }
+        val nav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(Color.rgb(248, 251, 253))
+            elevation = dp(8).toFloat()
+        }
 
         fun item(
             icon: String,
@@ -514,52 +278,26 @@ class MainActivity : AppCompatActivity() {
             key: String,
             action: () -> Unit
         ) {
+            val box = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setOnClickListener { action() }
+            }
 
-            val box =
-                LinearLayout(this).apply {
-
-                    orientation =
-                        LinearLayout.VERTICAL
-
-                    gravity =
-                        Gravity.CENTER
-
-                    setOnClickListener {
-
-                        action()
-                    }
-                }
-
-            val iconView =
+            box.addView(
                 text(
                     icon,
                     24f,
-                    if (
-                        selected == key
-                    )
-                        NAVY
-                    else
-                        GRAY
+                    if (selected == key) NAVY else GRAY
                 )
-
-            val titleView =
-                text(
-                    title,
-                    13f,
-                    if (
-                        selected == key
-                    )
-                        NAVY
-                    else
-                        GRAY
-                )
-
-            box.addView(
-                iconView
             )
 
             box.addView(
-                titleView
+                text(
+                    title,
+                    13f,
+                    if (selected == key) NAVY else GRAY
+                )
             )
 
             nav.addView(
@@ -572,567 +310,69 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        item(
-            "⋯",
-            "المزيد",
-            "more"
-        ) {
-            showMore()
-        }
-
-        item(
-            "💬",
-            "المحادثات",
-            "chat"
-        ) {
-            showChats()
-        }
-
-        item(
-            "☷",
-            "الطلبات",
-            "orders"
-        ) {
-            showBookings()
-        }
-
-        item(
-            "⌂",
-            "الرئيسية",
-            "home"
-        ) {
-            showHome()
-        }
+        item("⋯", "المزيد", "more") { showMore() }
+        item("💬", "المحادثات", "chat") { showChats() }
+        item("☷", "الطلبات", "orders") { showBookings() }
+        item("⌂", "الرئيسية", "home") { showHome() }
 
         return nav
     }
 
+    /*
+     * =========================================================
+     * الشاشة الأولى: تسجيل الدخول برقم الهاتف
+     * =========================================================
+     */
+    private fun showPhoneLogin() {
 
-    // ========================================================
-    // الصفحة الرئيسية
-    // ========================================================
+        val root = baseLayout()
 
-    private fun showHome() {
+        /*
+         * هيدر بسيط يشبه تصميم التطبيق:
+         * شعار + اسم التطبيق
+         */
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(WHITE, 22)
+            setPadding(dp(15), dp(18), dp(15), dp(18))
+        }
 
-        val root =
-            baseLayout()
-
-        root.addView(
-            topBar(
-                "الرئيسية"
-            )
+        header.addView(
+            text("🩺", 52f, NAVY)
         )
 
-        addSpace(
-            root,
-            12
-        )
-
-        // ----------------------------------------------------
-        // بطاقة الترحيب
-        // ----------------------------------------------------
-
-        val welcome =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.RIGHT
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setPadding(
-                    dp(20),
-                    dp(20),
-                    dp(20),
-                    dp(20)
-                )
-
-                background =
-                    rounded(
-                        NAVY,
-                        22
-                    )
-            }
-
-        welcome.addView(
+        header.addView(
             text(
                 "التمريض المنزلي",
-                25f,
-                WHITE,
+                27f,
+                NAVY,
                 true
             )
         )
 
-        welcome.addView(
-            text(
-                "خدمة تمريض تصل إليك أينما كنت",
-                16f,
-                WHITE
-            )
-        )
-
-        welcome.addView(
+        header.addView(
             text(
                 "محافظة الأنبار - العراق",
                 14f,
-                Color.rgb(
-                    220,
-                    235,
-                    245
-                )
-            )
-        )
-
-        root.addView(
-            welcome,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(150)
-            )
-        )
-
-        addSpace(
-            root,
-            15
-        )
-
-        // ----------------------------------------------------
-        // زر الطلب الرئيسي
-        // ----------------------------------------------------
-
-        val request =
-            button(
-                "🩺   إنشاء طلب تمريض الآن"
-            ) {
-
-                checkLoginBeforeRequest()
-            }
-
-        root.addView(
-            request,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(65)
-            )
-        )
-
-        addSpace(
-            root,
-            18
-        )
-
-        root.addView(
-            text(
-                "الخدمات الأكثر طلباً",
-                21f,
-                NAVY,
-                true
-            )
-        )
-
-        addSpace(
-            root,
-            8
-        )
-
-        // ----------------------------------------------------
-        // الخدمات
-        // ----------------------------------------------------
-
-        val serviceRow1 =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-            }
-
-        serviceRow1.addView(
-            serviceCard(
-                "💉",
-                "إعطاء الحقن",
-                "خدمة منزلية"
-            ) {
-
-                checkLoginBeforeRequest()
-            },
-            LinearLayout.LayoutParams(
-                0,
-                dp(145),
-                1f
-            ).apply {
-
-                setMargins(
-                    0,
-                    0,
-                    dp(5),
-                    0
-                )
-            }
-        )
-
-        serviceRow1.addView(
-            serviceCard(
-                "🩹",
-                "تغيير الضماد",
-                "العناية بالجروح"
-            ) {
-
-                checkLoginBeforeRequest()
-            },
-            LinearLayout.LayoutParams(
-                0,
-                dp(145),
-                1f
-            ).apply {
-
-                setMargins(
-                    dp(5),
-                    0,
-                    0,
-                    0
-                )
-            }
-        )
-
-        root.addView(
-            serviceRow1
-        )
-
-        addSpace(
-            root,
-            10
-        )
-
-        val serviceRow2 =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-            }
-
-        serviceRow2.addView(
-            serviceCard(
-                "🩸",
-                "قياس السكر",
-                "فحص منزلي"
-            ) {
-
-                checkLoginBeforeRequest()
-            },
-            LinearLayout.LayoutParams(
-                0,
-                dp(145),
-                1f
-            ).apply {
-
-                setMargins(
-                    0,
-                    0,
-                    dp(5),
-                    0
-                )
-            }
-        )
-
-        serviceRow2.addView(
-            serviceCard(
-                "🩺",
-                "قياس الضغط",
-                "متابعة الضغط"
-            ) {
-
-                checkLoginBeforeRequest()
-            },
-            LinearLayout.LayoutParams(
-                0,
-                dp(145),
-                1f
-            ).apply {
-
-                setMargins(
-                    dp(5),
-                    0,
-                    0,
-                    0
-                )
-            }
-        )
-
-        root.addView(
-            serviceRow2
-        )
-
-        addSpace(
-            root,
-            15
-        )
-
-        root.addView(
-            outlineButton(
-                "عرض جميع الخدمات"
-            ) {
-
-                showServices()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
-        )
-
-        addSpace(
-            root,
-            15
-        )
-
-        // ----------------------------------------------------
-        // بطاقة الأمان
-        // ----------------------------------------------------
-
-        val safe =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setPadding(
-                    dp(15),
-                    dp(12),
-                    dp(15),
-                    dp(12)
-                )
-
-                background =
-                    rounded(
-                        LIGHT_BLUE,
-                        18
-                    )
-            }
-
-        safe.addView(
-            text(
-                "🛡️",
-                30f,
-                NAVY
-            ),
-            LinearLayout.LayoutParams(
-                dp(55),
-                dp(60)
-            )
-        )
-
-        val safeText =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.RIGHT
-            }
-
-        safeText.addView(
-            text(
-                "خدمة آمنة وموثوقة",
-                17f,
-                NAVY,
-                true
-            )
-        )
-
-        safeText.addView(
-            text(
-                "نساعدك في الحصول على الرعاية المنزلية بسهولة",
-                13f,
                 GRAY
             )
         )
 
-        safe.addView(
-            safeText,
+        root.addView(
+            header,
             LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
+                -1,
+                dp(170)
             )
         )
+
+        addSpace(root, 22)
 
         root.addView(
-            safe
-        )
-
-        addSpace(
-            root,
-            15
-        )
-
-        root.addView(
-            bottomNavigation(
-                "home"
-            )
-        )
-
-        setContentView(
-            scroll(root)
-        )
-    }
-
-
-    // ========================================================
-    // بطاقة الخدمة
-    // ========================================================
-
-    private fun serviceCard(
-        icon: String,
-        title: String,
-        description: String,
-        action: () -> Unit
-    ): LinearLayout {
-
-        val card =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.CENTER
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(
-                        WHITE,
-                        18
-                    )
-
-                elevation =
-                    dp(2).toFloat()
-
-                setPadding(
-                    dp(8),
-                    dp(8),
-                    dp(8),
-                    dp(8)
-                )
-
-                setOnClickListener {
-
-                    action()
-                }
-            }
-
-        card.addView(
             text(
-                icon,
-                34f,
-                NAVY
-            )
-        )
-
-        card.addView(
-            text(
-                title,
-                17f,
-                NAVY,
-                true
-            )
-        )
-
-        card.addView(
-            text(
-                description,
-                12f,
-                GRAY
-            )
-        )
-
-        return card
-    }
-
-
-    // ========================================================
-    // التحقق من تسجيل الدخول
-    // ========================================================
-
-    private fun checkLoginBeforeRequest() {
-
-        val user =
-            SupabaseManager
-                .client
-                .auth
-                .currentUserOrNull()
-
-        if (user == null) {
-
-            AlertDialog.Builder(this)
-                .setTitle(
-                    "تسجيل الدخول"
-                )
-                .setMessage(
-                    "لإنشاء طلب تمريض يجب تسجيل الدخول برقم الهاتف."
-                )
-                .setNegativeButton(
-                    "إلغاء",
-                    null
-                )
-                .setPositiveButton(
-                    "تسجيل الدخول"
-                ) { _, _ ->
-
-                    showPhoneLogin()
-                }
-                .show()
-
-            return
-        }
-
-        showRequestScreen()
-    }
-
-
-    // ========================================================
-    // تسجيل الدخول
-    // ========================================================
-
-    private fun showPhoneLogin() {
-
-        val root =
-            baseLayout()
-
-        root.addView(
-            topBar(
                 "تسجيل الدخول",
-                ::showHome
-            )
-        )
-
-        addSpace(
-            root,
-            25
-        )
-
-        root.addView(
-            text(
-                "مرحباً بك",
-                30f,
+                29f,
                 NAVY,
                 true
             )
@@ -1140,51 +380,78 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "أدخل رقم هاتفك العراقي للمتابعة",
+                "أدخل رقم هاتفك للمتابعة",
                 16f,
                 GRAY
             )
         )
 
-        addSpace(
-            root,
-            25
+        addSpace(root, 20)
+
+        /*
+         * بطاقة تسجيل الدخول
+         */
+        val loginCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(WHITE, 20)
+            setPadding(
+                dp(18),
+                dp(20),
+                dp(18),
+                dp(20)
+            )
+        }
+
+        loginCard.addView(
+            text(
+                "📱",
+                42f,
+                NAVY
+            )
         )
 
-        val phone =
-            EditText(this).apply {
+        loginCard.addView(
+            text(
+                "رقم الهاتف",
+                18f,
+                NAVY,
+                true
+            )
+        )
 
-                hint =
-                    "07701234567"
+        addSpace(loginCard, 8)
 
-                textSize =
-                    19f
+        val phone = EditText(this).apply {
 
-                gravity =
-                    Gravity.CENTER
+            hint = "07701234567"
 
-                inputType =
-                    InputType.TYPE_CLASS_PHONE
+            textSize = 19f
 
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_LTR
+            gravity = Gravity.CENTER
 
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        15
-                    )
+            inputType =
+                InputType.TYPE_CLASS_PHONE
 
-                setPadding(
-                    dp(15),
-                    dp(5),
-                    dp(15),
-                    dp(5)
+            layoutDirection =
+                View.LAYOUT_DIRECTION_LTR
+
+            background =
+                bordered(
+                    WHITE,
+                    BORDER,
+                    15
                 )
-            }
 
-        root.addView(
+            setPadding(
+                dp(15),
+                dp(5),
+                dp(15),
+                dp(5)
+            )
+        }
+
+        loginCard.addView(
             phone,
             LinearLayout.LayoutParams(
                 -1,
@@ -1192,25 +459,17 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            8
-        )
-
-        root.addView(
+        loginCard.addView(
             text(
-                "مثال: 07701234567 أو +9647701234567",
+                "مثال: 07701234567",
                 13f,
                 GRAY
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(loginCard, 15)
 
-        root.addView(
+        loginCard.addView(
             button(
                 "إرسال رمز التحقق"
             ) {
@@ -1221,14 +480,12 @@ class MainActivity : AppCompatActivity() {
                         .trim()
 
                 val normalized =
-                    normalizeIraqPhone(
-                        input
-                    )
+                    normalizeIraqPhone(input)
 
                 if (normalized == null) {
 
                     phone.error =
-                        "رقم الهاتف غير صحيح"
+                        "رقم الهاتف العراقي غير صحيح"
 
                     return@button
                 }
@@ -1244,33 +501,60 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            12
-        )
-
         root.addView(
-            outlineButton(
-                "رجوع"
-            ) {
-
-                showHome()
-            },
+            loginCard,
             LinearLayout.LayoutParams(
                 -1,
-                dp(58)
+                -2
             )
         )
 
-        setContentView(
-            scroll(root)
+        addSpace(root, 18)
+
+        root.addView(
+            text(
+                "بتسجيل الدخول أنت توافق على شروط استخدام الخدمة وسياسة الخصوصية.",
+                12f,
+                GRAY
+            )
         )
+
+        addSpace(root, 15)
+
+        val emergency = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(LIGHT_BLUE, 18)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        emergency.addView(
+            text("🛡️", 30f, NAVY),
+            LinearLayout.LayoutParams(
+                dp(55),
+                dp(55)
+            )
+        )
+
+        emergency.addView(
+            text(
+                "خدمة تمريض منزلية في محافظة الأنبار",
+                14f,
+                NAVY,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(emergency)
+
+        setContentView(scroll(root))
     }
-
-
-    // ========================================================
-    // توحيد رقم الهاتف العراقي
-    // ========================================================
 
     private fun normalizeIraqPhone(
         value: String
@@ -1278,83 +562,41 @@ class MainActivity : AppCompatActivity() {
 
         var phone =
             value
-                .replace(
-                    " ",
-                    ""
-                )
-                .replace(
-                    "-",
-                    ""
-                )
-                .replace(
-                    "(",
-                    ""
-                )
-                .replace(
-                    ")",
-                    ""
-                )
+                .replace(" ", "")
+                .replace("-", "")
+                .replace("(", "")
+                .replace(")", "")
 
-        if (
-            phone.startsWith(
-                "+964"
-            )
-        ) {
+        if (phone.startsWith("+964")) {
+            return if (
+                phone.length == 14 &&
+                phone.getOrNull(4) == '7'
+            ) {
+                phone
+            } else {
+                null
+            }
+        }
+
+        if (phone.startsWith("00964")) {
+            phone = "+" + phone.substring(2)
 
             return if (
                 phone.length == 14 &&
                 phone.getOrNull(4) == '7'
             ) {
-
                 phone
-
             } else {
-
                 null
             }
         }
 
-        if (
-            phone.startsWith(
-                "00964"
-            )
-        ) {
+        if (phone.startsWith("07")) {
+            phone = "+964" + phone.substring(1)
 
-            phone =
-                "+" +
-                    phone.substring(2)
-
-            return if (
-                phone.length == 14 &&
-                phone.getOrNull(4) == '7'
-            ) {
-
+            return if (phone.length == 14) {
                 phone
-
             } else {
-
-                null
-            }
-        }
-
-        if (
-            phone.startsWith(
-                "07"
-            )
-        ) {
-
-            phone =
-                "+964" +
-                    phone.substring(1)
-
-            return if (
-                phone.length == 14
-            ) {
-
-                phone
-
-            } else {
-
                 null
             }
         }
@@ -1362,22 +604,17 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
-
-    // ========================================================
-    // إرسال OTP
-    // ========================================================
-
+    /*
+     * =========================================================
+     * إرسال OTP
+     * =========================================================
+     */
     private fun sendOtp() {
 
         val loading =
             ProgressDialog(this).apply {
-
-                setMessage(
-                    "جاري إرسال رمز التحقق..."
-                )
-
+                setMessage("جاري إرسال رمز التحقق...")
                 setCancelable(false)
-
                 show()
             }
 
@@ -1388,21 +625,11 @@ class MainActivity : AppCompatActivity() {
                 SupabaseManager
                     .client
                     .auth
-                    .signInWith(
-                        OTP
-                    ) {
-
-                        phone =
-                            phoneNumber
+                    .signInWith(OTP) {
+                        phone = phoneNumber
                     }
 
                 loading.dismiss()
-
-                Toast.makeText(
-                    this@MainActivity,
-                    "تم إرسال رمز التحقق",
-                    Toast.LENGTH_LONG
-                ).show()
 
                 showOtpScreen()
 
@@ -1413,21 +640,20 @@ class MainActivity : AppCompatActivity() {
                 showError(
                     "تعذر إرسال الرمز",
                     e.message
-                        ?: "حدث خطأ غير معروف"
+                        ?: "تأكد من إعداد Phone Auth في Supabase."
                 )
             }
         }
     }
 
-
-    // ========================================================
-    // شاشة OTP
-    // ========================================================
-
+    /*
+     * =========================================================
+     * شاشة OTP
+     * =========================================================
+     */
     private fun showOtpScreen() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
         root.addView(
             topBar(
@@ -1436,15 +662,12 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            30
-        )
+        addSpace(root, 25)
 
         root.addView(
             text(
                 "🔐",
-                55f,
+                58f,
                 NAVY
             )
         )
@@ -1452,7 +675,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             text(
                 "أدخل رمز التحقق",
-                27f,
+                28f,
                 NAVY,
                 true
             )
@@ -1460,7 +683,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "تم إرسال رمز التحقق إلى",
+                "تم إرسال الرمز إلى",
                 15f,
                 GRAY
             )
@@ -1475,52 +698,43 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 20)
 
-        val otp =
-            EditText(this).apply {
+        val otp = EditText(this).apply {
 
-                hint =
-                    "000000"
+            hint = "000000"
 
-                textSize =
-                    28f
+            textSize = 28f
 
-                gravity =
-                    Gravity.CENTER
+            gravity = Gravity.CENTER
 
-                inputType =
-                    InputType.TYPE_CLASS_NUMBER
+            inputType =
+                InputType.TYPE_CLASS_NUMBER
 
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_LTR
+            layoutDirection =
+                View.LAYOUT_DIRECTION_LTR
 
-                maxLines = 1
+            maxLines = 1
 
-                filters =
-                    arrayOf(
-                        InputFilter.LengthFilter(
-                            6
-                        )
-                    )
-
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        15
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(5),
-                    dp(15),
-                    dp(5)
+            filters =
+                arrayOf(
+                    InputFilter.LengthFilter(6)
                 )
-            }
+
+            background =
+                bordered(
+                    WHITE,
+                    BORDER,
+                    15
+                )
+
+            setPadding(
+                dp(15),
+                dp(5),
+                dp(15),
+                dp(5)
+            )
+        }
 
         root.addView(
             otp,
@@ -1530,10 +744,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 18)
 
         root.addView(
             button(
@@ -1545,19 +756,12 @@ class MainActivity : AppCompatActivity() {
                         .toString()
                         .trim()
 
-                if (
-                    code.length != 6
-                ) {
-
-                    otp.error =
-                        "أدخل 6 أرقام"
-
+                if (code.length != 6) {
+                    otp.error = "أدخل 6 أرقام"
                     return@button
                 }
 
-                verifyOtp(
-                    code
-                )
+                verifyOtp(code)
             },
             LinearLayout.LayoutParams(
                 -1,
@@ -1565,16 +769,12 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            10
-        )
+        addSpace(root, 10)
 
         root.addView(
             outlineButton(
                 "إرسال الرمز مرة أخرى"
             ) {
-
                 sendOtp()
             },
             LinearLayout.LayoutParams(
@@ -1583,29 +783,15 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
 
-
-    // ========================================================
-    // التحقق من OTP
-    // ========================================================
-
-    private fun verifyOtp(
-        code: String
-    ) {
+    private fun verifyOtp(code: String) {
 
         val loading =
             ProgressDialog(this).apply {
-
-                setMessage(
-                    "جاري التحقق..."
-                )
-
+                setMessage("جاري التحقق...")
                 setCancelable(false)
-
                 show()
             }
 
@@ -1617,12 +803,9 @@ class MainActivity : AppCompatActivity() {
                     .client
                     .auth
                     .verifyPhoneOtp(
-                        type =
-                            OtpType.Phone.SMS,
-                        phone =
-                            phoneNumber,
-                        token =
-                            code
+                        type = OtpType.Phone.SMS,
+                        phone = phoneNumber,
+                        token = code
                     )
 
                 loading.dismiss()
@@ -1642,21 +825,350 @@ class MainActivity : AppCompatActivity() {
                 showError(
                     "فشل التحقق",
                     e.message
-                        ?: "رمز التحقق غير صحيح"
+                        ?: "رمز التحقق غير صحيح."
                 )
             }
         }
     }
 
+    /*
+     * =========================================================
+     * الرئيسية
+     * =========================================================
+     */
+    private fun showHome() {
 
-    // ========================================================
-    // شاشة إنشاء الطلب
-    // ========================================================
+        val root = baseLayout()
 
+        root.addView(topBar("الرئيسية"))
+
+        addSpace(root, 12)
+
+        val welcome =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                gravity =
+                    Gravity.CENTER
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+
+                background =
+                    rounded(NAVY, 22)
+
+                setPadding(
+                    dp(15),
+                    dp(20),
+                    dp(15),
+                    dp(20)
+                )
+            }
+
+        welcome.addView(
+            text(
+                "التمريض المنزلي",
+                29f,
+                WHITE,
+                true
+            )
+        )
+
+        welcome.addView(
+            text(
+                "خدمة تمريض تصل إليك أينما كنت",
+                16f,
+                WHITE
+            )
+        )
+
+        welcome.addView(
+            text(
+                "محافظة الأنبار - العراق",
+                14f,
+                Color.rgb(220, 235, 245)
+            )
+        )
+
+        root.addView(
+            welcome,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(150)
+            )
+        )
+
+        addSpace(root, 15)
+
+        root.addView(
+            button(
+                "🩺   إنشاء طلب تمريض الآن"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(65)
+            )
+        )
+
+        addSpace(root, 17)
+
+        root.addView(
+            text(
+                "الخدمات الأكثر طلباً",
+                23f,
+                NAVY,
+                true
+            )
+        )
+
+        addSpace(root, 8)
+
+        val row1 =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+            }
+
+        row1.addView(
+            serviceCard(
+                "💉",
+                "إعطاء الحقن",
+                "خدمة منزلية"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(0, 0, dp(5), 0)
+            }
+        )
+
+        row1.addView(
+            serviceCard(
+                "🩹",
+                "تغيير الضماد",
+                "العناية بالجروح"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(dp(5), 0, 0, 0)
+            }
+        )
+
+        root.addView(row1)
+
+        addSpace(root, 10)
+
+        val row2 =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+            }
+
+        row2.addView(
+            serviceCard(
+                "🩸",
+                "قياس السكر",
+                "فحص منزلي"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(0, 0, dp(5), 0)
+            }
+        )
+
+        row2.addView(
+            serviceCard(
+                "🩺",
+                "قياس الضغط",
+                "متابعة الضغط"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(dp(5), 0, 0, 0)
+            }
+        )
+
+        root.addView(row2)
+
+        addSpace(root, 14)
+
+        root.addView(
+            outlineButton("عرض جميع الخدمات") {
+                showServices()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            )
+        )
+
+        addSpace(root, 15)
+
+        val safe =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.HORIZONTAL
+
+                gravity =
+                    Gravity.CENTER_VERTICAL
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+
+                background =
+                    rounded(LIGHT_BLUE, 18)
+
+                setPadding(
+                    dp(12),
+                    dp(10),
+                    dp(12),
+                    dp(10)
+                )
+            }
+
+        safe.addView(
+            text("🛡️", 32f, NAVY),
+            LinearLayout.LayoutParams(
+                dp(60),
+                dp(65)
+            )
+        )
+
+        safe.addView(
+            text(
+                "خدمة آمنة وموثوقة\nساعدنا في الحصول على الرعاية المنزلية بسهولة",
+                15f,
+                NAVY,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(safe)
+
+        addSpace(root, 14)
+
+        root.addView(bottomNavigation("home"))
+
+        setContentView(scroll(root))
+    }
+
+    private fun serviceCard(
+        icon: String,
+        title: String,
+        description: String,
+        action: () -> Unit
+    ): LinearLayout {
+
+        return LinearLayout(this).apply {
+
+            orientation =
+                LinearLayout.VERTICAL
+
+            gravity =
+                Gravity.CENTER
+
+            layoutDirection =
+                View.LAYOUT_DIRECTION_RTL
+
+            background =
+                rounded(WHITE, 18)
+
+            elevation =
+                dp(2).toFloat()
+
+            setPadding(
+                dp(8),
+                dp(8),
+                dp(8),
+                dp(8)
+            )
+
+            setOnClickListener {
+                action()
+            }
+
+            addView(
+                text(icon, 34f, NAVY)
+            )
+
+            addView(
+                text(
+                    title,
+                    17f,
+                    NAVY,
+                    true
+                )
+            )
+
+            addView(
+                text(
+                    description,
+                    12f,
+                    GRAY
+                )
+            )
+        }
+    }
+
+    private fun checkLoginBeforeRequest() {
+
+        val user =
+            SupabaseManager
+                .client
+                .auth
+                .currentUserOrNull()
+
+        if (user == null) {
+
+            showPhoneLogin()
+
+            return
+        }
+
+        showRequestScreen()
+    }
+
+    /*
+     * =========================================================
+     * إنشاء الطلب
+     * =========================================================
+     */
     private fun showRequestScreen() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
         root.addView(
             topBar(
@@ -1665,15 +1177,12 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            12
-        )
+        addSpace(root, 12)
 
         root.addView(
             text(
                 "خدمة التمريض",
-                24f,
+                25f,
                 NAVY,
                 true
             )
@@ -1687,17 +1196,9 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            15
-        )
+        addSpace(root, 15)
 
-        // ----------------------------------------------------
-        // الخدمة
-        // ----------------------------------------------------
-
-        val service =
-            Spinner(this)
+        val service = Spinner(this)
 
         val services =
             arrayOf(
@@ -1728,26 +1229,16 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            12
-        )
-
-        // ----------------------------------------------------
-        // اسم المريض
-        // ----------------------------------------------------
+        addSpace(root, 12)
 
         val patient =
             EditText(this).apply {
 
-                hint =
-                    "اسم المريض"
+                hint = "اسم المريض"
 
-                textSize =
-                    17f
+                textSize = 17f
 
-                gravity =
-                    Gravity.RIGHT
+                gravity = Gravity.RIGHT
 
                 inputType =
                     InputType.TYPE_CLASS_TEXT
@@ -1775,20 +1266,12 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            12
-        )
-
-        // ----------------------------------------------------
-        // الموقع
-        // ----------------------------------------------------
+        addSpace(root, 12)
 
         root.addView(
             button(
                 "📍  تحديد موقع المريض"
             ) {
-
                 showLocation()
             },
             LinearLayout.LayoutParams(
@@ -1797,51 +1280,32 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            8
-        )
+        addSpace(root, 8)
 
-        val locationText =
+        root.addView(
             text(
-                if (
-                    selectedAddress.isBlank()
-                )
+                if (selectedAddress.isBlank())
                     "لم يتم تحديد الموقع بعد"
                 else
                     selectedAddress,
                 14f,
                 GRAY
             )
-
-        root.addView(
-            locationText
         )
 
-        addSpace(
-            root,
-            10
-        )
-
-        // ----------------------------------------------------
-        // الملاحظات
-        // ----------------------------------------------------
+        addSpace(root, 10)
 
         val notes =
             EditText(this).apply {
 
-                hint =
-                    "ملاحظات إضافية عن الحالة"
+                hint = "ملاحظات إضافية عن الحالة"
 
-                textSize =
-                    16f
+                textSize = 16f
 
                 gravity =
-                    Gravity.TOP or
-                        Gravity.RIGHT
+                    Gravity.TOP or Gravity.RIGHT
 
-                minLines =
-                    4
+                minLines = 4
 
                 inputType =
                     InputType.TYPE_CLASS_TEXT or
@@ -1870,23 +1334,14 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            18
-        )
-
-        // ----------------------------------------------------
-        // إرسال
-        // ----------------------------------------------------
+        addSpace(root, 18)
 
         root.addView(
             button(
                 "📨  إرسال طلب التمريض الآن"
             ) {
 
-                if (
-                    service.selectedItemPosition == 0
-                ) {
+                if (service.selectedItemPosition == 0) {
 
                     Toast.makeText(
                         this,
@@ -1897,12 +1352,12 @@ class MainActivity : AppCompatActivity() {
                     return@button
                 }
 
-                if (
+                val patientName =
                     patient.text
                         .toString()
                         .trim()
-                        .isEmpty()
-                ) {
+
+                if (patientName.isEmpty()) {
 
                     patient.error =
                         "أدخل اسم المريض"
@@ -1910,15 +1365,10 @@ class MainActivity : AppCompatActivity() {
                     return@button
                 }
 
-                confirmRequest(
-                    service.selectedItem
-                        .toString(),
-                    patient.text
-                        .toString()
-                        .trim(),
-                    notes.text
-                        .toString()
-                        .trim()
+                createBooking(
+                    service.selectedItem.toString(),
+                    patientName,
+                    notes.text.toString().trim()
                 )
             },
             LinearLayout.LayoutParams(
@@ -1927,16 +1377,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            10
-        )
+        addSpace(root, 10)
 
         root.addView(
-            outlineButton(
-                "إلغاء"
-            ) {
-
+            outlineButton("إلغاء") {
                 showHome()
             },
             LinearLayout.LayoutParams(
@@ -1945,17 +1389,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
 
-
-    // ========================================================
-    // تأكيد الطلب
-    // ========================================================
-
-    private fun confirmRequest(
+    private fun createBooking(
         service: String,
         patient: String,
         notes: String
@@ -1968,180 +1405,95 @@ class MainActivity : AppCompatActivity() {
                 .currentUserOrNull()
 
         if (user == null) {
-
-            AlertDialog.Builder(this)
-                .setTitle(
-                    "تسجيل الدخول مطلوب"
-                )
-                .setMessage(
-                    "يجب تسجيل الدخول قبل إرسال الطلب."
-                )
-                .setNegativeButton(
-                    "إلغاء",
-                    null
-                )
-                .setPositiveButton(
-                    "تسجيل الدخول"
-                ) { _, _ ->
-
-                    showPhoneLogin()
-                }
-                .show()
-
+            showPhoneLogin()
             return
         }
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "تأكيد الطلب"
-            )
+            .setTitle("تأكيد الطلب")
             .setMessage(
-                "الخدمة:\n$service\n\n" +
-                    "المريض:\n$patient\n\n" +
-                    "سيتم إرسال الطلب فوراً إلى الممرضين المتاحين.\n\n" +
-                    "هل تريد المتابعة؟"
+                "الخدمة: $service\n\n" +
+                    "المريض: $patient\n\n" +
+                    "سيتم إرسال الطلب فوراً إلى الممرضين المتاحين."
             )
-            .setNegativeButton(
-                "إلغاء",
-                null
-            )
-            .setPositiveButton(
-                "إرسال"
-            ) { _, _ ->
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("إرسال") { _, _ ->
 
-                createBooking(
-                    user.id,
-                    service,
-                    patient,
-                    notes
-                )
+                val loading =
+                    ProgressDialog(this).apply {
+                        setMessage("جاري إرسال الطلب...")
+                        setCancelable(false)
+                        show()
+                    }
+
+                scope.launch {
+
+                    try {
+
+                        val booking =
+                            BookingInsert(
+                                patient_id = user.id,
+                                service_id = service,
+                                address =
+                                    if (selectedAddress.isBlank())
+                                        patient
+                                    else
+                                        selectedAddress,
+                                latitude =
+                                    selectedLatitude,
+                                longitude =
+                                    selectedLongitude,
+                                status = "PENDING",
+                                notes =
+                                    if (notes.isBlank())
+                                        "المريض: $patient"
+                                    else
+                                        "المريض: $patient\n$notes"
+                            )
+
+                        SupabaseManager
+                            .client
+                            .from("bookings")
+                            .insert(booking)
+
+                        loading.dismiss()
+
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle("تم إرسال الطلب ✅")
+                            .setMessage(
+                                "تم إرسال طلب التمريض بنجاح.\n\n" +
+                                    "يمكنك متابعة حالته من صفحة الطلبات."
+                            )
+                            .setPositiveButton(
+                                "متابعة الطلب"
+                            ) { _, _ ->
+                                showBookings()
+                            }
+                            .show()
+
+                    } catch (e: Exception) {
+
+                        loading.dismiss()
+
+                        showError(
+                            "تعذر إرسال الطلب",
+                            e.message
+                                ?: "حدث خطأ أثناء حفظ الطلب."
+                        )
+                    }
+                }
             }
             .show()
     }
 
-
-    // ========================================================
-    // إنشاء الطلب في Supabase
-    // ========================================================
-
-    private fun createBooking(
-        patientId: String,
-        service: String,
-        patient: String,
-        notes: String
-    ) {
-
-        val loading =
-            ProgressDialog(this).apply {
-
-                setMessage(
-                    "جاري إرسال الطلب..."
-                )
-
-                setCancelable(false)
-
-                show()
-            }
-
-        scope.launch {
-
-            try {
-
-                val booking =
-                    BookingInsert(
-
-                        patient_id =
-                            patientId,
-
-                        service_id =
-                            service,
-
-                        address =
-                            if (
-                                selectedAddress
-                                    .isBlank()
-                            )
-                                patient
-                            else
-                                selectedAddress,
-
-                        latitude =
-                            selectedLatitude,
-
-                        longitude =
-                            selectedLongitude,
-
-                        status =
-                            "PENDING",
-
-                        notes =
-                            if (
-                                notes.isBlank()
-                            )
-                                null
-                            else
-                                "المريض: $patient\n$notes"
-                    )
-
-                SupabaseManager
-                    .client
-                    .from(
-                        "bookings"
-                    )
-                    .insert(
-                        booking
-                    )
-
-                loading.dismiss()
-
-                selectedLatitude =
-                    null
-
-                selectedLongitude =
-                    null
-
-                selectedAddress =
-                    ""
-
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle(
-                        "تم إرسال الطلب ✅"
-                    )
-                    .setMessage(
-                        "تم إرسال طلب التمريض بنجاح.\n\n" +
-                            "سيظهر للممرضين المتاحين الآن."
-                    )
-                    .setCancelable(false)
-                    .setPositiveButton(
-                        "متابعة الطلب"
-                    ) { _, _ ->
-
-                        showBookings()
-                    }
-                    .show()
-
-            } catch (e: Exception) {
-
-                loading.dismiss()
-
-                showError(
-                    "تعذر إرسال الطلب",
-                    e.message
-                        ?: "حدث خطأ أثناء حفظ الطلب."
-                )
-            }
-        }
-    }
-
-
-    // ========================================================
-    // الخدمات
-    // ========================================================
-
+    /*
+     * =========================================================
+     * الخدمات
+     * =========================================================
+     */
     private fun showServices() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
         root.addView(
             topBar(
@@ -2150,66 +1502,21 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            12
-        )
+        addSpace(root, 12)
 
         val services =
             listOf(
-
-                Triple(
-                    "💉",
-                    "إعطاء الحقن",
-                    "إعطاء الحقن حسب وصف الطبيب"
-                ),
-
-                Triple(
-                    "🩹",
-                    "تغيير الضماد",
-                    "العناية بالجروح وتغيير الضمادات"
-                ),
-
-                Triple(
-                    "🩸",
-                    "قياس السكر",
-                    "فحص مستوى سكر الدم في المنزل"
-                ),
-
-                Triple(
-                    "🩺",
-                    "قياس الضغط",
-                    "قياس ومتابعة ضغط الدم"
-                ),
-
-                Triple(
-                    "💧",
-                    "تركيب المحلول",
-                    "خدمة تركيب المحاليل حسب الحاجة"
-                ),
-
-                Triple(
-                    "👴",
-                    "رعاية كبار السن",
-                    "رعاية ومتابعة كبار السن"
-                ),
-
-                Triple(
-                    "🛏️",
-                    "رعاية المرضى",
-                    "رعاية المرضى داخل المنزل"
-                ),
-
-                Triple(
-                    "📋",
-                    "متابعة صحية",
-                    "متابعة الحالة الصحية"
-                )
+                Triple("💉", "إعطاء الحقن", "إعطاء الحقن حسب وصف الطبيب"),
+                Triple("🩹", "تغيير الضماد", "العناية بالجروح والضمادات"),
+                Triple("🩸", "قياس السكر", "فحص مستوى سكر الدم"),
+                Triple("🩺", "قياس الضغط", "قياس ومتابعة ضغط الدم"),
+                Triple("💧", "تركيب المحلول", "تركيب المحاليل حسب الحاجة"),
+                Triple("👴", "رعاية كبار السن", "رعاية ومتابعة كبار السن"),
+                Triple("🛏️", "رعاية المرضى", "رعاية المرضى داخل المنزل"),
+                Triple("📋", "متابعة صحية", "متابعة الحالة الصحية")
             )
 
-        for (
-            service in services
-        ) {
+        for (service in services) {
 
             val card =
                 LinearLayout(this).apply {
@@ -2224,10 +1531,7 @@ class MainActivity : AppCompatActivity() {
                         View.LAYOUT_DIRECTION_RTL
 
                     background =
-                        rounded(
-                            WHITE,
-                            17
-                        )
+                        rounded(WHITE, 17)
 
                     setPadding(
                         dp(12),
@@ -2237,7 +1541,6 @@ class MainActivity : AppCompatActivity() {
                     )
 
                     setOnClickListener {
-
                         checkLoginBeforeRequest()
                     }
                 }
@@ -2296,7 +1599,6 @@ class MainActivity : AppCompatActivity() {
                     -1,
                     dp(82)
                 ).apply {
-
                     setMargins(
                         0,
                         dp(5),
@@ -2307,16 +1609,10 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        addSpace(
-            root,
-            15
-        )
+        addSpace(root, 15)
 
         root.addView(
-            button(
-                "🩺 إنشاء طلب"
-            ) {
-
+            button("🩺 إنشاء طلب") {
                 checkLoginBeforeRequest()
             },
             LinearLayout.LayoutParams(
@@ -2325,20 +1621,17 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
 
-
-    // ========================================================
-    // الموقع
-    // ========================================================
-
+    /*
+     * =========================================================
+     * الموقع
+     * =========================================================
+     */
     private fun showLocation() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
         root.addView(
             topBar(
@@ -2347,17 +1640,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 20)
 
         root.addView(
-            text(
-                "📍",
-                65f,
-                NAVY
-            )
+            text("📍", 65f, NAVY)
         )
 
         root.addView(
@@ -2377,10 +1663,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            25
-        )
+        addSpace(root, 25)
 
         root.addView(
             button(
@@ -2392,18 +1675,12 @@ class MainActivity : AppCompatActivity() {
                     val intent =
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse(
-                                "geo:33.3500,43.7833"
-                            )
+                            Uri.parse("geo:33.3500,43.7833")
                         )
 
-                    startActivity(
-                        intent
-                    )
+                    startActivity(intent)
 
-                } catch (
-                    e: Exception
-                ) {
+                } catch (_: Exception) {
 
                     Toast.makeText(
                         this,
@@ -2418,10 +1695,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            10
-        )
+        addSpace(root, 10)
 
         root.addView(
             outlineButton(
@@ -2429,18 +1703,12 @@ class MainActivity : AppCompatActivity() {
             ) {
 
                 /*
-                 * سيتم ربط GPS الحقيقي هنا.
-                 * نحتفظ حاليًا بالصفحة جاهزة للتطوير.
+                 * مؤقتاً: موقع الفلوجة.
+                 * في الخطوة التالية سنستبدله بـ GPS الحقيقي.
                  */
-
-                selectedLatitude =
-                    33.3500
-
-                selectedLongitude =
-                    43.7833
-
-                selectedAddress =
-                    "الفلوجة - محافظة الأنبار"
+                selectedLatitude = 33.3500
+                selectedLongitude = 43.7833
+                selectedAddress = "الفلوجة - محافظة الأنبار"
 
                 Toast.makeText(
                     this,
@@ -2456,95 +1724,39 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 20)
 
-        val locationCard =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.CENTER
-
-                background =
-                    rounded(
-                        WHITE,
-                        18
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(15),
-                    dp(15),
-                    dp(15)
-                )
-            }
-
-        locationCard.addView(
-            text(
-                "📍 الموقع المحدد",
-                18f,
-                NAVY,
-                true
-            )
-        )
-
-        locationCard.addView(
-            text(
-                if (
-                    selectedAddress.isBlank()
-                )
-                    "لم يتم تحديد موقع"
+        root.addView(
+            emptyState(
+                "📍",
+                if (selectedAddress.isBlank())
+                    "لم يتم تحديد الموقع"
                 else
                     selectedAddress,
-                15f,
-                GRAY
+                "يمكنك تغيير الموقع قبل إرسال الطلب"
             )
         )
 
-        root.addView(
-            locationCard
-        )
-
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
 
-
-    // ========================================================
-    // الطلبات
-    // ========================================================
-
+    /*
+     * =========================================================
+     * الطلبات
+     * =========================================================
+     */
     private fun showBookings() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
         root.addView(
-            topBar(
-                "الطلبات"
-            )
+            topBar("الطلبات")
         )
 
-        addSpace(
-            root,
-            10
-        )
-
-        // ----------------------------------------------------
-        // زر إنشاء طلب
-        // ----------------------------------------------------
+        addSpace(root, 10)
 
         root.addView(
-            button(
-                "＋   إنشاء طلب"
-            ) {
-
+            button("＋   إنشاء طلب") {
                 checkLoginBeforeRequest()
             },
             LinearLayout.LayoutParams(
@@ -2553,10 +1765,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            15
-        )
+        addSpace(root, 15)
 
         val loading =
             text(
@@ -2565,24 +1774,15 @@ class MainActivity : AppCompatActivity() {
                 GRAY
             )
 
-        root.addView(
-            loading
-        )
+        root.addView(loading)
 
-        addSpace(
-            root,
-            15
-        )
+        addSpace(root, 15)
 
         root.addView(
-            bottomNavigation(
-                "orders"
-            )
+            bottomNavigation("orders")
         )
 
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
 
         val user =
             SupabaseManager
@@ -2605,9 +1805,7 @@ class MainActivity : AppCompatActivity() {
                 val bookings =
                     SupabaseManager
                         .client
-                        .from(
-                            "bookings"
-                        )
+                        .from("bookings")
                         .select {
                             filter {
                                 eq(
@@ -2621,22 +1819,15 @@ class MainActivity : AppCompatActivity() {
                 loading.visibility =
                     View.GONE
 
-                if (
-                    bookings.isEmpty()
-                ) {
+                if (bookings.isEmpty()) {
 
-                    val empty =
+                    root.addView(
                         emptyState(
                             "📭",
                             "لا توجد طلبات بعد",
                             "عند إنشاء طلب تمريض سيظهر هنا"
-                        )
-
-                    root.addView(
-                        empty,
-                        root.indexOfChild(
-                            loading
-                        ) + 1
+                        ),
+                        root.indexOfChild(loading) + 1
                     )
 
                 } else {
@@ -2646,7 +1837,6 @@ class MainActivity : AppCompatActivity() {
                             it.created_at
                         }
                         .forEach {
-
                             addBookingCard(
                                 root,
                                 it
@@ -2666,11 +1856,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    // ========================================================
-    // بطاقة الطلب
-    // ========================================================
-
     private fun addBookingCard(
         root: LinearLayout,
         booking: PatientBooking
@@ -2686,10 +1871,7 @@ class MainActivity : AppCompatActivity() {
                     View.LAYOUT_DIRECTION_RTL
 
                 background =
-                    rounded(
-                        WHITE,
-                        20
-                    )
+                    rounded(WHITE, 20)
 
                 setPadding(
                     dp(15),
@@ -2723,16 +1905,12 @@ class MainActivity : AppCompatActivity() {
             text(
                 "الحالة: ${statusText(booking.status)}",
                 16f,
-                statusColor(
-                    booking.status
-                ),
+                statusColor(booking.status),
                 true
             )
         )
 
-        if (
-            !booking.notes.isNullOrBlank()
-        ) {
+        if (!booking.notes.isNullOrBlank()) {
 
             card.addView(
                 text(
@@ -2749,7 +1927,6 @@ class MainActivity : AppCompatActivity() {
                 -1,
                 -2
             ).apply {
-
                 setMargins(
                     0,
                     dp(5),
@@ -2760,106 +1937,57 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-
-    // ========================================================
-    // حالات الطلب
-    // ========================================================
-
     private fun statusText(
         status: String
     ): String {
 
-        return when (
-            status.uppercase()
-        ) {
-
-            "PENDING" ->
-                "بانتظار قبول الممرض"
-
-            "ACCEPTED" ->
-                "تم قبول الطلب"
-
-            "ON_THE_WAY" ->
-                "الممرض في الطريق"
-
-            "IN_PROGRESS" ->
-                "الزيارة جارية"
-
-            "COMPLETED" ->
-                "اكتملت الزيارة"
-
-            "CANCELLED" ->
-                "تم إلغاء الطلب"
-
-            else ->
-                status
+        return when (status.uppercase()) {
+            "PENDING" -> "بانتظار قبول الممرض"
+            "ACCEPTED" -> "تم قبول الطلب"
+            "ON_THE_WAY" -> "الممرض في الطريق"
+            "IN_PROGRESS" -> "الزيارة جارية"
+            "COMPLETED" -> "اكتملت الزيارة"
+            "CANCELLED" -> "تم إلغاء الطلب"
+            else -> status
         }
     }
-
 
     private fun statusColor(
         status: String
     ): Int {
 
-        return when (
-            status.uppercase()
-        ) {
-
-            "PENDING" ->
-                ORANGE
-
-            "ACCEPTED" ->
-                BLUE
-
-            "ON_THE_WAY" ->
-                BLUE
-
-            "IN_PROGRESS" ->
-                GREEN
-
-            "COMPLETED" ->
-                GREEN
-
-            "CANCELLED" ->
-                RED
-
-            else ->
-                GRAY
+        return when (status.uppercase()) {
+            "PENDING" -> ORANGE
+            "ACCEPTED" -> BLUE
+            "ON_THE_WAY" -> BLUE
+            "IN_PROGRESS" -> GREEN
+            "COMPLETED" -> GREEN
+            "CANCELLED" -> RED
+            else -> GRAY
         }
     }
 
-
-    // ========================================================
-    // المحادثات
-    // ========================================================
-
+    /*
+     * =========================================================
+     * المحادثات
+     * =========================================================
+     */
     private fun showChats() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
-        root.addView(
-            topBar(
-                "المحادثات"
-            )
-        )
+        root.addView(topBar("المحادثات"))
 
-        addSpace(
-            root,
-            10
-        )
+        addSpace(root, 10)
 
         val search =
             EditText(this).apply {
 
-                hint =
-                    "ابحث..."
+                hint = "ابحث..."
 
-                textSize =
-                    16f
+                textSize = 16f
 
-                gravity =
-                    Gravity.RIGHT
+                gravity = Gravity.RIGHT
 
                 background =
                     bordered(
@@ -2884,10 +2012,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 20)
 
         root.addView(
             chatCard(
@@ -2899,16 +2024,13 @@ class MainActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this,
-                    "سيتم فتح المحادثة في المرحلة القادمة",
+                    "سيتم فتح المحادثة في المرحلة التالية",
                     Toast.LENGTH_SHORT
                 ).show()
             }
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 20)
 
         root.addView(
             emptyState(
@@ -2918,66 +2040,14 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 15)
 
         root.addView(
-            button(
-                "دعم التمريض"
-            ) {
-
-                Toast.makeText(
-                    this,
-                    "سيتم تفعيل المحادثة في المرحلة القادمة",
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
-            )
+            bottomNavigation("chat")
         )
 
-        addSpace(
-            root,
-            10
-        )
-
-        root.addView(
-            outlineButton(
-                "تصفح الخدمات"
-            ) {
-
-                showServices()
-            },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
-        )
-
-        addSpace(
-            root,
-            15
-        )
-
-        root.addView(
-            bottomNavigation(
-                "chat"
-            )
-        )
-
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
-
-
-    // ========================================================
-    // بطاقة المحادثة
-    // ========================================================
 
     private fun chatCard(
         icon: String,
@@ -3000,10 +2070,7 @@ class MainActivity : AppCompatActivity() {
                     View.LAYOUT_DIRECTION_RTL
 
                 background =
-                    rounded(
-                        WHITE,
-                        18
-                    )
+                    rounded(WHITE, 18)
 
                 setPadding(
                     dp(12),
@@ -3013,52 +2080,25 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 setOnClickListener {
-
                     action()
                 }
             }
 
         card.addView(
-            text(
-                icon,
-                35f,
-                NAVY
-            ),
+            text(icon, 35f, NAVY),
             LinearLayout.LayoutParams(
                 dp(60),
                 dp(70)
             )
         )
 
-        val info =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.RIGHT
-            }
-
-        info.addView(
+        card.addView(
             text(
-                title,
-                18f,
+                "$title\n$description",
+                16f,
                 TEXT,
                 true
-            )
-        )
-
-        info.addView(
-            text(
-                description,
-                14f,
-                GRAY
-            )
-        )
-
-        card.addView(
-            info,
+            ),
             LinearLayout.LayoutParams(
                 0,
                 -2,
@@ -3067,7 +2107,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         if (verified) {
-
             card.addView(
                 text(
                     "✓",
@@ -3075,12 +2114,7 @@ class MainActivity : AppCompatActivity() {
                     WHITE,
                     true
                 ).apply {
-
-                    background =
-                        rounded(
-                            NAVY,
-                            50
-                        )
+                    background = rounded(NAVY, 50)
                 },
                 LinearLayout.LayoutParams(
                     dp(45),
@@ -3092,128 +2126,26 @@ class MainActivity : AppCompatActivity() {
         return card
     }
 
-
-    // ========================================================
-    // المزيد
-    // ========================================================
-
+    /*
+     * =========================================================
+     * المزيد
+     * =========================================================
+     */
     private fun showMore() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
+
+        root.addView(topBar("المزيد"))
+
+        addSpace(root, 10)
 
         root.addView(
-            topBar(
-                "المزيد"
-            )
-        )
-
-        addSpace(
-            root,
-            10
-        )
-
-        // ----------------------------------------------------
-        // الحساب
-        // ----------------------------------------------------
-
-        val account =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(
-                        WHITE,
-                        18
-                    )
-
-                setPadding(
-                    dp(12),
-                    dp(12),
-                    dp(12),
-                    dp(12)
-                )
-
-                setOnClickListener {
-
-                    showAccount()
-                }
-            }
-
-        account.addView(
-            text(
+            menuCard(
                 "👤",
-                34f,
-                NAVY
-            ),
-            LinearLayout.LayoutParams(
-                dp(60),
-                dp(65)
-            )
-        )
-
-        val user =
-            SupabaseManager
-                .client
-                .auth
-                .currentUserOrNull()
-
-        val accountText =
-            if (user == null)
-                "زائر"
-            else
                 "حسابي"
-
-        account.addView(
-            text(
-                accountText,
-                19f,
-                NAVY,
-                true
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
-        )
-
-        account.addView(
-            text(
-                "‹",
-                30f,
-                GRAY
-            )
-        )
-
-        root.addView(
-            account
-        )
-
-        addSpace(
-            root,
-            20
-        )
-
-        root.addView(
-            text(
-                "الدعم والمعلومات",
-                15f,
-                GRAY
-            )
-        )
-
-        addSpace(
-            root,
-            5
+            ) {
+                showAccount()
+            }
         )
 
         root.addView(
@@ -3221,7 +2153,6 @@ class MainActivity : AppCompatActivity() {
                 "✉️",
                 "تواصل معنا"
             ) {
-
                 contactUs()
             }
         )
@@ -3229,9 +2160,8 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             menuCard(
                 "ⓘ",
-                "الملف التعريفي"
+                "عن التطبيق"
             ) {
-
                 showAbout()
             }
         )
@@ -3241,7 +2171,6 @@ class MainActivity : AppCompatActivity() {
                 "?",
                 "الأسئلة الشائعة"
             ) {
-
                 showFaq()
             }
         )
@@ -3251,7 +2180,6 @@ class MainActivity : AppCompatActivity() {
                 "▤",
                 "الشروط والأحكام"
             ) {
-
                 showTerms()
             }
         )
@@ -3261,40 +2189,7 @@ class MainActivity : AppCompatActivity() {
                 "▤",
                 "سياسة الخصوصية"
             ) {
-
                 showPrivacy()
-            }
-        )
-
-        addSpace(
-            root,
-            20
-        )
-
-        root.addView(
-            text(
-                "التفضيلات",
-                15f,
-                GRAY
-            )
-        )
-
-        addSpace(
-            root,
-            5
-        )
-
-        root.addView(
-            menuCard(
-                "文",
-                "تغيير اللغة"
-            ) {
-
-                Toast.makeText(
-                    this,
-                    "تغيير اللغة سيتم تفعيله لاحقاً",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         )
 
@@ -3303,31 +2198,18 @@ class MainActivity : AppCompatActivity() {
                 "⇥",
                 "تسجيل الخروج"
             ) {
-
                 logout()
             }
         )
 
-        addSpace(
-            root,
-            15
-        )
+        addSpace(root, 15)
 
         root.addView(
-            bottomNavigation(
-                "more"
-            )
+            bottomNavigation("more")
         )
 
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
-
-
-    // ========================================================
-    // بطاقة قائمة
-    // ========================================================
 
     private fun menuCard(
         icon: String,
@@ -3335,82 +2217,57 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ): LinearLayout {
 
-        val card =
-            LinearLayout(this).apply {
+        return LinearLayout(this).apply {
 
-                orientation =
-                    LinearLayout.HORIZONTAL
+            orientation =
+                LinearLayout.HORIZONTAL
 
-                gravity =
-                    Gravity.CENTER_VERTICAL
+            gravity =
+                Gravity.CENTER_VERTICAL
 
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
+            layoutDirection =
+                View.LAYOUT_DIRECTION_RTL
 
-                background =
-                    rounded(
-                        WHITE,
-                        12
-                    )
+            background =
+                rounded(WHITE, 12)
 
-                setPadding(
-                    dp(12),
-                    dp(6),
-                    dp(12),
-                    dp(6)
-                )
+            setPadding(
+                dp(12),
+                dp(6),
+                dp(12),
+                dp(6)
+            )
 
-                setOnClickListener {
-
-                    action()
-                }
+            setOnClickListener {
+                action()
             }
 
-        card.addView(
-            text(
-                icon,
-                24f,
-                TEXT
-            ),
-            LinearLayout.LayoutParams(
-                dp(55),
-                dp(55)
+            addView(
+                text(icon, 24f, TEXT),
+                LinearLayout.LayoutParams(
+                    dp(55),
+                    dp(55)
+                )
             )
-        )
 
-        card.addView(
-            text(
-                title,
-                17f,
-                TEXT
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                dp(55),
-                1f
+            addView(
+                text(title, 17f, TEXT),
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(55),
+                    1f
+                )
             )
-        )
 
-        card.addView(
-            text(
-                "‹",
-                28f,
-                GRAY
+            addView(
+                text("‹", 28f, GRAY)
             )
-        )
-
-        return card
+        }
     }
-
-
-    // ========================================================
-    // الحساب
-    // ========================================================
 
     private fun showAccount() {
 
-        val root =
-            baseLayout()
+        val root = baseLayout()
 
         root.addView(
             topBar(
@@ -3419,10 +2276,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        addSpace(
-            root,
-            20
-        )
+        addSpace(root, 20)
 
         val user =
             SupabaseManager
@@ -3430,22 +2284,14 @@ class MainActivity : AppCompatActivity() {
                 .auth
                 .currentUserOrNull()
 
-        val phone =
-            user?.phone
-                ?: "غير مسجل"
-
         root.addView(
-            text(
-                "👤",
-                65f,
-                NAVY
-            )
+            text("👤", 65f, NAVY)
         )
 
         root.addView(
             text(
                 "حسابي",
-                26f,
+                27f,
                 NAVY,
                 true
             )
@@ -3453,22 +2299,16 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                phone,
+                user?.phone ?: "غير مسجل",
                 18f,
                 GRAY
             )
         )
 
-        addSpace(
-            root,
-            25
-        )
+        addSpace(root, 25)
 
         root.addView(
-            button(
-                "تسجيل الخروج"
-            ) {
-
+            button("تسجيل الخروج") {
                 logout()
             },
             LinearLayout.LayoutParams(
@@ -3477,57 +2317,34 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        setContentView(
-            scroll(root)
-        )
+        setContentView(scroll(root))
     }
-
-
-    // ========================================================
-    // تسجيل الخروج
-    // ========================================================
 
     private fun logout() {
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "تسجيل الخروج"
-            )
-            .setMessage(
-                "هل تريد تسجيل الخروج؟"
-            )
-            .setNegativeButton(
-                "إلغاء",
-                null
-            )
-            .setPositiveButton(
-                "خروج"
-            ) { _, _ ->
+            .setTitle("تسجيل الخروج")
+            .setMessage("هل تريد تسجيل الخروج؟")
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("خروج") { _, _ ->
 
                 scope.launch {
 
                     try {
-
                         SupabaseManager
                             .client
                             .auth
                             .signOut()
-
-                    } catch (
-                        _: Exception
-                    ) {
+                    } catch (_: Exception) {
                     }
 
-                    showHome()
+                    phoneNumber = ""
+
+                    showPhoneLogin()
                 }
             }
             .show()
     }
-
-
-    // ========================================================
-    // حالة فارغة
-    // ========================================================
 
     private fun emptyState(
         icon: String,
@@ -3545,10 +2362,7 @@ class MainActivity : AppCompatActivity() {
                     Gravity.CENTER
 
                 background =
-                    rounded(
-                        WHITE,
-                        18
-                    )
+                    rounded(WHITE, 18)
 
                 setPadding(
                     dp(15),
@@ -3559,11 +2373,7 @@ class MainActivity : AppCompatActivity() {
             }
 
         box.addView(
-            text(
-                icon,
-                48f,
-                GRAY
-            )
+            text(icon, 48f, GRAY)
         )
 
         box.addView(
@@ -3586,148 +2396,81 @@ class MainActivity : AppCompatActivity() {
         return box
     }
 
-
-    // ========================================================
-    // تواصل معنا
-    // ========================================================
-
     private fun contactUs() {
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "☎️ تواصل معنا"
-            )
+            .setTitle("☎️ تواصل معنا")
             .setMessage(
                 "التمريض المنزلي\n\n" +
                     "محافظة الأنبار - العراق\n\n" +
                     "يمكنك التواصل مع إدارة الخدمة للاستفسارات والمساعدة."
             )
-            .setPositiveButton(
-                "حسناً",
-                null
-            )
+            .setPositiveButton("حسناً", null)
             .show()
     }
-
-
-    // ========================================================
-    // حول التطبيق
-    // ========================================================
 
     private fun showAbout() {
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "عن التطبيق"
-            )
+            .setTitle("عن التطبيق")
             .setMessage(
                 "التمريض المنزلي\n\n" +
-                    "منصة لخدمات التمريض والرعاية الصحية المنزلية في محافظة الأنبار - العراق.\n\n" +
-                    "هدفنا تسهيل وصول الممرض إلى المريض في المنزل."
+                    "منصة لخدمات التمريض والرعاية الصحية المنزلية في محافظة الأنبار - العراق."
             )
-            .setPositiveButton(
-                "حسناً",
-                null
-            )
+            .setPositiveButton("حسناً", null)
             .show()
     }
-
-
-    // ========================================================
-    // الأسئلة الشائعة
-    // ========================================================
 
     private fun showFaq() {
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "الأسئلة الشائعة"
-            )
+            .setTitle("الأسئلة الشائعة")
             .setMessage(
                 "كيف أطلب ممرضاً؟\n\n" +
-                    "اضغط إنشاء طلب، اختر الخدمة، أدخل بيانات المريض والموقع ثم أرسل الطلب.\n\n" +
-                    "هل أحتاج إلى تحديد موعد؟\n\n" +
-                    "لا. النظام مصمم حاليًا لطلبات التمريض الفورية بدون تاريخ أو وقت للحجز.\n\n" +
-                    "كيف أعرف أن الممرض قبل الطلب؟\n\n" +
-                    "يمكنك متابعة حالة الطلب من صفحة الطلبات."
+                    "بعد تسجيل الدخول اضغط إنشاء طلب، اختر الخدمة وأدخل بيانات المريض والموقع ثم أرسل الطلب.\n\n" +
+                    "هل أحتاج إلى حجز موعد؟\n\n" +
+                    "لا، الطلب الحالي فوري بدون تاريخ أو وقت.\n\n" +
+                    "أين أتابع الطلب؟\n\n" +
+                    "من صفحة الطلبات."
             )
-            .setPositiveButton(
-                "حسناً",
-                null
-            )
+            .setPositiveButton("حسناً", null)
             .show()
     }
-
-
-    // ========================================================
-    // الشروط
-    // ========================================================
 
     private fun showTerms() {
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "الشروط والأحكام"
-            )
+            .setTitle("الشروط والأحكام")
             .setMessage(
-                "استخدام التطبيق يعني الموافقة على شروط الخدمة.\n\n" +
-                    "يجب إدخال معلومات صحيحة عن المريض والحالة الصحية.\n\n" +
-                    "الخدمات التمريضية لا تغني عن مراجعة الطبيب عند الحالات الطارئة."
+                "يجب إدخال معلومات صحيحة عن المريض.\n\n" +
+                    "الخدمات التمريضية لا تغني عن مراجعة الطبيب في الحالات الطارئة."
             )
-            .setPositiveButton(
-                "حسناً",
-                null
-            )
+            .setPositiveButton("حسناً", null)
             .show()
     }
-
-
-    // ========================================================
-    // الخصوصية
-    // ========================================================
 
     private fun showPrivacy() {
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "سياسة الخصوصية"
-            )
+            .setTitle("سياسة الخصوصية")
             .setMessage(
-                "نحافظ على بيانات المستخدم وبيانات الطلبات ونستخدمها لتقديم خدمة التمريض.\n\n" +
-                    "يجب عدم إدخال معلومات غير ضرورية في الملاحظات."
+                "نستخدم بيانات الحساب والطلب لتقديم خدمة التمريض ومتابعة الطلب."
             )
-            .setPositiveButton(
-                "حسناً",
-                null
-            )
+            .setPositiveButton("حسناً", null)
             .show()
     }
-
-
-    // ========================================================
-    // رسائل الخطأ
-    // ========================================================
 
     private fun showError(
         title: String,
         message: String
     ) {
 
-        if (isFinishing) {
-            return
-        }
+        if (isFinishing) return
 
         AlertDialog.Builder(this)
-            .setTitle(
-                title
-            )
-            .setMessage(
-                message
-            )
-            .setPositiveButton(
-                "حسناً",
-                null
-            )
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("حسناً", null)
             .show()
     }
 }
