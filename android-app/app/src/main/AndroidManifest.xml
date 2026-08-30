@@ -12,6 +12,8 @@
     <application
         android:allowBackup="true"
         android:label="التمريض المنزلي"
+        android:icon="@drawable/app_logo"
+        android:roundIcon="@drawable/app_logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
