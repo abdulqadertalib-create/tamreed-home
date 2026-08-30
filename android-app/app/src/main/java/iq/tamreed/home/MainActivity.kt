@@ -2,6 +2,10 @@ package iq.tamreed.home
 
 import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Location
+import android.provider.Settings
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -14,6 +18,9 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
@@ -93,6 +100,8 @@ class MainActivity : AppCompatActivity() {
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var selectedAddress = ""
+    private var currentLocationText = "لم يتم تحديد الموقع"
+    private val LOCATION_REQUEST_CODE = 2001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -2025,7 +2034,7 @@ class MainActivity : AppCompatActivity() {
             hint = "ابحث عن خدمة..."
             textSize = 16f
             gravity = Gravity.RIGHT
-            singleLine = true
+            setSingleLine(true)
             background = bordered(WHITE, BORDER, 15)
             setPadding(dp(15), dp(5), dp(15), dp(5))
         }
@@ -2218,6 +2227,180 @@ class MainActivity : AppCompatActivity() {
                 checkLoginBeforeRequest()
             }
             .show()
+    }
+
+    // =====================================================
+    // تحديد موقع المريض و GPS
+    // =====================================================
+
+    private fun showLocation() {
+
+        val root = baseLayout()
+
+        root.addView(
+            text("📍 تحديد موقع المريض", 29f, DARK_NAVY)
+        )
+
+        root.addView(
+            text(
+                "يساعد الموقع الممرض على الوصول إلى المكان الصحيح",
+                17f,
+                GRAY
+            )
+        )
+
+        val status = text(currentLocationText, 17f, DARK_NAVY)
+        root.addView(
+            status,
+            LinearLayout.LayoutParams(-1, dp(125)).apply {
+                setMargins(0, dp(20), 0, dp(10))
+            }
+        )
+
+        root.addView(
+            button("📍 الحصول على موقعي الحالي") {
+                status.text = "جاري تحديد موقعك..."
+                getCurrentLocation(status)
+            },
+            LinearLayout.LayoutParams(-1, dp(65)).apply {
+                bottomMargin = dp(8)
+            }
+        )
+
+        root.addView(
+            button("🗺️ فتح الموقع في خرائط Google") {
+                openCurrentLocationInMaps()
+            },
+            LinearLayout.LayoutParams(-1, dp(60)).apply {
+                bottomMargin = dp(8)
+            }
+        )
+
+        root.addView(
+            button("↩️ رجوع") {
+                showServices()
+            },
+            LinearLayout.LayoutParams(-1, dp(55))
+        )
+
+        setContentView(scroll(root))
+    }
+
+    private fun getCurrentLocation(statusView: TextView) {
+
+        val fine = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        val coarse = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+        if (
+            fine != PackageManager.PERMISSION_GRANTED &&
+            coarse != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                LOCATION_REQUEST_CODE
+            )
+            return
+        }
+
+        LocationServices.getFusedLocationProviderClient(this)
+            .lastLocation
+            .addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    selectedLatitude = location.latitude
+                    selectedLongitude = location.longitude
+                    selectedAddress = "موقع GPS: %.6f, %.6f".format(
+                        location.latitude,
+                        location.longitude
+                    )
+                    currentLocationText =
+                        "تم تحديد الموقع بنجاح ✅\n\n" +
+                        "خط العرض: %.6f\n".format(location.latitude) +
+                        "خط الطول: %.6f".format(location.longitude)
+                    statusView.text = currentLocationText
+                    Toast.makeText(
+                        this,
+                        "تم تحديد موقعك بنجاح",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    statusView.text =
+                        "تعذر الحصول على الموقع الحالي.\nتأكد من تشغيل GPS ثم حاول مرة أخرى."
+                }
+            }
+            .addOnFailureListener { error ->
+                statusView.text =
+                    "حدث خطأ أثناء تحديد الموقع:\n${error.message ?: "خطأ غير معروف"}"
+            }
+    }
+
+    private fun openCurrentLocationInMaps() {
+        val lat = selectedLatitude
+        val lon = selectedLongitude
+
+        if (lat == null || lon == null) {
+            Toast.makeText(this, "حدد موقعك أولاً", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val uri = Uri.parse("geo:$lat,$lon?q=$lat,$lon")
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } catch (_: Exception) {
+            try {
+                val webUri = Uri.parse(
+                    "https://www.google.com/maps/search/?api=1&query=$lat,$lon"
+                )
+                startActivity(Intent(Intent.ACTION_VIEW, webUri))
+            } catch (_: Exception) {
+                Toast.makeText(
+                    this,
+                    "تعذر فتح خرائط Google",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == LOCATION_REQUEST_CODE) {
+            if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
+                Toast.makeText(
+                    this,
+                    "تم السماح بالموقع. اضغط تحديد الموقع مرة أخرى.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                AlertDialog.Builder(this)
+                    .setTitle("صلاحية الموقع مطلوبة")
+                    .setMessage("يحتاج التطبيق إلى موقعك لتسهيل وصول الممرض إلى المريض.")
+                    .setPositiveButton("الإعدادات") { _, _ ->
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse("package:$packageName")
+                            )
+                        )
+                    }
+                    .setNegativeButton("إلغاء", null)
+                    .show()
+            }
+        }
     }
 
     private fun showBookings() {
