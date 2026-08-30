@@ -25,6 +25,10 @@ import kotlinx.serialization.Serializable
 data class MyBooking(
     val id: String,
     val patient_id: String,
+
+    // اسم المريض
+    val patient_name: String? = null,
+
     val nurse_id: String? = null,
     val service_id: String,
     val address: String,
@@ -692,6 +696,20 @@ class MyBookingsActivity : AppCompatActivity() {
 
 
         /*
+         * اسم المريض
+         *
+         * تمت إضافته الآن.
+         */
+
+        addRow(
+            card,
+            "اسم المريض",
+            booking.patient_name
+                ?: "غير مسجل"
+        )
+
+
+        /*
          * الخدمة
          */
 
@@ -770,8 +788,11 @@ class MyBookingsActivity : AppCompatActivity() {
                 booking.nurse_id
                     .isNullOrBlank()
             ) {
+
                 "لم يتم تعيين ممرض بعد"
+
             } else {
+
                 "تم تعيين ممرض"
             }
         )
@@ -865,7 +886,6 @@ class MyBookingsActivity : AppCompatActivity() {
         ) {
 
             actions.addView(
-
                 button(
                     "📍 الموقع",
                     BLUE
@@ -876,7 +896,6 @@ class MyBookingsActivity : AppCompatActivity() {
                         booking.longitude!!
                     )
                 },
-
                 LinearLayout.LayoutParams(
                     0,
                     dp(55),
@@ -900,7 +919,6 @@ class MyBookingsActivity : AppCompatActivity() {
         ) {
 
             actions.addView(
-
                 button(
                     "📞 اتصال",
                     GREEN
@@ -910,7 +928,6 @@ class MyBookingsActivity : AppCompatActivity() {
                         booking.patient_phone!!
                     )
                 },
-
                 LinearLayout.LayoutParams(
                     0,
                     dp(55),
