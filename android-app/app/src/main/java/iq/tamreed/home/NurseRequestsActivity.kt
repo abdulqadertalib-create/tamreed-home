@@ -13,6 +13,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.*
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,6 +24,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 import kotlinx.serialization.Serializable
+
 
 @Serializable
 data class NursingRequest(
@@ -36,6 +41,13 @@ data class NursingRequest(
     val latitude: Double? = null,
     val longitude: Double? = null
 )
+
+
+@Serializable
+data class NurseAssignment(
+    val nurse_id: String
+)
+
 
 class NurseRequestsActivity : AppCompatActivity() {
 
@@ -54,22 +66,26 @@ class NurseRequestsActivity : AppCompatActivity() {
 
     private var nurseId: String? = null
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         loadNurse()
     }
 
+
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
     }
+
 
     private fun dp(value: Int): Int {
         return (
             value * resources.displayMetrics.density
         ).toInt()
     }
+
 
     private fun rounded(
         color: Int,
@@ -81,6 +97,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             cornerRadius = dp(radius).toFloat()
         }
     }
+
 
     private fun bordered(
         color: Int = WHITE,
@@ -94,6 +111,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             cornerRadius = dp(radius).toFloat()
         }
     }
+
 
     private fun makeText(
         value: String,
@@ -129,6 +147,7 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
+
     private fun loadNurse() {
 
         val user =
@@ -156,9 +175,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     SupabaseManager.client
                         .from("nurses")
                         .select {
-
                             filter {
-
                                 eq(
                                     "user_id",
                                     user.id
@@ -209,6 +226,7 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
+
     private fun loadRequests() {
 
         scope.launch {
@@ -216,8 +234,20 @@ class NurseRequestsActivity : AppCompatActivity() {
             try {
 
                 /*
-                 * جدول nursing_requests عندك يحتوي على 12 عموداً فقط.
-                 * لذلك لا نستخدم status أو created_at أو accepted_at.
+                 * جدول nursing_requests يحتوي على 12 عموداً.
+                 *
+                 * id
+                 * customer_id
+                 * nurse_id
+                 * service_type
+                 * patient_name
+                 * patient_phone
+                 * patient_age
+                 * notes
+                 * city
+                 * address
+                 * latitude
+                 * longitude
                  */
 
                 val allRequests =
@@ -226,9 +256,12 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .select()
                         .decodeList<NursingRequest>()
 
+
                 /*
                  * نعرض:
+                 *
                  * 1- الطلبات التي لم يتم تعيين ممرض لها.
+                 *
                  * 2- الطلبات التي تم تعيينها لهذا الممرض.
                  */
 
@@ -238,6 +271,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                         request.nurse_id.isNullOrBlank() ||
                         request.nurse_id == nurseId
                     }
+
 
                 showRequests(requests)
 
@@ -253,6 +287,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             }
         }
     }
+
 
     private fun showRequests(
         requests: List<NursingRequest>
@@ -279,6 +314,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             }
 
+
         val scroll =
             ScrollView(this).apply {
 
@@ -287,7 +323,9 @@ class NurseRequestsActivity : AppCompatActivity() {
                 addView(root)
             }
 
+
         setContentView(scroll)
+
 
         val header =
             LinearLayout(this).apply {
@@ -301,6 +339,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 layoutDirection =
                     View.LAYOUT_DIRECTION_RTL
             }
+
 
         val backButton =
             Button(this).apply {
@@ -325,6 +364,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 }
             }
 
+
         header.addView(
             backButton,
             LinearLayout.LayoutParams(
@@ -332,6 +372,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(52)
             )
         )
+
 
         val title =
             makeText(
@@ -341,6 +382,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 true
             )
 
+
         header.addView(
             title,
             LinearLayout.LayoutParams(
@@ -349,6 +391,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 1f
             )
         )
+
 
         root.addView(
             header,
@@ -360,6 +403,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             }
         )
 
+
         val countText =
             makeText(
                 "عدد الطلبات: ${requests.size}",
@@ -368,6 +412,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 true
             )
 
+
         root.addView(
             countText,
             LinearLayout.LayoutParams(
@@ -375,6 +420,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(50)
             )
         )
+
 
         if (requests.isEmpty()) {
 
@@ -401,6 +447,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
                 }
 
+
             empty.addView(
                 makeText(
                     "📋",
@@ -409,6 +456,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     false
                 )
             )
+
 
             empty.addView(
                 makeText(
@@ -419,6 +467,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             )
 
+
             empty.addView(
                 makeText(
                     "ستظهر هنا طلبات التمريض الجديدة",
@@ -427,6 +476,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     false
                 )
             )
+
 
             root.addView(
                 empty,
@@ -441,6 +491,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
+
         for (request in requests) {
 
             root.addView(
@@ -454,6 +505,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
     }
+
 
     private fun createRequestCard(
         request: NursingRequest
@@ -483,6 +535,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             }
 
+
         val title =
             makeText(
                 "🩺 طلب تمريض منزلي",
@@ -490,6 +543,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 NAVY,
                 true
             )
+
 
         card.addView(
             title,
@@ -499,11 +553,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+
         addRow(
             card,
             "الخدمة",
             request.service_type ?: "-"
         )
+
 
         addRow(
             card,
@@ -511,11 +567,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             request.patient_name ?: "-"
         )
 
+
         addRow(
             card,
             "العمر",
             request.patient_age?.toString() ?: "-"
         )
+
 
         addRow(
             card,
@@ -523,11 +581,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             request.patient_phone ?: "-"
         )
 
+
         addRow(
             card,
             "المحافظة",
             request.city ?: "الأنبار"
         )
+
 
         addRow(
             card,
@@ -535,11 +595,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             request.address ?: "-"
         )
 
+
         addRow(
             card,
             "الملاحظات",
             request.notes ?: "لا توجد ملاحظات"
         )
+
 
         if (
             request.latitude != null &&
@@ -552,6 +614,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 "${request.latitude}, ${request.longitude}"
             )
         }
+
 
         val buttons =
             LinearLayout(this).apply {
@@ -572,6 +635,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     0
                 )
             }
+
 
         val acceptButton =
             Button(this).apply {
@@ -595,6 +659,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 }
             }
 
+
         buttons.addView(
             acceptButton,
             LinearLayout.LayoutParams(
@@ -602,6 +667,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(58)
             )
         )
+
 
         card.addView(
             buttons,
@@ -611,8 +677,10 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+
         return card
     }
+
 
     private fun addRow(
         parent: LinearLayout,
@@ -633,6 +701,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     View.LAYOUT_DIRECTION_RTL
             }
 
+
         val label =
             makeText(
                 "$title:",
@@ -640,6 +709,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 GRAY,
                 true
             )
+
 
         val content =
             makeText(
@@ -649,6 +719,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 false
             )
 
+
         row.addView(
             label,
             LinearLayout.LayoutParams(
@@ -656,6 +727,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(48)
             )
         )
+
 
         row.addView(
             content,
@@ -666,8 +738,10 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+
         parent.addView(row)
     }
+
 
     private fun acceptRequest(
         request: NursingRequest
@@ -678,6 +752,7 @@ class NurseRequestsActivity : AppCompatActivity() {
 
         val id =
             nurseId
+
 
         if (
             requestId.isNullOrBlank() ||
@@ -693,25 +768,24 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
+
         scope.launch {
 
             try {
 
                 /*
                  * لا يوجد status في جدولك.
-                 * لذلك قبول الطلب يتم بتسجيل nurse_id فقط.
+                 *
+                 * قبول الطلب = تسجيل nurse_id
                  */
 
                 SupabaseManager.client
                     .from("nursing_requests")
-                    .update({
-
-                        set(
-                            "nurse_id",
-                            id
+                    .update(
+                        NurseAssignment(
+                            nurse_id = id
                         )
-
-                    }) {
+                    ) {
 
                         filter {
 
@@ -722,11 +796,13 @@ class NurseRequestsActivity : AppCompatActivity() {
                         }
                     }
 
+
                 Toast.makeText(
                     this@NurseRequestsActivity,
                     "تم قبول الطلب بنجاح ✓",
                     Toast.LENGTH_SHORT
                 ).show()
+
 
                 loadRequests()
 
