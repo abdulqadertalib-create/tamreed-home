@@ -1144,93 +1144,147 @@ class NurseRequestsActivity : AppCompatActivity() {
         booking: NurseRequestsBooking
     ) {
 
-        val dbNurseId =
-            nurseId
-
-        val bookingId =
-            booking.id
+        val dbNurseId = nurseId
+        val bookingId = booking.id
+        val serviceId = booking.service_id
 
         if (dbNurseId.isNullOrBlank()) {
-
             Toast.makeText(
                 this,
                 "تعذر تحديد معرف الممرض",
                 Toast.LENGTH_LONG
             ).show()
-
             return
         }
 
-
         if (bookingId.isNullOrBlank()) {
-
             Toast.makeText(
                 this,
                 "رقم الطلب غير صالح",
                 Toast.LENGTH_LONG
             ).show()
-
             return
         }
 
+        if (serviceId.isNullOrBlank()) {
+            Toast.makeText(
+                this,
+                "الطلب لا يحتوي على service_id صالح",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
 
         scope.launch {
-
             try {
+                // ----------------------------------------------------
+                // 1) التأكد أن nurses.id موجود فعلاً
+                //    لأن bookings.nurse_id مرتبط بـ nurses.id
+                // ----------------------------------------------------
+                val nurseExists =
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .select {
+                            filter {
+                                eq("id", dbNurseId)
+                            }
+                        }
+                        .decodeList<NurseRecordForRequests>()
+                        .isNotEmpty()
 
-                /*
-                 * مهم جداً:
-                 *
-                 * نضع nurses.id في nurse_id
-                 *
-                 * وليس auth user id.
-                 *
-                 * هذا يعالج مشكلة:
-                 *
-                 * foreign key violation
-                 */
+                if (!nurseExists) {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "خطأ: معرف الممرض غير موجود في جدول nurses",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
 
+                // ----------------------------------------------------
+                // 2) التأكد أن service_id موجود في services
+                //    لأن bookings.service_id مرتبط بـ services.id
+                // ----------------------------------------------------
+                val serviceExists =
+                    SupabaseManager
+                        .client
+                        .from("services")
+                        .select {
+                            filter {
+                                eq("id", serviceId)
+                            }
+                        }
+                        .decodeList<NurseServiceForRequests>()
+                        .isNotEmpty()
+
+                if (!serviceExists) {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "تعذر قبول الطلب: الخدمة المرتبطة بهذا الطلب غير موجودة في جدول services",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+
+                // ----------------------------------------------------
+                // 3) قبول الطلب باستخدام nurses.id وليس Auth user id
+                // ----------------------------------------------------
                 val assignment =
                     NurseBookingAssignment(
-                        nurse_id =
-                            dbNurseId,
-                        status =
-                            "ACCEPTED"
+                        nurse_id = dbNurseId,
+                        status = "ACCEPTED"
                     )
-
 
                 SupabaseManager
                     .client
                     .from("bookings")
-                    .update(
-                        assignment
-                    ) {
-
+                    .update(assignment) {
                         filter {
-
-                            eq(
-                                "id",
-                                bookingId
-                            )
+                            eq("id", bookingId)
+                            eq("status", "PENDING")
                         }
                     }
 
+                // ----------------------------------------------------
+                // 4) التحقق من أن التحديث تم فعلاً
+                // ----------------------------------------------------
+                val updated =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("id", bookingId)
+                            }
+                        }
+                        .decodeList<NurseRequestsBooking>()
+                        .firstOrNull()
 
-                Toast.makeText(
-                    this@NurseRequestsActivity,
-                    "✓ تم قبول طلب المريض بنجاح",
-                    Toast.LENGTH_LONG
-                ).show()
+                if (updated?.nurse_id == dbNurseId &&
+                    updated.status?.uppercase() == "ACCEPTED"
+                ) {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "✓ تم قبول طلب المريض بنجاح",
+                        Toast.LENGTH_LONG
+                    ).show()
 
-
-                // إعادة تحميل الطلبات
-                loadRequests()
+                    loadRequests()
+                } else {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "لم يتم تحديث الطلب. تحقق من صلاحيات RLS في جدول bookings",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
 
             } catch (e: Exception) {
+                val message = e.message ?: "خطأ غير معروف"
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
-                    "تعذر قبول الطلب:\n${e.message}",
+                    "تعذر قبول الطلب:\n$message",
                     Toast.LENGTH_LONG
                 ).show()
             }
