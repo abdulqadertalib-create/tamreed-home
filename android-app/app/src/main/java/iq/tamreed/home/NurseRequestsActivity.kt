@@ -1,15 +1,16 @@
 package iq.tamreed.home
 
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,9 +41,6 @@ data class NurseBookingAssignment(
     val status: String
 )
 
-/*
- * سجل الممرض من جدول nurses
- */
 @Serializable
 data class NurseRecordForRequests(
     val id: String? = null,
@@ -66,19 +64,14 @@ class NurseRequestsActivity : AppCompatActivity() {
             SupervisorJob() + Dispatchers.Main
         )
 
-    /*
-     * ID الخاص بالممرض داخل جدول nurses
-     */
+    // ID الممرض داخل جدول nurses
     private var nurseId: String? = null
 
-    /*
-     * ID الخاص بحساب Supabase Auth
-     */
+    // ID حساب Supabase Auth
     private var currentUserId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         loadNurse()
     }
 
@@ -161,11 +154,10 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-    /*
-     * ============================================================
-     * جلب الممرض الحالي
-     * ============================================================
-     */
+    // ============================================================
+    // جلب الممرض الحالي
+    // ============================================================
+
     private fun loadNurse() {
 
         val user =
@@ -183,7 +175,6 @@ class NurseRequestsActivity : AppCompatActivity() {
             ).show()
 
             finish()
-
             return
         }
 
@@ -193,12 +184,6 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             try {
 
-                /*
-                 * نبحث في جدول nurses
-                 * عن الممرض الذي user_id الخاص به
-                 * يساوي حساب Supabase الحالي.
-                 */
-
                 val nurses =
                     SupabaseManager
                         .client
@@ -206,7 +191,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .select {
 
                             filter {
-
                                 eq(
                                     "user_id",
                                     user.id
@@ -227,7 +211,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     finish()
-
                     return@launch
                 }
 
@@ -240,7 +223,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     finish()
-
                     return@launch
                 }
 
@@ -259,11 +241,10 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-    /*
-     * ============================================================
-     * تحميل الطلبات
-     * ============================================================
-     */
+    // ============================================================
+    // تحميل الطلبات
+    // ============================================================
+
     private fun loadRequests() {
 
         scope.launch {
@@ -277,23 +258,37 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .select()
                         .decodeList<NurseRequestsBooking>()
 
+                val dbNurseId =
+                    nurseId
+
+                val authId =
+                    currentUserId
+
                 /*
-                 * الطلبات الجديدة:
+                 * الطلبات الظاهرة للممرض:
                  *
-                 * nurse_id فارغ
+                 * 1- طلب جديد لم يتم تعيين ممرض له.
                  *
-                 * أو الطلبات المقبولة لهذا الممرض.
+                 * 2- طلب مرتبط بـ nurses.id.
+                 *
+                 * 3- طلب مرتبط بـ auth.users.id.
+                 *
+                 * بهذه الطريقة لا تختفي الطلبات المقبولة
+                 * بسبب اختلاف نوع الـ Foreign Key.
                  */
 
                 val visibleBookings =
                     bookings
                         .filter { booking ->
 
-                            booking.nurse_id.isNullOrBlank() ||
-                            booking.nurse_id == nurseId
+                            val bookingNurseId =
+                                booking.nurse_id
+
+                            bookingNurseId.isNullOrBlank() ||
+                            bookingNurseId == dbNurseId ||
+                            bookingNurseId == authId
                         }
                         .sortedByDescending {
-
                             it.created_at ?: ""
                         }
 
@@ -316,11 +311,10 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-    /*
-     * ============================================================
-     * عرض الطلبات
-     * ============================================================
-     */
+    // ============================================================
+    // عرض الطلبات
+    // ============================================================
+
     private fun showRequests(
         requests: List<NurseRequestsBooking>
     ) {
@@ -354,9 +348,9 @@ class NurseRequestsActivity : AppCompatActivity() {
 
         setContentView(scroll)
 
-        /*
-         * رأس الشاشة
-         */
+        // ========================================================
+        // رأس الشاشة
+        // ========================================================
 
         val header =
             LinearLayout(this).apply {
@@ -455,9 +449,9 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
-        /*
-         * عدد الطلبات
-         */
+        // ========================================================
+        // عدد الطلبات
+        // ========================================================
 
         root.addView(
             txt(
@@ -472,9 +466,9 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
-        /*
-         * لا توجد طلبات
-         */
+        // ========================================================
+        // لا توجد طلبات
+        // ========================================================
 
         if (requests.isEmpty()) {
 
@@ -520,7 +514,7 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             empty.addView(
                 txt(
-                    "ستظهر هنا طلبات المرضى الجديدة",
+                    "ستظهر هنا طلبات المرضى الجديدة والمقبولة",
                     15f,
                     GRAY
                 )
@@ -537,9 +531,9 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
-        /*
-         * عرض الطلبات
-         */
+        // ========================================================
+        // عرض الطلبات
+        // ========================================================
 
         requests.forEach { booking ->
 
@@ -557,17 +551,19 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-    /*
-     * ============================================================
-     * بطاقة الطلب
-     * ============================================================
-     */
+    // ============================================================
+    // بطاقة الطلب
+    // ============================================================
+
     private fun requestCard(
         booking: NurseRequestsBooking
     ): LinearLayout {
 
         val accepted =
-            booking.nurse_id == nurseId
+            booking.nurse_id == nurseId ||
+            booking.nurse_id == currentUserId ||
+            booking.status
+                ?.uppercase() == "ACCEPTED"
 
         val card =
             LinearLayout(this).apply {
@@ -605,20 +601,51 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+        val status =
+            booking.status
+                ?.uppercase()
+                ?: "PENDING"
+
+        val statusText =
+            when {
+
+                accepted &&
+                status == "ACCEPTED" ->
+                    "✓ تم قبول الطلب"
+
+                status == "PENDING" &&
+                booking.nurse_id.isNullOrBlank() ->
+                    "🟠 طلب جديد بانتظار الممرض"
+
+                status == "COMPLETED" ->
+                    "✓ تم إكمال الطلب"
+
+                status == "CANCELLED" ->
+                    "🔴 تم إلغاء الطلب"
+
+                else ->
+                    "حالة الطلب: $status"
+            }
+
+        val statusColor =
+            when {
+
+                accepted &&
+                status == "ACCEPTED" ->
+                    GREEN
+
+                status == "CANCELLED" ->
+                    RED
+
+                else ->
+                    ORANGE
+            }
+
         card.addView(
             txt(
-                if (accepted)
-                    "✓ تم قبول الطلب"
-                else
-                    "🟠 طلب جديد بانتظار الممرض",
-
+                statusText,
                 15f,
-
-                if (accepted)
-                    GREEN
-                else
-                    ORANGE,
-
+                statusColor,
                 true
             )
         )
@@ -668,6 +695,10 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
 
+        // ========================================================
+        // موقع المريض
+        // ========================================================
+
         if (
             booking.latitude != null &&
             booking.longitude != null
@@ -678,21 +709,73 @@ class NurseRequestsActivity : AppCompatActivity() {
                 "موقع المريض",
                 "${booking.latitude}, ${booking.longitude}"
             )
+
+            val mapButton =
+                Button(this).apply {
+
+                    text =
+                        "📍 فتح موقع المريض على الخريطة"
+
+                    textSize =
+                        16f
+
+                    isAllCaps =
+                        false
+
+                    setTextColor(
+                        WHITE
+                    )
+
+                    background =
+                        rounded(
+                            NAVY,
+                            16
+                        )
+
+                    setOnClickListener {
+
+                        openPatientLocation(
+                            booking.latitude,
+                            booking.longitude
+                        )
+                    }
+                }
+
+            card.addView(
+                mapButton,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(58)
+                ).apply {
+                    topMargin = dp(12)
+                }
+            )
+        } else {
+
+            card.addView(
+                txt(
+                    "⚠️ لم يتم تحديد موقع GPS للمريض",
+                    14f,
+                    RED,
+                    true
+                )
+            )
         }
 
         addRow(
             card,
             "الحالة",
-            booking.status ?: "PENDING"
+            status
         )
 
-        /*
-         * زر قبول الطلب
-         */
+        // ========================================================
+        // زر قبول الطلب
+        // ========================================================
 
         if (
             !accepted &&
-            booking.nurse_id.isNullOrBlank()
+            booking.nurse_id.isNullOrBlank() &&
+            status == "PENDING"
         ) {
 
             val accept =
@@ -719,7 +802,8 @@ class NurseRequestsActivity : AppCompatActivity() {
 
                     setOnClickListener {
 
-                        isEnabled = false
+                        isEnabled =
+                            false
 
                         acceptBooking(
                             booking
@@ -740,14 +824,32 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
 
+        // ========================================================
+        // إذا كان الطلب مقبولاً
+        // ========================================================
+
+        if (
+            accepted &&
+            status == "ACCEPTED"
+        ) {
+
+            card.addView(
+                txt(
+                    "✓ هذا الطلب مسند إليك",
+                    16f,
+                    GREEN,
+                    true
+                )
+            )
+        }
+
         return card
     }
 
-    /*
-     * ============================================================
-     * صف بيانات
-     * ============================================================
-     */
+    // ============================================================
+    // صف بيانات
+    // ============================================================
+
     private fun addRow(
         parent: LinearLayout,
         title: String,
@@ -796,13 +898,81 @@ class NurseRequestsActivity : AppCompatActivity() {
         parent.addView(row)
     }
 
-    /*
-     * ============================================================
-     * قبول الطلب
-     *
-     * الإصلاح الأساسي هنا
-     * ============================================================
-     */
+    // ============================================================
+    // فتح موقع المريض
+    // ============================================================
+
+    private fun openPatientLocation(
+        latitude: Double?,
+        longitude: Double?
+    ) {
+
+        if (
+            latitude == null ||
+            longitude == null
+        ) {
+
+            Toast.makeText(
+                this,
+                "موقع المريض غير متوفر",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        try {
+
+            val uri =
+                Uri.parse(
+                    "google.navigation:q=$latitude,$longitude"
+                )
+
+            val intent =
+                Intent(
+                    Intent.ACTION_VIEW,
+                    uri
+                ).apply {
+
+                    setPackage(
+                        "com.google.android.apps.maps"
+                    )
+                }
+
+            startActivity(intent)
+
+        } catch (e: Exception) {
+
+            try {
+
+                val uri =
+                    Uri.parse(
+                        "geo:$latitude,$longitude?q=$latitude,$longitude"
+                    )
+
+                val intent =
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        uri
+                    )
+
+                startActivity(intent)
+
+            } catch (e2: Exception) {
+
+                Toast.makeText(
+                    this,
+                    "لا يوجد تطبيق خرائط مثبت على الجهاز",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    // ============================================================
+    // قبول الطلب
+    // ============================================================
+
     private fun acceptBooking(
         booking: NurseRequestsBooking
     ) {
@@ -853,12 +1023,9 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             try {
 
-                /*
-                 * ------------------------------------------------
-                 * الخطوة 1:
-                 * قراءة الطلب قبل القبول
-                 * ------------------------------------------------
-                 */
+                // =================================================
+                // 1. قراءة الطلب الحالي
+                // =================================================
 
                 val currentBooking =
                     SupabaseManager
@@ -886,21 +1053,22 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     loadRequests()
-
                     return@launch
                 }
 
-                /*
-                 * ------------------------------------------------
-                 * الطلب مقبول مسبقاً
-                 * ------------------------------------------------
-                 */
+                // =================================================
+                // 2. إذا كان مقبولاً بالفعل لهذا الممرض
+                // =================================================
 
                 if (
-                    currentBooking.nurse_id ==
-                    databaseNurseId &&
                     currentBooking.status
-                        ?.uppercase() == "ACCEPTED"
+                        ?.uppercase() == "ACCEPTED" &&
+                    (
+                        currentBooking.nurse_id ==
+                        databaseNurseId ||
+                        currentBooking.nurse_id ==
+                        authUserId
+                    )
                 ) {
 
                     Toast.makeText(
@@ -910,15 +1078,12 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     loadRequests()
-
                     return@launch
                 }
 
-                /*
-                 * ------------------------------------------------
-                 * الطلب أخذه ممرض آخر
-                 * ------------------------------------------------
-                 */
+                // =================================================
+                // 3. إذا كان أخذه ممرض آخر
+                // =================================================
 
                 if (
                     !currentBooking.nurse_id.isNullOrBlank() &&
@@ -933,15 +1098,12 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     loadRequests()
-
                     return@launch
                 }
 
-                /*
-                 * ------------------------------------------------
-                 * يجب أن يكون الطلب PENDING
-                 * ------------------------------------------------
-                 */
+                // =================================================
+                // 4. يجب أن يكون PENDING
+                // =================================================
 
                 if (
                     !currentBooking.status.isNullOrBlank() &&
@@ -956,19 +1118,15 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ).show()
 
                     loadRequests()
-
                     return@launch
                 }
 
-                /*
-                 * =================================================
-                 * المحاولة الأولى
-                 *
-                 * bookings.nurse_id -> nurses.id
-                 * =================================================
-                 */
+                // =================================================
+                // 5. محاولة استخدام nurses.id
+                // =================================================
 
-                var accepted = false
+                var accepted =
+                    false
 
                 var firstError =
                     ""
@@ -1001,7 +1159,36 @@ class NurseRequestsActivity : AppCompatActivity() {
                             }
                         }
 
-                    accepted = true
+                    // لا نكتفي بعدم وجود Exception.
+                    // نقرأ الطلب مرة أخرى ونتحقق فعلياً.
+
+                    val verified =
+                        SupabaseManager
+                            .client
+                            .from("bookings")
+                            .select {
+
+                                filter {
+
+                                    eq(
+                                        "id",
+                                        bookingId
+                                    )
+                                }
+                            }
+                            .decodeList<NurseRequestsBooking>()
+                            .firstOrNull()
+
+                    if (
+                        verified != null &&
+                        verified.status
+                            ?.uppercase() == "ACCEPTED" &&
+                        verified.nurse_id ==
+                        databaseNurseId
+                    ) {
+
+                        accepted = true
+                    }
 
                 } catch (e: Exception) {
 
@@ -1010,14 +1197,10 @@ class NurseRequestsActivity : AppCompatActivity() {
                             ?: "خطأ غير معروف"
                 }
 
-                /*
-                 * =================================================
-                 * المحاولة الثانية
-                 *
-                 * في حال كان الـ Foreign Key يشير إلى
-                 * auth.users.id بدلاً من nurses.id
-                 * =================================================
-                 */
+                // =================================================
+                // 6. إذا فشلت المحاولة الأولى
+                // نجرب auth.users.id
+                // =================================================
 
                 if (!accepted) {
 
@@ -1049,7 +1232,35 @@ class NurseRequestsActivity : AppCompatActivity() {
                                 }
                             }
 
-                        accepted = true
+                        // التحقق الحقيقي من قاعدة البيانات
+
+                        val verified =
+                            SupabaseManager
+                                .client
+                                .from("bookings")
+                                .select {
+
+                                    filter {
+
+                                        eq(
+                                            "id",
+                                            bookingId
+                                        )
+                                    }
+                                }
+                                .decodeList<NurseRequestsBooking>()
+                                .firstOrNull()
+
+                        if (
+                            verified != null &&
+                            verified.status
+                                ?.uppercase() == "ACCEPTED" &&
+                            verified.nurse_id ==
+                            authUserId
+                        ) {
+
+                            accepted = true
+                        }
 
                     } catch (e: Exception) {
 
@@ -1057,38 +1268,30 @@ class NurseRequestsActivity : AppCompatActivity() {
                             e.message
                                 ?: "خطأ غير معروف"
 
-                        /*
-                         * ------------------------------------------------
-                         * كلا الاحتمالين فشلا.
-                         * نعرض الخطأ الحقيقي حتى نعرف نوع الـ FK.
-                         * ------------------------------------------------
-                         */
-
                         Toast.makeText(
                             this@NurseRequestsActivity,
 
                             """
-تعذر قبول الطلب.
+                            تعذر قبول الطلب.
 
-المحاولة الأولى:
-$firstError
+                            المحاولة الأولى:
+                            $firstError
 
-المحاولة الثانية:
-$secondError
+                            المحاولة الثانية:
+                            $secondError
                             """.trimIndent(),
 
                             Toast.LENGTH_LONG
                         ).show()
 
+                        loadRequests()
                         return@launch
                     }
                 }
 
-                /*
-                 * =================================================
-                 * نجح القبول
-                 * =================================================
-                 */
+                // =================================================
+                // 7. النتيجة النهائية
+                // =================================================
 
                 if (accepted) {
 
@@ -1098,9 +1301,17 @@ $secondError
                         Toast.LENGTH_SHORT
                     ).show()
 
-                    /*
-                     * إعادة تحميل الطلبات
-                     */
+                    // إعادة تحميل القائمة
+                    // حتى يبقى الطلب المقبول ظاهراً
+                    loadRequests()
+
+                } else {
+
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "لم يتم تثبيت قبول الطلب في قاعدة البيانات",
+                        Toast.LENGTH_LONG
+                    ).show()
 
                     loadRequests()
                 }
@@ -1109,11 +1320,11 @@ $secondError
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
-
                     "حدث خطأ أثناء قبول الطلب:\n${e.message}",
-
                     Toast.LENGTH_LONG
                 ).show()
+
+                loadRequests()
             }
         }
     }
