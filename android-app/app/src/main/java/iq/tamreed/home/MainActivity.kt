@@ -3,15 +3,14 @@ package iq.tamreed.home
 import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Location
+import android.provider.Settings
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.location.Location
-import android.location.LocationManager
-import android.content.pm.PackageManager
-import android.provider.Settings
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
@@ -19,6 +18,9 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
@@ -92,18 +94,14 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var phoneNumber = ""
-
-    private val LOCATION_REQUEST_CODE = 2001
-    private var selectedLatitude: Double? = null
-    private var selectedLongitude: Double? = null
-    private var selectedAddress: String = ""
-    private var locationStatusView: TextView? = null
     private var patientPhone = ""
     private var selectedCity = ""
     private var landmark = ""
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
     private var selectedAddress = ""
+    private var currentLocationText = "لم يتم تحديد الموقع"
+    private val LOCATION_REQUEST_CODE = 2001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -346,6 +344,84 @@ class MainActivity : AppCompatActivity() {
         )
 
         return bar
+    }
+
+    private fun accountSummaryCard(): LinearLayout {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 20)
+            elevation = dp(2).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        val avatar = TextView(this).apply {
+            text = "👤"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            background = rounded(LIGHT_BLUE, 18)
+        }
+
+        card.addView(
+            avatar,
+            LinearLayout.LayoutParams(dp(60), dp(60)).apply {
+                marginStart = dp(10)
+            }
+        )
+
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.RIGHT
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val title = if (phoneNumber.isBlank()) "مرحباً بك" else "مرحباً بك"
+        info.addView(text(title, 18f, NAVY, true))
+        info.addView(
+            text(
+                if (phoneNumber.isBlank()) "حساب المريض" else phoneNumber,
+                13f,
+                GRAY
+            )
+        )
+
+        val verified = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        verified.addView(text("✓", 15f, GREEN, true))
+        verified.addView(text(" حساب موثق", 12f, GREEN, true))
+        info.addView(verified)
+
+        card.addView(
+            info,
+            LinearLayout.LayoutParams(0, -2, 1f)
+        )
+
+        return card
+    }
+
+    private fun quickActionCard(
+        icon: String,
+        title: String,
+        subtitle: String,
+        action: () -> Unit
+    ): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bordered(WHITE, BORDER, 18)
+            setPadding(dp(8), dp(10), dp(8), dp(10))
+            elevation = dp(1).toFloat()
+            setOnClickListener { action() }
+
+            addView(text(icon, 28f, NAVY, true))
+            addView(text(title, 15f, NAVY, true))
+            addView(text(subtitle, 11f, GRAY))
+        }
     }
 
     private fun bottomNavigation(
@@ -992,43 +1068,323 @@ class MainActivity : AppCompatActivity() {
      * =========================================================
      */
     private fun showHome() {
+
         val root = baseLayout()
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
-            background = roundedBackground(LIGHT_BLUE, dp(22))
-            setPadding(dp(15), dp(18), dp(15), dp(18))
-        }
-        val logo = ImageView(this).apply {
-            val resId = resources.getIdentifier("app_icon", "drawable", packageName)
-            if (resId != 0) setImageResource(resId)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            contentDescription = "شعار التمريض المنزلي"
-        }
-        header.addView(logo, LinearLayout.LayoutParams(-1, dp(82)))
-        header.addView(text("التمريض المنزلي", 30f, DARK_BLUE))
-        header.addView(text("خدمات التمريض والرعاية الصحية المنزلية", 16f, TEXT))
-        header.addView(text("محافظة الأنبار - العراق", 14f, GRAY))
-        root.addView(header, LinearLayout.LayoutParams(-1, -2))
-        val bannerRes = resources.getIdentifier("banner", "drawable", packageName)
-        if (bannerRes != 0) {
-            val banner = ImageView(this).apply { setImageResource(bannerRes); scaleType = ImageView.ScaleType.CENTER_CROP; contentDescription = "التمريض المنزلي" }
-            root.addView(banner, LinearLayout.LayoutParams(-1, dp(145)).apply { topMargin = dp(12) })
-        }
+
+        root.addView(topBar("الرئيسية"))
+
         addSpace(root, 12)
-        root.addView(text("مرحباً بك 👋", 25f, DARK_BLUE))
-        root.addView(text("اطلب الممرض إلى موقعك بسهولة وبسرعة", 16f, GRAY))
-        root.addView(button("🩺  اطلب ممرضاً الآن") { showRequestScreen() }, LinearLayout.LayoutParams(-1, dp(65)).apply { setMargins(0, dp(14), 0, dp(10)) })
-        root.addView(button("📱  تسجيل الدخول / إنشاء حساب") { showPhoneLogin() }, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(12) })
-        root.addView(text("خدماتنا", 23f, DARK_BLUE))
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; layoutDirection = View.LAYOUT_DIRECTION_RTL }
-        row.addView(card("قياس الضغط", "ضغط الدم", "🩺") { showRequestScreen() }, LinearLayout.LayoutParams(0, dp(140), 1f).apply { setMargins(0, dp(8), dp(5), dp(8)) })
-        row.addView(card("قياس السكر", "فحص السكر", "🩸") { showRequestScreen() }, LinearLayout.LayoutParams(0, dp(140), 1f).apply { setMargins(dp(5), dp(8), 0, dp(8)) })
-        root.addView(row)
-        root.addView(button("🏥  جميع الخدمات التمريضية") { showServices() }, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(8) })
-        root.addView(button("📋  طلباتي") { showBookings() }, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(8) })
-        root.addView(button("📍  تحديد موقعي للطلب") { showRequestScreen() }, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(8) })
-        root.addView(button("☎️  تواصل معنا") { contactUs() }, LinearLayout.LayoutParams(-1, dp(58)).apply { bottomMargin = dp(12) })
-        root.addView(text("خدمة التمريض المنزلي في محافظة الأنبار", 14f, GRAY))
+
+        root.addView(accountSummaryCard())
+
+        addSpace(root, 12)
+
+        val quickRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        quickRow.addView(
+            quickActionCard("📋", "طلباتي", "متابعة الطلبات") {
+                showBookings()
+            },
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply {
+                marginEnd = dp(5)
+            }
+        )
+
+        quickRow.addView(
+            quickActionCard("🩺", "الخدمات", "اختر خدمة") {
+                showServices()
+            },
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply {
+                marginStart = dp(5)
+            }
+        )
+
+        root.addView(quickRow)
+
+        addSpace(root, 14)
+
+        val welcome =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                gravity =
+                    Gravity.CENTER
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+
+                background =
+                    rounded(NAVY, 22)
+
+                setPadding(
+                    dp(15),
+                    dp(20),
+                    dp(15),
+                    dp(20)
+                )
+            }
+
+        welcome.addView(
+            text(
+                "التمريض المنزلي",
+                29f,
+                WHITE,
+                true
+            )
+        )
+
+        welcome.addView(
+            text(
+                "رعاية تمريضية منزلية منظمة",
+                16f,
+                WHITE
+            )
+        )
+
+        welcome.addView(
+            text(
+                "محافظة الأنبار - العراق",
+                14f,
+                Color.rgb(220, 235, 245)
+            )
+        )
+
+        root.addView(
+            welcome,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(150)
+            )
+        )
+
+        addSpace(root, 15)
+
+        root.addView(
+            button(
+                "🩺   إنشاء طلب تمريض الآن"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(65)
+            )
+        )
+
+        addSpace(root, 17)
+
+        root.addView(
+            text(
+                "الخدمات الأكثر طلباً",
+                23f,
+                NAVY,
+                true
+            )
+        )
+
+        addSpace(root, 8)
+
+        val row1 =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+            }
+
+        row1.addView(
+            serviceCard(
+                "💉",
+                "إعطاء الحقن",
+                "خدمة منزلية"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(0, 0, dp(5), 0)
+            }
+        )
+
+        row1.addView(
+            serviceCard(
+                "🩹",
+                "تغيير الضماد",
+                "العناية بالجروح"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(dp(5), 0, 0, 0)
+            }
+        )
+
+        root.addView(row1)
+
+        addSpace(root, 10)
+
+        val row2 =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+            }
+
+        row2.addView(
+            serviceCard(
+                "🩸",
+                "قياس السكر",
+                "فحص منزلي"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(0, 0, dp(5), 0)
+            }
+        )
+
+        row2.addView(
+            serviceCard(
+                "🩺",
+                "قياس الضغط",
+                "متابعة الضغط"
+            ) {
+                checkLoginBeforeRequest()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(145),
+                1f
+            ).apply {
+                setMargins(dp(5), 0, 0, 0)
+            }
+        )
+
+        root.addView(row2)
+
+        addSpace(root, 16)
+
+        root.addView(
+            text(
+                "الرعاية المنزلية باحتراف",
+                22f,
+                NAVY,
+                true
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "👩‍⚕️",
+                "ممرضون وممرضات",
+                "خدمة تمريض منزلية منظمة مع متابعة حالة الطلب."
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "🩺",
+                "عناية صحية منزلية",
+                "حقن، جروح، قياسات حيوية، ورعاية كبار السن."
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            medicalVisualCard(
+                "📍",
+                "وصول أسهل للمريض",
+                "حدد موقع المريض والنقطة الدالة لمساعدة الممرض على الوصول."
+            )
+        )
+
+        addSpace(root, 14)
+
+        root.addView(
+            outlineButton("عرض جميع الخدمات") {
+                showServices()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(58)
+            )
+        )
+
+        addSpace(root, 15)
+
+        val safe =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.HORIZONTAL
+
+                gravity =
+                    Gravity.CENTER_VERTICAL
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+
+                background =
+                    rounded(LIGHT_BLUE, 18)
+
+                setPadding(
+                    dp(12),
+                    dp(10),
+                    dp(12),
+                    dp(10)
+                )
+            }
+
+        safe.addView(
+            text("🛡️", 32f, NAVY),
+            LinearLayout.LayoutParams(
+                dp(60),
+                dp(65)
+            )
+        )
+
+        safe.addView(
+            text(
+                "خدمة آمنة وموثوقة\nساعدنا في الحصول على الرعاية المنزلية بسهولة",
+                15f,
+                NAVY,
+                true
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                -2,
+                1f
+            )
+        )
+
+        root.addView(safe)
+
+        addSpace(root, 14)
+
+        root.addView(bottomNavigation("home"))
+
         setContentView(scroll(root))
     }
 
@@ -1114,34 +1470,527 @@ class MainActivity : AppCompatActivity() {
      * =========================================================
      */
     private fun showRequestScreen() {
+
         val root = baseLayout()
-        root.addView(text("🩺 طلب ممرض منزلي", 29f, DARK_BLUE))
-        root.addView(text("أدخل بيانات المريض وحدد موقعه مباشرة من هذه الصفحة", 16f, GRAY))
+
+        root.addView(
+            topBar(
+                "إنشاء طلب",
+                ::showHome
+            )
+        )
+
+        addSpace(root, 12)
+
+        root.addView(
+            text(
+                "بيانات طلب التمريض",
+                25f,
+                NAVY,
+                true
+            )
+        )
+
+        root.addView(
+            text(
+                "أدخل معلومات المريض والموقع بالتفصيل",
+                15f,
+                GRAY
+            )
+        )
+
+        addSpace(root, 15)
+
+        // ----------------------------------------------------
+        // الخدمة
+        // ----------------------------------------------------
+
         val service = Spinner(this)
-        val services = arrayOf("اختر الخدمة", "زيارة تمريض منزلية", "قياس ضغط الدم", "قياس السكر", "إعطاء حقنة", "تغيير الضماد", "تركيب المحلول", "رعاية كبار السن", "رعاية المرضى في المنزل", "متابعة حالة صحية", "خدمة تمريض أخرى")
-        service.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, services)
-        root.addView(service, LinearLayout.LayoutParams(-1, dp(60)).apply { setMargins(0, dp(16), 0, dp(10)) })
-        val patient = EditText(this).apply { hint = "اسم المريض"; textSize = 17f; gravity = Gravity.RIGHT; inputType = InputType.TYPE_CLASS_TEXT; setPadding(dp(15), dp(10), dp(15), dp(10)) }
-        root.addView(patient, LinearLayout.LayoutParams(-1, dp(60)).apply { bottomMargin = dp(10) })
-        val notes = EditText(this).apply { hint = "ملاحظات إضافية عن الحالة"; textSize = 16f; gravity = Gravity.TOP or Gravity.RIGHT; minLines = 3; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE; setPadding(dp(15), dp(15), dp(15), dp(15)) }
-        root.addView(notes, LinearLayout.LayoutParams(-1, dp(110)).apply { bottomMargin = dp(12) })
-        val locationCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; background = roundedBackground(LIGHT_BLUE, dp(20)); setPadding(dp(14), dp(14), dp(14), dp(14)) }
-        locationCard.addView(text("📍 موقع المريض", 20f, DARK_BLUE))
-        locationCard.addView(text("اضغط الزر وسيتم أخذ موقعك الحالي هنا مباشرة.", 14f, GRAY))
-        locationStatusView = text(if (selectedAddress.isBlank()) "لم يتم تحديد الموقع بعد" else selectedAddress, 14f, if (selectedAddress.isBlank()) GRAY else GREEN)
-        locationCard.addView(locationStatusView)
-        locationCard.addView(button("📍  تحديد موقعي الآن") { locationStatusView?.text = "جاري تحديد موقعك..."; getCurrentLocationDirect() }, LinearLayout.LayoutParams(-1, dp(62)).apply { topMargin = dp(8) })
-        root.addView(locationCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
-        root.addView(button("📨  إرسال طلب التمريض") {
-            if (service.selectedItemPosition == 0) { Toast.makeText(this, "اختر الخدمة أولاً", Toast.LENGTH_SHORT).show(); return@button }
-            val patientName = patient.text.toString().trim()
-            if (patientName.isEmpty()) { patient.error = "أدخل اسم المريض"; return@button }
-            if (selectedLatitude == null || selectedLongitude == null) { Toast.makeText(this, "حدد موقع المريض أولاً", Toast.LENGTH_LONG).show(); locationStatusView?.text = "⚠️ يجب تحديد الموقع قبل إرسال الطلب"; return@button }
-            confirmRequest(service.selectedItem.toString(), patientName, notes.text.toString())
-        }, LinearLayout.LayoutParams(-1, dp(68)).apply { bottomMargin = dp(10) })
-        root.addView(button("رجوع") { showHome() }, LinearLayout.LayoutParams(-1, dp(55)))
+
+        val serviceNames = mutableListOf("جاري تحميل الخدمات...")
+        val serviceItems = mutableListOf<ServiceRecord>()
+
+        service.adapter =
+            ArrayAdapter(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                serviceNames
+            )
+
+        root.addView(
+            service,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        // تحميل الخدمات الحقيقية من جدول services.
+        scope.launch {
+            try {
+                val loadedServices =
+                    SupabaseManager.client
+                        .from("services")
+                        .select {
+                            filter {
+                                eq("is_active", true)
+                            }
+                        }
+                        .decodeList<ServiceRecord>()
+
+                serviceItems.clear()
+                serviceNames.clear()
+                serviceNames.add("اختر الخدمة")
+
+                serviceItems.addAll(loadedServices)
+                serviceNames.addAll(loadedServices.map { it.name_ar })
+
+                service.adapter =
+                    ArrayAdapter(
+                        this@MainActivity,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        serviceNames
+                    )
+            } catch (e: Exception) {
+                serviceNames.clear()
+                serviceNames.add("تعذر تحميل الخدمات")
+                service.adapter =
+                    ArrayAdapter(
+                        this@MainActivity,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        serviceNames
+                    )
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "تعذر تحميل الخدمات: ${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // اسم المريض
+        // ----------------------------------------------------
+
+        val patient =
+            EditText(this).apply {
+
+                hint = "اسم المريض"
+
+                textSize = 17f
+
+                gravity = Gravity.RIGHT
+
+                inputType =
+                    InputType.TYPE_CLASS_TEXT
+
+                background =
+                    bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+
+                setPadding(
+                    dp(15),
+                    dp(5),
+                    dp(15),
+                    dp(5)
+                )
+            }
+
+        root.addView(
+            patient,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // رقم هاتف المريض
+        // ----------------------------------------------------
+
+        val patientPhoneInput =
+            EditText(this).apply {
+
+                hint = "رقم هاتف المريض للتواصل"
+
+                textSize = 17f
+
+                gravity = Gravity.CENTER
+
+                inputType =
+                    InputType.TYPE_CLASS_PHONE
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_LTR
+
+                background =
+                    bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+
+                setPadding(
+                    dp(15),
+                    dp(5),
+                    dp(15),
+                    dp(5)
+                )
+
+                /*
+                 * نضع رقم تسجيل الدخول افتراضياً.
+                 * يستطيع المستخدم تغييره إذا كان رقم المريض مختلفاً.
+                 */
+                setText(
+                    phoneNumber
+                )
+            }
+
+        root.addView(
+            patientPhoneInput,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            )
+        )
+
+        addSpace(root, 6)
+
+        root.addView(
+            text(
+                "سيستخدم الممرض هذا الرقم للتواصل مع المريض عند الحاجة.",
+                13f,
+                GRAY
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // مدينة / قضاء الأنبار
+        // ----------------------------------------------------
+
+        root.addView(
+            text(
+                "المدينة / القضاء",
+                16f,
+                NAVY,
+                true
+            )
+        )
+
+        addSpace(root, 4)
+
+        val citySpinner =
+            Spinner(this)
+
+        val anbarCities =
+            arrayOf(
+                "اختر المدينة / القضاء",
+                "الرمادي",
+                "الفلوجة",
+                "الكرمة",
+                "الحبانية",
+                "الخالدية",
+                "هيت",
+                "حديثة",
+                "عانة",
+                "راوة",
+                "القائم",
+                "الرطبة",
+                "البغدادي",
+                "عامرية الصمود"
+            )
+
+        citySpinner.adapter =
+            ArrayAdapter(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                anbarCities
+            )
+
+        root.addView(
+            citySpinner,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // أقرب نقطة دالة
+        // ----------------------------------------------------
+
+        val landmarkInput =
+            EditText(this).apply {
+
+                hint = "أقرب نقطة دالة (جامع، مدرسة، مستشفى، شارع...)"
+
+                textSize = 16f
+
+                gravity =
+                    Gravity.RIGHT
+
+                inputType =
+                    InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_TEXT_FLAG_MULTI_LINE
+
+                background =
+                    bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+
+                setPadding(
+                    dp(15),
+                    dp(12),
+                    dp(15),
+                    dp(12)
+                )
+            }
+
+        root.addView(
+            landmarkInput,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(75)
+            )
+        )
+
+        addSpace(root, 12)
+
+        // ----------------------------------------------------
+        // الموقع
+        // ----------------------------------------------------
+
+        root.addView(
+            button(
+                "📍  تحديد موقع المريض"
+            ) {
+                showLocation()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(60)
+            )
+        )
+
+        addSpace(root, 8)
+
+        root.addView(
+            text(
+                if (selectedAddress.isBlank())
+                    "لم يتم تحديد الموقع بعد"
+                else
+                    selectedAddress,
+                14f,
+                GRAY
+            )
+        )
+
+        addSpace(root, 10)
+
+        // ----------------------------------------------------
+        // الملاحظات
+        // ----------------------------------------------------
+
+        val notes =
+            EditText(this).apply {
+
+                hint = "ملاحظات إضافية عن الحالة"
+
+                textSize = 16f
+
+                gravity =
+                    Gravity.TOP or Gravity.RIGHT
+
+                minLines = 4
+
+                inputType =
+                    InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_TEXT_FLAG_MULTI_LINE
+
+                background =
+                    bordered(
+                        WHITE,
+                        BORDER,
+                        14
+                    )
+
+                setPadding(
+                    dp(15),
+                    dp(15),
+                    dp(15),
+                    dp(15)
+                )
+            }
+
+        root.addView(
+            notes,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(130)
+            )
+        )
+
+        addSpace(root, 12)
+
+        root.addView(
+            medicalVisualCard(
+                "🛡️",
+                "تنبيه طبي",
+                "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. في الحالات الحرجة اتصل بالإسعاف فوراً. لا تشارك بيانات حساسة غير ضرورية في الملاحظات."
+            )
+        )
+
+        addSpace(root, 18)
+
+        // ----------------------------------------------------
+        // إرسال الطلب
+        // ----------------------------------------------------
+
+        root.addView(
+            medicalVisualCard(
+                "📋",
+                "راجع بيانات الطلب قبل الإرسال",
+                "تأكد من اسم المريض والهاتف والمدينة والموقع والخدمة المختارة."
+            )
+        )
+
+        addSpace(root, 12)
+
+        root.addView(
+            button(
+                "📨  إرسال طلب التمريض الآن"
+            ) {
+
+                if (service.selectedItemPosition == 0) {
+
+                    Toast.makeText(
+                        this,
+                        "اختر الخدمة أولاً",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@button
+                }
+
+                val patientName =
+                    patient.text
+                        .toString()
+                        .trim()
+
+                if (patientName.isEmpty()) {
+
+                    patient.error =
+                        "أدخل اسم المريض"
+
+                    return@button
+                }
+
+                val enteredPhone =
+                    normalizeIraqPhone(
+                        patientPhoneInput.text
+                            .toString()
+                            .trim()
+                    )
+
+                if (enteredPhone == null) {
+
+                    patientPhoneInput.error =
+                        "أدخل رقم هاتف عراقي صحيح"
+
+                    return@button
+                }
+
+                if (citySpinner.selectedItemPosition == 0) {
+
+                    Toast.makeText(
+                        this,
+                        "اختر المدينة / القضاء",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@button
+                }
+
+                val selectedCityValue =
+                    citySpinner.selectedItem
+                        .toString()
+                        .trim()
+
+                val enteredLandmark =
+                    landmarkInput.text
+                        .toString()
+                        .trim()
+
+                if (enteredLandmark.isEmpty()) {
+
+                    landmarkInput.error =
+                        "أدخل أقرب نقطة دالة"
+
+                    return@button
+                }
+
+                patientPhone =
+                    enteredPhone
+
+                selectedCity =
+                    selectedCityValue
+
+                landmark =
+                    enteredLandmark
+
+                if (serviceItems.isEmpty() ||
+                    service.selectedItemPosition <= 0 ||
+                    service.selectedItemPosition > serviceItems.size
+                ) {
+                    Toast.makeText(
+                        this,
+                        "اختر خدمة متاحة أولاً",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@button
+                }
+
+                val selectedService =
+                    serviceItems[service.selectedItemPosition - 1]
+
+                createBooking(
+                    selectedService,
+                    patientName,
+                    notes.text.toString().trim()
+                )
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(65)
+            )
+        )
+
+        addSpace(root, 10)
+
+        root.addView(
+            outlineButton("إلغاء") {
+                showHome()
+            },
+            LinearLayout.LayoutParams(
+                -1,
+                dp(55)
+            )
+        )
+
         setContentView(scroll(root))
-        if (selectedLatitude == null || selectedLongitude == null) locationStatusView?.postDelayed({ getCurrentLocationDirect() }, 350)
     }
 
     private fun createBooking(
@@ -1233,8 +2082,12 @@ class MainActivity : AppCompatActivity() {
                             .setTitle("تم إرسال الطلب ✅")
                             .setMessage(
                                 "تم إرسال طلب التمريض بنجاح.\n\n" +
+                                    "رقم الطلب محفوظ في حسابك ويمكنك متابعة حالته من قسم طلباتي.\n\n" +
                                     "سيتمكن الممرض المقبول من رؤية رقم هاتف المريض وبيانات الموقع للتواصل والوصول."
                             )
+                            .setNegativeButton("العودة للرئيسية") { _, _ ->
+                                showHome()
+                            }
                             .setPositiveButton(
                                 "متابعة الطلب"
                             ) { _, _ ->
@@ -1268,185 +2121,408 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             topBar(
-                "الخدمات",
+                "الخدمات الطبية",
                 ::showHome
             )
         )
 
-        addSpace(root, 12)
+        addSpace(root, 10)
+
+        val hero = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(NAVY, 22)
+            setPadding(dp(18), dp(20), dp(18), dp(20))
+        }
+
+        hero.addView(text("🩺", 42f, WHITE, true))
+        hero.addView(text("خدمات التمريض المنزلي", 25f, WHITE, true))
+        hero.addView(
+            text(
+                "اختر الخدمة المناسبة ثم اطلع على تفاصيلها قبل إرسال الطلب.",
+                15f,
+                Color.rgb(225, 238, 247)
+            )
+        )
 
         root.addView(
-            medicalVisualCard(
-                "🏥",
-                "خدمات تمريض منزلية",
-                "اختر الخدمة المناسبة ثم أرسل طلبك ليتم التعامل معه من خلال النظام."
-            )
+            hero,
+            LinearLayout.LayoutParams(-1, dp(155))
         )
 
         addSpace(root, 12)
 
-        val services =
-            listOf(
-                Triple("💉", "إعطاء الحقن", "إعطاء الحقن حسب وصف الطبيب"),
-                Triple("🩹", "تغيير الضماد", "العناية بالجروح والضمادات"),
-                Triple("🩸", "قياس السكر", "فحص مستوى سكر الدم"),
-                Triple("🩺", "قياس الضغط", "قياس ومتابعة ضغط الدم"),
-                Triple("💧", "تركيب المحلول", "تركيب المحاليل حسب الحاجة"),
-                Triple("👴", "رعاية كبار السن", "رعاية ومتابعة كبار السن"),
-                Triple("🛏️", "رعاية المرضى", "رعاية المرضى داخل المنزل"),
-                Triple("📋", "متابعة صحية", "متابعة الحالة الصحية")
-            )
+        val search = EditText(this).apply {
+            hint = "ابحث عن خدمة..."
+            textSize = 16f
+            gravity = Gravity.RIGHT
+            setSingleLine(true)
+            background = bordered(WHITE, BORDER, 15)
+            setPadding(dp(15), dp(5), dp(15), dp(5))
+        }
 
-        for (service in services) {
+        root.addView(
+            search,
+            LinearLayout.LayoutParams(-1, dp(58))
+        )
 
-            val card =
-                LinearLayout(this).apply {
+        addSpace(root, 10)
 
-                    orientation =
-                        LinearLayout.HORIZONTAL
+        val services = listOf(
+            Triple("💉", "إعطاء الحقن", "إعطاء الحقن حسب وصف الطبيب"),
+            Triple("🩹", "تغيير الضماد", "العناية بالجروح والضمادات"),
+            Triple("🩸", "قياس السكر", "فحص مستوى سكر الدم"),
+            Triple("🩺", "قياس الضغط", "قياس ومتابعة ضغط الدم"),
+            Triple("💧", "تركيب المحلول", "تركيب المحاليل حسب الحاجة"),
+            Triple("👴", "رعاية كبار السن", "رعاية ومتابعة كبار السن"),
+            Triple("🛏️", "رعاية المرضى", "رعاية المرضى داخل المنزل"),
+            Triple("📋", "متابعة صحية", "متابعة الحالة الصحية")
+        )
 
-                    gravity =
-                        Gravity.CENTER_VERTICAL
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
 
-                    layoutDirection =
-                        View.LAYOUT_DIRECTION_RTL
+        root.addView(container)
 
-                    background =
-                        rounded(WHITE, 17)
+        fun render(filter: String) {
+            container.removeAllViews()
 
-                    setPadding(
-                        dp(12),
-                        dp(10),
-                        dp(12),
-                        dp(10)
+            val query = filter.trim()
+            val filtered = if (query.isBlank()) {
+                services
+            } else {
+                services.filter {
+                    it.second.contains(query, true) ||
+                        it.third.contains(query, true)
+                }
+            }
+
+            if (filtered.isEmpty()) {
+                container.addView(
+                    emptyState(
+                        "🔎",
+                        "لم نجد الخدمة المطلوبة",
+                        "جرّب كتابة اسم خدمة آخر."
                     )
+                )
+                return
+            }
 
+            filtered.forEach { service ->
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutDirection = View.LAYOUT_DIRECTION_RTL
+                    background = bordered(WHITE, BORDER, 18)
+                    elevation = dp(2).toFloat()
+                    setPadding(dp(12), dp(10), dp(12), dp(10))
                     setOnClickListener {
-                        checkLoginBeforeRequest()
+                        showServiceDetails(
+                            service.first,
+                            service.second,
+                            service.third
+                        )
                     }
                 }
 
-            card.addView(
-                text(
-                    service.first,
-                    32f,
-                    NAVY
-                ),
-                LinearLayout.LayoutParams(
-                    dp(60),
-                    dp(70)
-                )
-            )
-
-            val info =
-                LinearLayout(this).apply {
-
-                    orientation =
-                        LinearLayout.VERTICAL
-
-                    gravity =
-                        Gravity.RIGHT
+                val icon = text(service.first, 34f, NAVY, true).apply {
+                    gravity = Gravity.CENTER
+                    background = rounded(LIGHT_BLUE, 16)
                 }
 
-            info.addView(
-                text(
-                    service.second,
-                    18f,
-                    NAVY,
-                    true
+                card.addView(
+                    icon,
+                    LinearLayout.LayoutParams(dp(62), dp(62)).apply {
+                        marginStart = dp(8)
+                    }
                 )
-            )
 
-            info.addView(
-                text(
-                    service.third,
-                    13f,
-                    GRAY
-                )
-            )
-
-            card.addView(
-                info,
-                LinearLayout.LayoutParams(
-                    0,
-                    -2,
-                    1f
-                )
-            )
-
-            root.addView(
-                card,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(82)
-                ).apply {
-                    setMargins(
-                        0,
-                        dp(5),
-                        0,
-                        dp(5)
-                    )
+                val info = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutDirection = View.LAYOUT_DIRECTION_RTL
                 }
-            )
+
+                info.addView(text(service.second, 18f, NAVY, true))
+                info.addView(text(service.third, 13f, GRAY))
+
+                card.addView(
+                    info,
+                    LinearLayout.LayoutParams(0, -2, 1f)
+                )
+
+                card.addView(
+                    text("›", 30f, NAVY, true),
+                    LinearLayout.LayoutParams(dp(35), dp(60))
+                )
+
+                container.addView(
+                    card,
+                    LinearLayout.LayoutParams(-1, dp(86)).apply {
+                        bottomMargin = dp(10)
+                    }
+                )
+            }
         }
 
-        addSpace(root, 15)
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) = Unit
+
+            override fun onTextChanged(
+                s: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int
+            ) {
+                render(s?.toString() ?: "")
+            }
+
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
+
+        render("")
+
+        addSpace(root, 5)
 
         root.addView(
-            button("🩺 إنشاء طلب") {
+            button("🩺  إنشاء طلب تمريض") {
                 checkLoginBeforeRequest()
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
+            LinearLayout.LayoutParams(-1, dp(60))
+        )
+
+        addSpace(root, 8)
+        root.addView(bottomNavigation("services"))
+
+        setContentView(scroll(root))
+    }
+
+    private fun showServiceDetails(
+        icon: String,
+        title: String,
+        description: String
+    ) {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(20), dp(10), dp(20), dp(5))
+        }
+
+        content.addView(
+            text(icon, 52f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(70))
+        )
+
+        content.addView(
+            text(title, 22f, NAVY, true)
+        )
+
+        content.addView(
+            text(
+                description,
+                16f,
+                TEXT
             )
+        )
+
+        content.addView(
+            text(
+                "يتم إرسال الطلب إلى النظام ليتم التعامل معه من خلال الممرضين المتاحين.",
+                14f,
+                GRAY
+            )
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle("تفاصيل الخدمة")
+            .setView(content)
+            .setNegativeButton("إغلاق", null)
+            .setPositiveButton("اطلب هذه الخدمة") { _, _ ->
+                checkLoginBeforeRequest()
+            }
+            .show()
+    }
+
+    // =====================================================
+    // تحديد موقع المريض و GPS
+    // =====================================================
+
+    private fun showLocation() {
+
+        val root = baseLayout()
+
+        root.addView(
+            text("📍 تحديد موقع المريض", 29f, DARK_NAVY)
+        )
+
+        root.addView(
+            text(
+                "يساعد الموقع الممرض على الوصول إلى المكان الصحيح",
+                17f,
+                GRAY
+            )
+        )
+
+        val status = text(currentLocationText, 17f, DARK_NAVY)
+        root.addView(
+            status,
+            LinearLayout.LayoutParams(-1, dp(125)).apply {
+                setMargins(0, dp(20), 0, dp(10))
+            }
+        )
+
+        root.addView(
+            button("📍 الحصول على موقعي الحالي") {
+                status.text = "جاري تحديد موقعك..."
+                getCurrentLocation(status)
+            },
+            LinearLayout.LayoutParams(-1, dp(65)).apply {
+                bottomMargin = dp(8)
+            }
+        )
+
+        root.addView(
+            button("🗺️ فتح الموقع في خرائط Google") {
+                openCurrentLocationInMaps()
+            },
+            LinearLayout.LayoutParams(-1, dp(60)).apply {
+                bottomMargin = dp(8)
+            }
+        )
+
+        root.addView(
+            button("↩️ رجوع") {
+                showServices()
+            },
+            LinearLayout.LayoutParams(-1, dp(55))
         )
 
         setContentView(scroll(root))
     }
 
-    /*
-     * =========================================================
-     * الموقع
-     * =========================================================
-     */
-    private fun showLocation() { showRequestScreen() }
+    private fun getCurrentLocation(statusView: TextView) {
 
-    private fun getCurrentLocationDirect() {
-        val fine = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (fine != PackageManager.PERMISSION_GRANTED && coarse != PackageManager.PERMISSION_GRANTED) { requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), LOCATION_REQUEST_CODE); return }
-        val manager = getSystemService(LOCATION_SERVICE) as LocationManager
-        val gps = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        val network = manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        if (!gps && !network) { AlertDialog.Builder(this).setTitle("تشغيل الموقع").setMessage("يرجى تشغيل خدمة الموقع GPS حتى يتمكن التطبيق من تحديد موقع المريض.").setPositiveButton("فتح إعدادات الموقع") { _, _ -> startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }.setNegativeButton("إلغاء", null).show(); return }
-        locationStatusView?.text = "📍 جاري تحديد موقعك بدقة..."
-        val listener = object : android.location.LocationListener {
-            override fun onLocationChanged(location: Location) {
-                selectedLatitude = location.latitude; selectedLongitude = location.longitude
-                selectedAddress = "تم تحديد موقع المريض بنجاح ✅
-خط العرض: %.6f
-خط الطول: %.6f".format(location.latitude, location.longitude)
-                locationStatusView?.text = selectedAddress; locationStatusView?.setTextColor(GREEN)
-                Toast.makeText(this@MainActivity, "تم تحديد موقعك بنجاح", Toast.LENGTH_SHORT).show()
-                try { manager.removeUpdates(this) } catch (_: Exception) {}
-            }
+        val fine = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        val coarse = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+        if (
+            fine != PackageManager.PERMISSION_GRANTED &&
+            coarse != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                LOCATION_REQUEST_CODE
+            )
+            return
         }
-        try {
-            if (fine == PackageManager.PERMISSION_GRANTED && gps) manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 1f, listener)
-            if (network) manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 1f, listener)
-            val a = if (gps) manager.getLastKnownLocation(LocationManager.GPS_PROVIDER) else null
-            val b = if (network) manager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) else null
-            listOfNotNull(a, b).maxByOrNull { it.time }?.let { listener.onLocationChanged(it) }
-        } catch (_: SecurityException) { locationStatusView?.text = "تعذر الوصول إلى الموقع. اسمح بصلاحية الموقع." }
-          catch (_: Exception) { locationStatusView?.text = "تعذر تحديد الموقع حالياً. حاول مرة أخرى." }
+
+        LocationServices.getFusedLocationProviderClient(this)
+            .lastLocation
+            .addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    selectedLatitude = location.latitude
+                    selectedLongitude = location.longitude
+                    selectedAddress = "موقع GPS: %.6f, %.6f".format(
+                        location.latitude,
+                        location.longitude
+                    )
+                    currentLocationText =
+                        "تم تحديد الموقع بنجاح ✅\n\n" +
+                        "خط العرض: %.6f\n".format(location.latitude) +
+                        "خط الطول: %.6f".format(location.longitude)
+                    statusView.text = currentLocationText
+                    Toast.makeText(
+                        this,
+                        "تم تحديد موقعك بنجاح",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    statusView.text =
+                        "تعذر الحصول على الموقع الحالي.\nتأكد من تشغيل GPS ثم حاول مرة أخرى."
+                }
+            }
+            .addOnFailureListener { error ->
+                statusView.text =
+                    "حدث خطأ أثناء تحديد الموقع:\n${error.message ?: "خطأ غير معروف"}"
+            }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    private fun openCurrentLocationInMaps() {
+        val lat = selectedLatitude
+        val lon = selectedLongitude
+
+        if (lat == null || lon == null) {
+            Toast.makeText(this, "حدد موقعك أولاً", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val uri = Uri.parse("geo:$lat,$lon?q=$lat,$lon")
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } catch (_: Exception) {
+            try {
+                val webUri = Uri.parse(
+                    "https://www.google.com/maps/search/?api=1&query=$lat,$lon"
+                )
+                startActivity(Intent(Intent.ACTION_VIEW, webUri))
+            } catch (_: Exception) {
+                Toast.makeText(
+                    this,
+                    "تعذر فتح خرائط Google",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
         if (requestCode == LOCATION_REQUEST_CODE) {
-            if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) getCurrentLocationDirect()
-            else AlertDialog.Builder(this).setTitle("صلاحية الموقع مطلوبة").setMessage("يحتاج التطبيق إلى موقع المريض لمساعدة الممرض على الوصول إلى المكان الصحيح.").setPositiveButton("الإعدادات") { _, _ -> startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))) }.setNegativeButton("إلغاء", null).show()
+            if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
+                Toast.makeText(
+                    this,
+                    "تم السماح بالموقع. اضغط تحديد الموقع مرة أخرى.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                AlertDialog.Builder(this)
+                    .setTitle("صلاحية الموقع مطلوبة")
+                    .setMessage("يحتاج التطبيق إلى موقعك لتسهيل وصول الممرض إلى المريض.")
+                    .setPositiveButton("الإعدادات") { _, _ ->
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse("package:$packageName")
+                            )
+                        )
+                    }
+                    .setNegativeButton("إلغاء", null)
+                    .show()
+            }
         }
     }
 
@@ -2237,7 +3313,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("سياسة الخصوصية")
             .setMessage(
-                "نستخدم بيانات الحساب والطلب لتقديم خدمة التمريض ومتابعة الطلب."
+                "نستخدم بيانات الحساب والطلب والموقع فقط لتقديم خدمة التمريض ومتابعة الطلب ومساعدة الممرض على الوصول إلى موقع المريض. لا تكتب في الملاحظات معلومات حساسة غير ضرورية."
             )
             .setPositiveButton("حسناً", null)
             .show()
