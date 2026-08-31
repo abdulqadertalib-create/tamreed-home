@@ -20,8 +20,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
+
 @Serializable
-data class NurseBooking(
+data class NurseRequestsBooking(
     val id: String? = null,
     val patient_id: String? = null,
     val nurse_id: String? = null,
@@ -37,11 +38,13 @@ data class NurseBooking(
     val created_at: String? = null
 )
 
+
 @Serializable
 data class NurseBookingAssignment(
     val nurse_id: String,
     val status: String = "ACCEPTED"
 )
+
 
 class NurseRequestsActivity : AppCompatActivity() {
 
@@ -59,10 +62,12 @@ class NurseRequestsActivity : AppCompatActivity() {
 
     private var nurseId: String? = null
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         loadNurse()
     }
+
 
     override fun onResume() {
         super.onResume()
@@ -72,30 +77,36 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
+
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
     }
 
+
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
     }
+
 
     private fun rounded(
         color: Int,
         radius: Int = 18
     ): GradientDrawable {
+
         return GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
         }
     }
 
+
     private fun bordered(
         color: Int = WHITE,
         strokeColor: Int = Color.rgb(215, 225, 232),
         radius: Int = 16
     ): GradientDrawable {
+
         return GradientDrawable().apply {
             setColor(color)
             setStroke(dp(1), strokeColor)
@@ -103,13 +114,16 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
+
     private fun txt(
         value: String,
         size: Float = 16f,
         color: Int = TEXT,
         bold: Boolean = false
     ): TextView {
+
         return TextView(this).apply {
+
             text = value
             textSize = size
             setTextColor(color)
@@ -128,6 +142,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
     }
+
 
     private fun loadNurse() {
 
@@ -149,6 +164,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
+
         scope.launch {
 
             try {
@@ -158,7 +174,9 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .client
                         .from("nurses")
                         .select {
+
                             filter {
+
                                 eq(
                                     "user_id",
                                     user.id
@@ -167,10 +185,12 @@ class NurseRequestsActivity : AppCompatActivity() {
                         }
                         .decodeList<NurseHomeProfile>()
 
+
                 val nurse =
                     nurses.firstOrNull()
 
                 nurseId = nurse?.id
+
 
                 if (nurseId.isNullOrBlank()) {
 
@@ -183,6 +203,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     finish()
                     return@launch
                 }
+
 
                 loadRequests()
 
@@ -197,14 +218,6 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-    /*
-     * ==========================================================
-     * أهم تعديل:
-     *
-     * نقرأ من bookings
-     * لأن MainActivity ينشئ طلب المريض في bookings.
-     * ==========================================================
-     */
 
     private fun loadRequests() {
 
@@ -217,18 +230,21 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .client
                         .from("bookings")
                         .select()
-                        .decodeList<NurseBooking>()
+                        .decodeList<NurseRequestsBooking>()
+
 
                 val visibleBookings =
                     bookings
                         .filter { booking ->
 
                             booking.nurse_id.isNullOrBlank() ||
-                                booking.nurse_id == nurseId
+                                    booking.nurse_id == nurseId
                         }
                         .sortedByDescending {
+
                             it.created_at ?: ""
                         }
+
 
                 showRequests(
                     visibleBookings
@@ -247,8 +263,9 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
+
     private fun showRequests(
-        requests: List<NurseBooking>
+        requests: List<NurseRequestsBooking>
     ) {
 
         val root =
@@ -270,6 +287,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             }
 
+
         val scroll =
             ScrollView(this).apply {
 
@@ -278,7 +296,9 @@ class NurseRequestsActivity : AppCompatActivity() {
                 addView(root)
             }
 
+
         setContentView(scroll)
+
 
         val header =
             LinearLayout(this).apply {
@@ -292,6 +312,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 layoutDirection =
                     View.LAYOUT_DIRECTION_RTL
             }
+
 
         val back =
             Button(this).apply {
@@ -316,6 +337,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 }
             }
 
+
         header.addView(
             back,
             LinearLayout.LayoutParams(
@@ -323,6 +345,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(52)
             )
         )
+
 
         header.addView(
             txt(
@@ -337,6 +360,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 1f
             )
         )
+
 
         val refresh =
             Button(this).apply {
@@ -361,6 +385,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 }
             }
 
+
         header.addView(
             refresh,
             LinearLayout.LayoutParams(
@@ -369,6 +394,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+
         root.addView(
             header,
             LinearLayout.LayoutParams(
@@ -376,6 +402,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(70)
             )
         )
+
 
         root.addView(
             txt(
@@ -389,6 +416,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(55)
             )
         )
+
 
         if (requests.isEmpty()) {
 
@@ -415,6 +443,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
                 }
 
+
             empty.addView(
                 txt(
                     "📋",
@@ -422,6 +451,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     NAVY
                 )
             )
+
 
             empty.addView(
                 txt(
@@ -432,6 +462,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             )
 
+
             empty.addView(
                 txt(
                     "ستظهر هنا طلبات المرضى الجديدة",
@@ -439,6 +470,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     GRAY
                 )
             )
+
 
             root.addView(
                 empty,
@@ -451,6 +483,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
+
         requests.forEach { booking ->
 
             root.addView(
@@ -459,18 +492,22 @@ class NurseRequestsActivity : AppCompatActivity() {
                     -1,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    bottomMargin = dp(16)
+
+                    bottomMargin =
+                        dp(16)
                 }
             )
         }
     }
 
+
     private fun requestCard(
-        booking: NurseBooking
+        booking: NurseRequestsBooking
     ): LinearLayout {
 
         val accepted =
             booking.nurse_id == nurseId
+
 
         val card =
             LinearLayout(this).apply {
@@ -499,6 +536,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             }
 
+
         card.addView(
             txt(
                 "🩺  طلب تمريض منزلي",
@@ -508,20 +546,25 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+
         card.addView(
             txt(
                 if (accepted)
                     "✓ تم قبول الطلب"
                 else
                     "🟠 طلب جديد بانتظار الممرض",
+
                 15f,
+
                 if (accepted)
                     GREEN
                 else
                     ORANGE,
+
                 true
             )
         )
+
 
         addRow(
             card,
@@ -529,11 +572,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             booking.id ?: "-"
         )
 
+
         addRow(
             card,
             "رقم المريض",
             booking.patient_phone ?: "-"
         )
+
 
         addRow(
             card,
@@ -541,11 +586,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             booking.service_id ?: "-"
         )
 
+
         addRow(
             card,
             "المدينة",
             booking.city ?: "الأنبار"
         )
+
 
         addRow(
             card,
@@ -553,11 +600,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             booking.address ?: "-"
         )
 
+
         addRow(
             card,
             "النقطة الدالة",
             booking.landmark ?: "-"
         )
+
 
         if (!booking.notes.isNullOrBlank()) {
 
@@ -567,6 +616,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 booking.notes ?: "-"
             )
         }
+
 
         if (
             booking.latitude != null &&
@@ -580,6 +630,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
 
+
         if (
             !accepted &&
             booking.nurse_id.isNullOrBlank()
@@ -591,11 +642,15 @@ class NurseRequestsActivity : AppCompatActivity() {
                     text =
                         "✓ قبول طلب المريض"
 
-                    textSize = 17f
+                    textSize =
+                        17f
 
-                    isAllCaps = false
+                    isAllCaps =
+                        false
 
-                    setTextColor(WHITE)
+                    setTextColor(
+                        WHITE
+                    )
 
                     background =
                         rounded(
@@ -604,9 +659,13 @@ class NurseRequestsActivity : AppCompatActivity() {
                         )
 
                     setOnClickListener {
-                        acceptBooking(booking)
+
+                        acceptBooking(
+                            booking
+                        )
                     }
                 }
+
 
             card.addView(
                 accept,
@@ -614,13 +673,17 @@ class NurseRequestsActivity : AppCompatActivity() {
                     -1,
                     dp(60)
                 ).apply {
-                    topMargin = dp(12)
+
+                    topMargin =
+                        dp(12)
                 }
             )
         }
 
+
         return card
     }
+
 
     private fun addRow(
         parent: LinearLayout,
@@ -641,6 +704,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     View.LAYOUT_DIRECTION_RTL
             }
 
+
         row.addView(
             txt(
                 "$title:",
@@ -653,6 +717,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(45)
             )
         )
+
 
         row.addView(
             txt(
@@ -667,11 +732,13 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
+
         parent.addView(row)
     }
 
+
     private fun acceptBooking(
-        booking: NurseBooking
+        booking: NurseRequestsBooking
     ) {
 
         val bookingId =
@@ -679,6 +746,7 @@ class NurseRequestsActivity : AppCompatActivity() {
 
         val id =
             nurseId
+
 
         if (
             bookingId.isNullOrBlank() ||
@@ -693,6 +761,7 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             return
         }
+
 
         scope.launch {
 
@@ -709,6 +778,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                     ) {
 
                         filter {
+
                             eq(
                                 "id",
                                 bookingId
@@ -716,11 +786,13 @@ class NurseRequestsActivity : AppCompatActivity() {
                         }
                     }
 
+
                 Toast.makeText(
                     this@NurseRequestsActivity,
                     "تم قبول طلب المريض بنجاح ✓",
                     Toast.LENGTH_SHORT
                 ).show()
+
 
                 loadRequests()
 
