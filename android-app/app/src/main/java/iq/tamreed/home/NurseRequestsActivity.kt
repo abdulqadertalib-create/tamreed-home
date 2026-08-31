@@ -8,18 +8,15 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.*
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-
 
 @Serializable
 data class NurseRequestsBooking(
@@ -38,13 +35,11 @@ data class NurseRequestsBooking(
     val created_at: String? = null
 )
 
-
 @Serializable
 data class NurseBookingAssignment(
     val nurse_id: String,
-    val status: String = "ACCEPTED"
+    val status: String
 )
-
 
 class NurseRequestsActivity : AppCompatActivity() {
 
@@ -52,22 +47,24 @@ class NurseRequestsActivity : AppCompatActivity() {
     private val BLUE = Color.rgb(235, 245, 251)
     private val GREEN = Color.rgb(35, 145, 85)
     private val ORANGE = Color.rgb(220, 145, 35)
+    private val RED = Color.rgb(190, 55, 55)
     private val TEXT = Color.rgb(45, 45, 45)
     private val GRAY = Color.rgb(120, 120, 120)
     private val BG = Color.rgb(247, 248, 249)
     private val WHITE = Color.WHITE
 
     private val scope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        CoroutineScope(
+            SupervisorJob() + Dispatchers.Main
+        )
 
     private var nurseId: String? = null
-
+    private var currentUserId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         loadNurse()
     }
-
 
     override fun onResume() {
         super.onResume()
@@ -77,17 +74,16 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
     }
 
-
     private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
+        return (
+            value * resources.displayMetrics.density
+        ).toInt()
     }
-
 
     private fun rounded(
         color: Int,
@@ -99,7 +95,6 @@ class NurseRequestsActivity : AppCompatActivity() {
             cornerRadius = dp(radius).toFloat()
         }
     }
-
 
     private fun bordered(
         color: Int = WHITE,
@@ -114,7 +109,6 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-
     private fun txt(
         value: String,
         size: Float = 16f,
@@ -127,11 +121,17 @@ class NurseRequestsActivity : AppCompatActivity() {
             text = value
             textSize = size
             setTextColor(color)
+
             gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+
+            layoutDirection =
+                View.LAYOUT_DIRECTION_RTL
 
             if (bold) {
-                setTypeface(null, Typeface.BOLD)
+                setTypeface(
+                    null,
+                    Typeface.BOLD
+                )
             }
 
             setPadding(
@@ -142,7 +142,6 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
     }
-
 
     private fun loadNurse() {
 
@@ -164,10 +163,21 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
+        currentUserId = user.id
 
         scope.launch {
 
             try {
+
+                /*
+                 * مهم جداً:
+                 *
+                 * نبحث عن سجل الممرض بواسطة user_id
+                 * ثم نأخذ nurses.id.
+                 *
+                 * لأن bookings.nurse_id يجب أن يحتوي
+                 * على معرف سجل الممرض في جدول nurses.
+                 */
 
                 val nurses =
                     SupabaseManager
@@ -185,18 +195,14 @@ class NurseRequestsActivity : AppCompatActivity() {
                         }
                         .decodeList<NurseHomeProfile>()
 
-
                 val nurse =
                     nurses.firstOrNull()
 
-                nurseId = nurse?.id
-
-
-                if (nurseId.isNullOrBlank()) {
+                if (nurse == null) {
 
                     Toast.makeText(
                         this@NurseRequestsActivity,
-                        "لم يتم العثور على بيانات الممرض",
+                        "لم يتم العثور على سجل الممرض في قاعدة البيانات",
                         Toast.LENGTH_LONG
                     ).show()
 
@@ -204,6 +210,23 @@ class NurseRequestsActivity : AppCompatActivity() {
                     return@launch
                 }
 
+                val databaseNurseId =
+                    nurse.id
+
+                if (databaseNurseId.isNullOrBlank()) {
+
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "معرف الممرض في جدول nurses فارغ",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    finish()
+                    return@launch
+                }
+
+                nurseId =
+                    databaseNurseId
 
                 loadRequests()
 
@@ -211,15 +234,21 @@ class NurseRequestsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
-                    "خطأ في بيانات الممرض: ${e.message}",
+                    "خطأ في بيانات الممرض:\n${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
     }
 
-
     private fun loadRequests() {
+
+        val id =
+            nurseId
+
+        if (id.isNullOrBlank()) {
+            return
+        }
 
         scope.launch {
 
@@ -232,19 +261,26 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .select()
                         .decodeList<NurseRequestsBooking>()
 
+                /*
+                 * نعرض:
+                 *
+                 * 1- الطلبات الجديدة التي nurse_id فيها فارغ
+                 * 2- الطلبات المقبولة لهذا الممرض فقط
+                 *
+                 * ولا نعرض طلبات ممرضين آخرين.
+                 */
 
                 val visibleBookings =
                     bookings
                         .filter { booking ->
 
                             booking.nurse_id.isNullOrBlank() ||
-                                    booking.nurse_id == nurseId
+                            booking.nurse_id == id
                         }
                         .sortedByDescending {
 
                             it.created_at ?: ""
                         }
-
 
                 showRequests(
                     visibleBookings
@@ -254,15 +290,16 @@ class NurseRequestsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
-                    "تعذر تحميل طلبات المرضى: ${e.message}",
+                    "تعذر تحميل طلبات المرضى:\n${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
 
-                showRequests(emptyList())
+                showRequests(
+                    emptyList()
+                )
             }
         }
     }
-
 
     private fun showRequests(
         requests: List<NurseRequestsBooking>
@@ -287,7 +324,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             }
 
-
         val scroll =
             ScrollView(this).apply {
 
@@ -296,9 +332,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 addView(root)
             }
 
-
         setContentView(scroll)
-
 
         val header =
             LinearLayout(this).apply {
@@ -312,7 +346,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 layoutDirection =
                     View.LAYOUT_DIRECTION_RTL
             }
-
 
         val back =
             Button(this).apply {
@@ -337,7 +370,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 }
             }
 
-
         header.addView(
             back,
             LinearLayout.LayoutParams(
@@ -345,7 +377,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(52)
             )
         )
-
 
         header.addView(
             txt(
@@ -360,7 +391,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 1f
             )
         )
-
 
         val refresh =
             Button(this).apply {
@@ -385,7 +415,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 }
             }
 
-
         header.addView(
             refresh,
             LinearLayout.LayoutParams(
@@ -394,7 +423,6 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
-
         root.addView(
             header,
             LinearLayout.LayoutParams(
@@ -402,7 +430,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(70)
             )
         )
-
 
         root.addView(
             txt(
@@ -416,7 +443,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(55)
             )
         )
-
 
         if (requests.isEmpty()) {
 
@@ -443,7 +469,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
                 }
 
-
             empty.addView(
                 txt(
                     "📋",
@@ -451,7 +476,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     NAVY
                 )
             )
-
 
             empty.addView(
                 txt(
@@ -462,7 +486,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             )
 
-
             empty.addView(
                 txt(
                     "ستظهر هنا طلبات المرضى الجديدة",
@@ -470,7 +493,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     GRAY
                 )
             )
-
 
             root.addView(
                 empty,
@@ -482,7 +504,6 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             return
         }
-
 
         requests.forEach { booking ->
 
@@ -500,14 +521,12 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
     }
 
-
     private fun requestCard(
         booking: NurseRequestsBooking
     ): LinearLayout {
 
         val accepted =
             booking.nurse_id == nurseId
-
 
         val card =
             LinearLayout(this).apply {
@@ -536,7 +555,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 )
             }
 
-
         card.addView(
             txt(
                 "🩺  طلب تمريض منزلي",
@@ -545,7 +563,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 true
             )
         )
-
 
         card.addView(
             txt(
@@ -565,13 +582,11 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
-
         addRow(
             card,
             "رقم الطلب",
             booking.id ?: "-"
         )
-
 
         addRow(
             card,
@@ -579,13 +594,11 @@ class NurseRequestsActivity : AppCompatActivity() {
             booking.patient_phone ?: "-"
         )
 
-
         addRow(
             card,
             "الخدمة",
             booking.service_id ?: "-"
         )
-
 
         addRow(
             card,
@@ -593,20 +606,17 @@ class NurseRequestsActivity : AppCompatActivity() {
             booking.city ?: "الأنبار"
         )
 
-
         addRow(
             card,
             "العنوان",
             booking.address ?: "-"
         )
 
-
         addRow(
             card,
             "النقطة الدالة",
             booking.landmark ?: "-"
         )
-
 
         if (!booking.notes.isNullOrBlank()) {
 
@@ -616,7 +626,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 booking.notes ?: "-"
             )
         }
-
 
         if (
             booking.latitude != null &&
@@ -630,6 +639,11 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
 
+        addRow(
+            card,
+            "الحالة",
+            booking.status ?: "PENDING"
+        )
 
         if (
             !accepted &&
@@ -666,7 +680,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     }
                 }
 
-
             card.addView(
                 accept,
                 LinearLayout.LayoutParams(
@@ -680,10 +693,8 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
 
-
         return card
     }
-
 
     private fun addRow(
         parent: LinearLayout,
@@ -704,7 +715,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                     View.LAYOUT_DIRECTION_RTL
             }
 
-
         row.addView(
             txt(
                 "$title:",
@@ -717,7 +727,6 @@ class NurseRequestsActivity : AppCompatActivity() {
                 dp(45)
             )
         )
-
 
         row.addView(
             txt(
@@ -732,10 +741,8 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         )
 
-
         parent.addView(row)
     }
-
 
     private fun acceptBooking(
         booking: NurseRequestsBooking
@@ -747,7 +754,6 @@ class NurseRequestsActivity : AppCompatActivity() {
         val id =
             nurseId
 
-
         if (
             bookingId.isNullOrBlank() ||
             id.isNullOrBlank()
@@ -755,17 +761,102 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                "بيانات الطلب غير مكتملة",
+                "بيانات الطلب أو الممرض غير مكتملة",
                 Toast.LENGTH_LONG
             ).show()
 
             return
         }
 
+        /*
+         * منع الضغط المزدوج على نفس الطلب.
+         */
 
         scope.launch {
 
             try {
+
+                /*
+                 * أولاً نتأكد أن الطلب ما زال PENDING
+                 * ولم يقم ممرض آخر بقبوله.
+                 */
+
+                val current =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+
+                            filter {
+
+                                eq(
+                                    "id",
+                                    bookingId
+                                )
+                            }
+                        }
+                        .decodeList<NurseRequestsBooking>()
+                        .firstOrNull()
+
+                if (current == null) {
+
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "الطلب غير موجود",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    loadRequests()
+                    return@launch
+                }
+
+                if (
+                    !current.nurse_id.isNullOrBlank() &&
+                    current.nurse_id != id
+                ) {
+
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "تم قبول هذا الطلب من ممرض آخر",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    loadRequests()
+                    return@launch
+                }
+
+                if (
+                    current.status != null &&
+                    current.status.uppercase() != "PENDING"
+                ) {
+
+                    if (current.nurse_id == id) {
+
+                        Toast.makeText(
+                            this@NurseRequestsActivity,
+                            "هذا الطلب مقبول مسبقاً",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                    } else {
+
+                        Toast.makeText(
+                            this@NurseRequestsActivity,
+                            "الطلب لم يعد متاحاً",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    loadRequests()
+                    return@launch
+                }
+
+                /*
+                 * هنا يتم الحفظ:
+                 *
+                 * nurse_id = nurses.id
+                 * status   = ACCEPTED
+                 */
 
                 SupabaseManager
                     .client
@@ -783,9 +874,13 @@ class NurseRequestsActivity : AppCompatActivity() {
                                 "id",
                                 bookingId
                             )
+
+                            eq(
+                                "status",
+                                "PENDING"
+                            )
                         }
                     }
-
 
                 Toast.makeText(
                     this@NurseRequestsActivity,
@@ -793,14 +888,16 @@ class NurseRequestsActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-
                 loadRequests()
 
             } catch (e: Exception) {
 
+                val error =
+                    e.message ?: "خطأ غير معروف"
+
                 Toast.makeText(
                     this@NurseRequestsActivity,
-                    "تعذر قبول الطلب: ${e.message}",
+                    "تعذر قبول الطلب:\n$error",
                     Toast.LENGTH_LONG
                 ).show()
             }
