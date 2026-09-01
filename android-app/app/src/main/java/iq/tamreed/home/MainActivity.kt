@@ -632,7 +632,7 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             inputType = InputType.TYPE_CLASS_PHONE
             layoutDirection = View.LAYOUT_DIRECTION_LTR
-            singleLine = true
+            setSingleLine(true)
             background = bordered(WHITE, BORDER, 15)
             setPadding(dp(12), 0, dp(12), 0)
         }
