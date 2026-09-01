@@ -609,86 +609,101 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showPhoneLogin() {
 
-        window.statusBarColor = DARK_NAVY
+        window.statusBarColor = Color.WHITE
         window.navigationBarColor = LIGHT_GRAY
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
+        // شاشة دخول قصيرة ومتجاوبة، مستوحاة من واجهة التسجيل الحديثة.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(LIGHT_GRAY)
-            setPadding(dp(14), dp(5), dp(14), dp(4))
+            setPadding(dp(16), dp(4), dp(16), dp(4))
         }
 
-        // =========================================================
-        // الهوية البصرية - شعار تمريضي حديث بدون سماعة طبية
-        // =========================================================
-        val logoArea = LinearLayout(this).apply {
+        // شريط علوي بسيط: اللغة + سهم الرجوع/الخروج.
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            setBackgroundColor(WHITE)
+            setPadding(dp(2), 0, dp(2), 0)
+        }
+
+        val language = TextView(this).apply {
+            text = "文  English"
+            textSize = 14f
+            setTextColor(TEXT)
+            gravity = Gravity.CENTER
+            background = bordered(WHITE, BORDER, 12)
+            setTypeface(null, Typeface.BOLD)
+        }
+        header.addView(language, LinearLayout.LayoutParams(dp(112), dp(46)))
+
+        header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
+
+        val headerArrow = TextView(this).apply {
+            text = "→"
+            textSize = 34f
+            setTextColor(TEXT)
+            gravity = Gravity.CENTER
+            setOnClickListener { finish() }
+        }
+        header.addView(headerArrow, LinearLayout.LayoutParams(dp(52), dp(46)))
+
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(52)))
+
+        // مساحة قصيرة قبل الشعار حتى لا تصبح الشاشة طويلة.
+        addSpace(root, 18)
+
+        root.addView(
+            nursingLogo(),
+            LinearLayout.LayoutParams(dp(104), dp(104))
+        )
+
+        root.addView(
+            text("التمريض المنزلي", 27f, NAVY, true).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(40)).apply {
+                topMargin = dp(5)
+            }
+        )
+
+        root.addView(
+            text("رعاية تمريضية منزلية موثوقة في الأنبار", 12f, GRAY).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(24))
+        )
+
+        addSpace(root, 12)
+
+        root.addView(
+            text("تسجيل الدخول", 29f, NAVY, true).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(43))
+        )
+
+        root.addView(
+            text("أدخل رقم هاتفك للمتابعة", 14f, GRAY).apply {
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(25))
+        )
+
+        addSpace(root, 7)
+
+        // بطاقة الهاتف: مرتبة ومضغوطة حتى لا تختفي الكتابة.
+        val loginCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 22)
             elevation = dp(2).toFloat()
-            setPadding(dp(8), dp(3), dp(8), dp(3))
-        }
-
-        logoArea.addView(
-            nursingLogo(),
-            LinearLayout.LayoutParams(dp(68), dp(68))
-        )
-
-        logoArea.addView(
-            text("التمريض المنزلي", 21f, NAVY, true).apply {
-                includeFontPadding = false
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(-1, dp(28))
-        )
-
-        logoArea.addView(
-            text("رعاية تمريضية منزلية موثوقة في الأنبار", 10f, GRAY, false).apply {
-                includeFontPadding = false
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(-1, dp(18))
-        )
-
-        root.addView(
-            logoArea,
-            LinearLayout.LayoutParams(-1, dp(121))
-        )
-
-        // =========================================================
-        // العنوان
-        // =========================================================
-        root.addView(
-            text("تسجيل الدخول", 24f, NAVY, true).apply {
-                includeFontPadding = false
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(-1, dp(38)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        root.addView(
-            text("أدخل رقم هاتفك للمتابعة", 12f, GRAY, false).apply {
-                includeFontPadding = false
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(-1, dp(21))
-        )
-
-        // =========================================================
-        // بطاقة تسجيل الدخول
-        // =========================================================
-        val loginCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 21)
-            elevation = dp(2).toFloat()
-            setPadding(dp(13), dp(7), dp(13), dp(7))
+            setPadding(dp(14), dp(8), dp(14), dp(8))
         }
 
         val phoneLabel = LinearLayout(this).apply {
@@ -697,9 +712,8 @@ class MainActivity : AppCompatActivity() {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
-        // رمز هاتف بسيط وواضح بدون Emoji كبير يغيّر حجمه حسب الجهاز.
         val phoneIcon = TextView(this).apply {
-            text = "☎︎"
+            text = "☎"
             textSize = 20f
             gravity = Gravity.CENTER
             setTextColor(NAVY)
@@ -708,24 +722,24 @@ class MainActivity : AppCompatActivity() {
 
         phoneLabel.addView(
             phoneIcon,
-            LinearLayout.LayoutParams(dp(36), dp(36)).apply {
+            LinearLayout.LayoutParams(dp(38), dp(38)).apply {
                 marginStart = dp(8)
             }
         )
 
         phoneLabel.addView(
-            text("رقم الهاتف", 16f, NAVY, true).apply {
+            text("رقم الهاتف", 17f, NAVY, true).apply {
                 includeFontPadding = false
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(36), 1f)
+            LinearLayout.LayoutParams(0, dp(38), 1f)
         )
 
         loginCard.addView(phoneLabel)
 
         val phone = EditText(this).apply {
             hint = "07701234567"
-            textSize = 17f
+            textSize = 18f
             gravity = Gravity.CENTER
             inputType = InputType.TYPE_CLASS_PHONE
             layoutDirection = View.LAYOUT_DIRECTION_LTR
@@ -737,13 +751,13 @@ class MainActivity : AppCompatActivity() {
 
         loginCard.addView(
             phone,
-            LinearLayout.LayoutParams(-1, dp(49)).apply {
+            LinearLayout.LayoutParams(-1, dp(52)).apply {
                 topMargin = dp(5)
             }
         )
 
         loginCard.addView(
-            text("مثال: 07701234567", 10f, GRAY, false).apply {
+            text("مثال: 07701234567", 10f, GRAY).apply {
                 includeFontPadding = false
                 gravity = Gravity.RIGHT
             },
@@ -763,68 +777,47 @@ class MainActivity : AppCompatActivity() {
                 phoneNumber = normalized
                 sendOtp()
             },
-            LinearLayout.LayoutParams(-1, dp(46)).apply {
+            LinearLayout.LayoutParams(-1, dp(47)).apply {
                 topMargin = dp(4)
             }
         )
 
-        // ارتفاع البطاقة محسوب حسب محتوياتها حتى لا تختفي الكتابة.
         root.addView(
             loginCard,
-            LinearLayout.LayoutParams(-1, dp(171)).apply {
-                topMargin = dp(4)
-            }
+            LinearLayout.LayoutParams(-1, dp(170))
         )
 
-        // =========================================================
-        // رسالة الأمان
-        // =========================================================
         root.addView(
-            text("تسجيل آمن برمز OTP • بياناتك محمية", 10f, GRAY, false).apply {
+            text("تسجيل آمن برمز OTP • بياناتك محمية", 10f, GRAY).apply {
                 includeFontPadding = false
-                gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(19)).apply {
-                topMargin = dp(2)
+            LinearLayout.LayoutParams(-1, dp(21)).apply {
+                topMargin = dp(3)
             }
         )
 
-        // =========================================================
-        // بطاقة الثقة
-        // =========================================================
+        // بطاقة ثقة قصيرة.
         val trust = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(LIGHT_BLUE, 14)
-            setPadding(dp(7), dp(1), dp(7), dp(1))
+            setPadding(dp(8), 0, dp(8), 0)
         }
-
         trust.addView(
-            text("✓", 21f, GREEN, true).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(dp(32), dp(32))
+            text("✓", 22f, GREEN, true).apply { includeFontPadding = false },
+            LinearLayout.LayoutParams(dp(34), dp(36))
         )
-
         trust.addView(
             text("رعاية المريض أولاً • خدمة محلية في الأنبار", 11f, NAVY, true).apply {
                 includeFontPadding = false
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(36), 1f)
+            LinearLayout.LayoutParams(0, dp(38), 1f)
         )
+        root.addView(trust, LinearLayout.LayoutParams(-1, dp(40)).apply { topMargin = dp(4) })
 
-        root.addView(
-            trust,
-            LinearLayout.LayoutParams(-1, dp(42)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        // =========================================================
-        // دخول الممرضين والإدارة
-        // =========================================================
+        // المحافظة على دخول الممرضين والإدارة كما هو.
         val staffRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -834,41 +827,28 @@ class MainActivity : AppCompatActivity() {
             outlineButton("دخول الممرضين") {
                 startActivity(Intent(this, NurseLoginActivity::class.java))
             },
-            LinearLayout.LayoutParams(0, dp(43), 1f).apply {
-                marginEnd = dp(4)
-            }
+            LinearLayout.LayoutParams(0, dp(46), 1f).apply { marginEnd = dp(4) }
         )
 
         staffRow.addView(
             outlineButton("دخول الإدارة") {
                 startActivity(Intent(this, AdminActivity::class.java))
             },
-            LinearLayout.LayoutParams(0, dp(43), 1f).apply {
-                marginStart = dp(4)
-            }
+            LinearLayout.LayoutParams(0, dp(46), 1f).apply { marginStart = dp(4) }
         )
 
-        root.addView(
-            staffRow,
-            LinearLayout.LayoutParams(-1, dp(43)).apply {
-                topMargin = dp(4)
-            }
-        )
+        root.addView(staffRow, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(5) })
 
         root.addView(
-            text("شروط الاستخدام وسياسة الخصوصية تنطبق عند تسجيل الدخول.", 9f, GRAY, false).apply {
+            text("شروط الاستخدام وسياسة الخصوصية تنطبق عند تسجيل الدخول.", 9f, GRAY).apply {
                 includeFontPadding = false
-                gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(18)).apply {
-                topMargin = dp(1)
-            }
+            LinearLayout.LayoutParams(-1, dp(19)).apply { topMargin = dp(2) }
         )
 
-        // بدون ScrollView: الشاشة الأولى مضغوطة ومناسبة لشاشة الهاتف.
+        // لا يوجد ScrollView هنا؛ الواجهة مصممة لتظهر كاملة على شاشة الهاتف.
         setContentView(root)
     }
-
 
     private fun normalizeIraqPhone(
         value: String
