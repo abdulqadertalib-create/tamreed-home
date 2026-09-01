@@ -487,304 +487,256 @@ class MainActivity : AppCompatActivity() {
      * الشاشة الأولى: تسجيل الدخول برقم الهاتف
      * =========================================================
      */
-    private fun showPhoneLogin() {
-
-        val root = baseLayout()
-
-        /*
-         * هيدر بسيط يشبه تصميم التطبيق:
-         * شعار + اسم التطبيق
-         */
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            background = rounded(WHITE, 22)
-            setPadding(dp(15), dp(18), dp(15), dp(18))
+    private fun nursingLogo(): FrameLayout {
+        val logo = FrameLayout(this).apply {
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
         }
 
-        header.addView(
-            text("🩺", 52f, NAVY)
+        val outer = TextView(this).apply {
+            gravity = Gravity.CENTER
+            text = "✚"
+            textSize = 38f
+            setTextColor(WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(NAVY)
+                setStroke(dp(3), Color.rgb(91, 190, 130))
+            }
+        }
+
+        logo.addView(
+            outer,
+            FrameLayout.LayoutParams(dp(92), dp(92), Gravity.CENTER)
         )
 
-        header.addView(
-            text(
-                "التمريض المنزلي",
-                27f,
-                NAVY,
-                true
-            )
+        val badge = TextView(this).apply {
+            text = "رعاية"
+            textSize = 9f
+            setTextColor(WHITE)
+            gravity = Gravity.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            background = rounded(GREEN, 10)
+            setPadding(dp(7), dp(2), dp(7), dp(2))
+        }
+
+        logo.addView(
+            badge,
+            FrameLayout.LayoutParams(dp(50), dp(24), Gravity.CENTER).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(2)
+            }
         )
 
-        header.addView(
-            text(
-                "محافظة الأنبار - العراق",
-                14f,
-                GRAY
-            )
+        return logo
+    }
+
+    /*
+     * =========================================================
+     * الشاشة الأولى: تسجيل الدخول برقم الهاتف
+     * تصميم مختصر ومتجاوب مع شاشات الهواتف بدون تمرير طويل.
+     * =========================================================
+     */
+    private fun showPhoneLogin() {
+
+        window.statusBarColor = DARK_NAVY
+        window.navigationBarColor = LIGHT_GRAY
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(LIGHT_GRAY)
+            setPadding(dp(14), dp(8), dp(14), dp(10))
+        }
+
+        // الشعار الطبي الجديد: لا توجد سماعة، ولا يحتاج إلى صورة داخل drawable.
+        val logoArea = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(WHITE, 24)
+            elevation = dp(2).toFloat()
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+        }
+
+        logoArea.addView(
+            nursingLogo(),
+            LinearLayout.LayoutParams(dp(100), dp(100))
+        )
+
+        logoArea.addView(
+            text("التمريض المنزلي", 24f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(34))
+        )
+
+        logoArea.addView(
+            text("رعاية تمريضية منزلية في محافظة الأنبار", 12f, GRAY),
+            LinearLayout.LayoutParams(-1, dp(25))
         )
 
         root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(170)
-            )
-        )
-
-        addSpace(root, 22)
-
-        root.addView(
-            text(
-                "تسجيل الدخول",
-                29f,
-                NAVY,
-                true
-            )
+            logoArea,
+            LinearLayout.LayoutParams(-1, dp(170))
         )
 
         root.addView(
-            text(
-                "أدخل رقم هاتفك للمتابعة",
-                16f,
-                GRAY
-            )
+            text("تسجيل الدخول", 25f, NAVY, true).apply {
+                setPadding(dp(4), dp(4), dp(4), 0)
+            },
+            LinearLayout.LayoutParams(-1, dp(42))
         )
 
-        addSpace(root, 20)
+        root.addView(
+            text("أدخل رقم هاتفك للمتابعة", 14f, GRAY),
+            LinearLayout.LayoutParams(-1, dp(27))
+        )
 
-        /*
-         * بطاقة تسجيل الدخول
-         */
         val loginCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            background = rounded(WHITE, 20)
-            setPadding(
-                dp(18),
-                dp(20),
-                dp(18),
-                dp(20)
-            )
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 22)
+            elevation = dp(2).toFloat()
+            setPadding(dp(16), dp(12), dp(16), dp(12))
         }
 
-        loginCard.addView(
-            text(
-                "📱",
-                42f,
-                NAVY
-            )
-        )
+        val phoneLabel = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
 
-        loginCard.addView(
-            text(
-                "رقم الهاتف",
-                18f,
-                NAVY,
-                true
-            )
-        )
+        val phoneIcon = TextView(this).apply {
+            text = "⌕"
+            textSize = 25f
+            gravity = Gravity.CENTER
+            setTextColor(NAVY)
+            background = rounded(LIGHT_BLUE, 12)
+        }
 
-        addSpace(loginCard, 8)
+        phoneLabel.addView(
+            phoneIcon,
+            LinearLayout.LayoutParams(dp(42), dp(42)).apply {
+                marginStart = dp(8)
+            }
+        )
+        phoneLabel.addView(
+            text("رقم الهاتف", 17f, NAVY, true),
+            LinearLayout.LayoutParams(0, dp(42), 1f)
+        )
+        loginCard.addView(phoneLabel)
 
         val phone = EditText(this).apply {
-
             hint = "07701234567"
-
-            textSize = 19f
-
+            textSize = 18f
             gravity = Gravity.CENTER
-
-            inputType =
-                InputType.TYPE_CLASS_PHONE
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_LTR
-
-            background =
-                bordered(
-                    WHITE,
-                    BORDER,
-                    15
-                )
-
-            setPadding(
-                dp(15),
-                dp(5),
-                dp(15),
-                dp(5)
-            )
+            inputType = InputType.TYPE_CLASS_PHONE
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            singleLine = true
+            background = bordered(WHITE, BORDER, 15)
+            setPadding(dp(12), 0, dp(12), 0)
         }
 
         loginCard.addView(
             phone,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(65)
-            )
+            LinearLayout.LayoutParams(-1, dp(55)).apply {
+                topMargin = dp(8)
+            }
         )
 
         loginCard.addView(
-            text(
-                "مثال: 07701234567",
-                13f,
-                GRAY
-            )
+            text("مثال: 07701234567", 11f, GRAY),
+            LinearLayout.LayoutParams(-1, dp(20))
         )
 
-        addSpace(loginCard, 15)
-
         loginCard.addView(
-            button(
-                "إرسال رمز التحقق"
-            ) {
-
-                val input =
-                    phone.text
-                        .toString()
-                        .trim()
-
-                val normalized =
-                    normalizeIraqPhone(input)
+            button("إرسال رمز التحقق") {
+                val input = phone.text.toString().trim()
+                val normalized = normalizeIraqPhone(input)
 
                 if (normalized == null) {
-
-                    phone.error =
-                        "رقم الهاتف العراقي غير صحيح"
-
+                    phone.error = "رقم الهاتف العراقي غير صحيح"
                     return@button
                 }
 
-                phoneNumber =
-                    normalized
-
+                phoneNumber = normalized
                 sendOtp()
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
-            )
+            LinearLayout.LayoutParams(-1, dp(55)).apply {
+                topMargin = dp(7)
+            }
         )
 
         root.addView(
             loginCard,
-            LinearLayout.LayoutParams(
-                -1,
-                -2
-            )
+            LinearLayout.LayoutParams(-1, dp(198)).apply {
+                topMargin = dp(5)
+            }
         )
-
-        addSpace(root, 18)
 
         root.addView(
             text(
-                "بتسجيل الدخول أنت توافق على شروط استخدام الخدمة وسياسة الخصوصية.",
-                12f,
+                "تسجيل آمن برمز OTP • بياناتك محمية • خدمة محلية في الأنبار",
+                11f,
                 GRAY
-            )
+            ).apply {
+                setPadding(dp(2), dp(2), dp(2), 0)
+            },
+            LinearLayout.LayoutParams(-1, dp(25))
         )
 
-        addSpace(root, 15)
-
-        val emergency = LinearLayout(this).apply {
+        // بطاقتان مختصرتان بدلاً من البطاقات الطويلة السابقة.
+        val trust = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(LIGHT_BLUE, 18)
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = rounded(LIGHT_BLUE, 16)
+            setPadding(dp(10), dp(5), dp(10), dp(5))
         }
 
-        emergency.addView(
-            text("🛡️", 30f, NAVY),
-            LinearLayout.LayoutParams(
-                dp(55),
-                dp(55)
-            )
+        trust.addView(
+            text("✓", 25f, GREEN, true),
+            LinearLayout.LayoutParams(dp(38), dp(38))
         )
-
-        emergency.addView(
-            text(
-                "خدمة تمريض منزلية في محافظة الأنبار",
-                14f,
-                NAVY,
-                true
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                -2,
-                1f
-            )
+        trust.addView(
+            text("رعاية المريض أولاً\nتمريض منزلي منظم وآمن", 12f, NAVY, true),
+            LinearLayout.LayoutParams(0, dp(48), 1f)
         )
-
-        root.addView(emergency)
-
-        addSpace(root, 12)
 
         root.addView(
-            medicalVisualCard(
-                "🔐",
-                "تسجيل آمن برقم الهاتف",
-                "رمز تحقق OTP لحماية حسابك وطلبات الرعاية المنزلية."
-            )
+            trust,
+            LinearLayout.LayoutParams(-1, dp(58)).apply {
+                topMargin = dp(3)
+            }
         )
 
-        addSpace(root, 8)
-
         root.addView(
-            medicalVisualCard(
-                "❤️",
-                "رعاية المريض أولاً",
-                "منصة محلية لخدمات التمريض والرعاية المنزلية في الأنبار."
-            )
-        )
-
-        addSpace(root, 14)
-
-        root.addView(
-            outlineButton(
-                "🩺 دخول الممرضين"
-            ) {
-                startActivity(
-                    Intent(
-                        this,
-                        NurseLoginActivity::class.java
-                    )
-                )
+            outlineButton("دخول الممرضين") {
+                startActivity(Intent(this, NurseLoginActivity::class.java))
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                topMargin = dp(5)
+            }
         )
 
-        addSpace(root, 12)
-
-        /*
-         * =====================================================
-         * دخول الإدارة
-         *
-         * يفتح AdminActivity.
-         * شاشة الإدارة نفسها تتحقق من صلاحية المستخدم
-         * داخل جدول admin_users قبل إظهار لوحة الإدارة.
-         * =====================================================
-         */
         root.addView(
-            outlineButton(
-                "🛡️ دخول الإدارة"
-            ) {
-                startActivity(
-                    Intent(
-                        this,
-                        AdminActivity::class.java
-                    )
-                )
+            outlineButton("دخول الإدارة") {
+                startActivity(Intent(this, AdminActivity::class.java))
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                topMargin = dp(5)
+            }
         )
 
-        setContentView(scroll(root))
+        root.addView(
+            text("شروط الاستخدام وسياسة الخصوصية تنطبق عند تسجيل الدخول.", 10f, GRAY),
+            LinearLayout.LayoutParams(-1, dp(25)).apply {
+                topMargin = dp(1)
+            }
+        )
+
+        // لا نستخدم ScrollView هنا حتى تبقى الشاشة قصيرة ومناسبة للهاتف.
+        setContentView(root)
     }
 
     private fun normalizeIraqPhone(
