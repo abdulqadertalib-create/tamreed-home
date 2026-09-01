@@ -945,139 +945,229 @@ class MainActivity : AppCompatActivity() {
      * شاشة OTP
      * =========================================================
      */
+    /*
+     * =========================================================
+     * شاشة تأكيد رقم الهاتف - تصميم احترافي ومضغوط
+     * لا تغيّر منطق OTP أو أزرار الدخول؛ التعديل بصري فقط.
+     * =========================================================
+     */
     private fun showOtpScreen() {
 
-        val root = baseLayout()
+        window.statusBarColor = DARK_NAVY
+        window.navigationBarColor = LIGHT_GRAY
 
-        root.addView(
-            topBar(
-                "تأكيد رقم الهاتف",
-                ::showPhoneLogin
-            )
-        )
-
-        addSpace(root, 25)
-
-        root.addView(
-            text(
-                "🔐",
-                58f,
-                NAVY
-            )
-        )
-
-        root.addView(
-            text(
-                "أدخل رمز التحقق",
-                28f,
-                NAVY,
-                true
-            )
-        )
-
-        root.addView(
-            text(
-                "تم إرسال الرمز إلى",
-                15f,
-                GRAY
-            )
-        )
-
-        root.addView(
-            text(
-                phoneNumber,
-                18f,
-                NAVY,
-                true
-            )
-        )
-
-        addSpace(root, 20)
-
-        val otp = EditText(this).apply {
-
-            hint = "000000"
-
-            textSize = 28f
-
-            gravity = Gravity.CENTER
-
-            inputType =
-                InputType.TYPE_CLASS_NUMBER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_LTR
-
-            maxLines = 1
-
-            filters =
-                arrayOf(
-                    InputFilter.LengthFilter(6)
-                )
-
-            background =
-                bordered(
-                    WHITE,
-                    BORDER,
-                    15
-                )
-
-            setPadding(
-                dp(15),
-                dp(5),
-                dp(15),
-                dp(5)
-            )
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(LIGHT_GRAY)
+            setPadding(dp(18), dp(5), dp(18), dp(6))
+            clipChildren = false
+            clipToPadding = false
         }
 
-        root.addView(
-            otp,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(70)
-            )
+        // شريط علوي نظيف وخفيف.
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 16)
+            elevation = dp(1).toFloat()
+            setPadding(dp(6), dp(3), dp(6), dp(3))
+        }
+
+        val back = TextView(this).apply {
+            text = "‹"
+            textSize = 34f
+            setTextColor(NAVY)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            setOnClickListener { showPhoneLogin() }
+        }
+
+        header.addView(
+            back,
+            LinearLayout.LayoutParams(dp(42), dp(42))
         )
 
-        addSpace(root, 18)
+        header.addView(
+            text("تأكيد رقم الهاتف", 20f, NAVY, true).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(0, dp(42), 1f)
+        )
+
+        val secure = TextView(this).apply {
+            text = "آمن"
+            textSize = 11f
+            setTextColor(GREEN)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            background = rounded(LIGHT_BLUE, 10)
+        }
+
+        header.addView(
+            secure,
+            LinearLayout.LayoutParams(dp(48), dp(28))
+        )
 
         root.addView(
-            button(
-                "تأكيد الرمز"
-            ) {
+            header,
+            LinearLayout.LayoutParams(-1, dp(48))
+        )
 
-                val code =
-                    otp.text
-                        .toString()
-                        .trim()
+        // منطقة الهوية الأمنية.
+        val securityBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val securityIcon = TextView(this).apply {
+            text = "✓"
+            textSize = 30f
+            setTextColor(WHITE)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            background = rounded(NAVY, 45)
+        }
+
+        securityBox.addView(
+            securityIcon,
+            LinearLayout.LayoutParams(dp(72), dp(72)).apply {
+                topMargin = dp(12)
+            }
+        )
+
+        securityBox.addView(
+            text("تحقق آمن", 13f, GREEN, true).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(20)).apply {
+                topMargin = dp(3)
+            }
+        )
+
+        root.addView(
+            securityBox,
+            LinearLayout.LayoutParams(-1, dp(108))
+        )
+
+        root.addView(
+            text("أدخل رمز التحقق", 27f, NAVY, true).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(38))
+        )
+
+        root.addView(
+            text("أرسلنا رمزاً مكوّناً من 6 أرقام إلى", 13f, GRAY).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(20))
+        )
+
+        root.addView(
+            text(phoneNumber, 17f, NAVY, true).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                layoutDirection = View.LAYOUT_DIRECTION_LTR
+            },
+            LinearLayout.LayoutParams(-1, dp(25))
+        )
+
+        // بطاقة إدخال الرمز.
+        val otpCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 22)
+            elevation = dp(2).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        otpCard.addView(
+            text("رمز التحقق", 14f, NAVY, true).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(22))
+        )
+
+        val otp = EditText(this).apply {
+            hint = "000000"
+            textSize = 28f
+            gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            textDirection = View.TEXT_DIRECTION_LTR
+            maxLines = 1
+            isSingleLine = true
+            includeFontPadding = false
+            filters = arrayOf(InputFilter.LengthFilter(6))
+            background = bordered(WHITE, BORDER, 16)
+            setPadding(dp(10), 0, dp(10), 0)
+        }
+
+        otpCard.addView(
+            otp,
+            LinearLayout.LayoutParams(-1, dp(58)).apply {
+                topMargin = dp(5)
+            }
+        )
+
+        root.addView(
+            otpCard,
+            LinearLayout.LayoutParams(-1, dp(105)).apply {
+                topMargin = dp(8)
+            }
+        )
+
+        // تأكيد الرمز.
+        root.addView(
+            button("تأكيد الرمز") {
+
+                val code = otp.text.toString().trim()
 
                 if (code.length != 6) {
-                    otp.error = "أدخل 6 أرقام"
+                    otp.error = "أدخل رمز التحقق المكوّن من 6 أرقام"
+                    otp.requestFocus()
                     return@button
                 }
 
                 verifyOtp(code)
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(62)
-            )
+            LinearLayout.LayoutParams(-1, dp(54)).apply {
+                topMargin = dp(10)
+            }
         )
 
-        addSpace(root, 10)
-
+        // إعادة الإرسال — تبقى مرتبطة بنفس sendOtp().
         root.addView(
-            outlineButton(
-                "إرسال الرمز مرة أخرى"
-            ) {
+            outlineButton("إرسال رمز جديد") {
                 sendOtp()
             },
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
+            LinearLayout.LayoutParams(-1, dp(48)).apply {
+                topMargin = dp(7)
+            }
         )
 
-        setContentView(scroll(root))
+        root.addView(
+            text("لا تشارك رمز التحقق مع أي شخص", 11f, GRAY).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            },
+            LinearLayout.LayoutParams(-1, dp(18)).apply {
+                topMargin = dp(5)
+            }
+        )
+
+        // لا نستخدم ScrollView هنا حتى تبقى الشاشة ثابتة ومناسبة للهاتف.
+        setContentView(root)
     }
 
     private fun verifyOtp(code: String) {
