@@ -1,5 +1,7 @@
 package iq.tamreed.home
 
+import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -10,7 +12,6 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,9 +20,27 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
+/*
+ * ============================================================
+ * المرحلة الثامنة
+ * لوحة الممرض:
+ * - تحميل الطلبات PENDING
+ * - قبول الطلب
+ * - رفض الطلب
+ * - متابعة الطلبات التي قبلها الممرض
+ * - تغيير الحالة:
+ *   ACCEPTED -> ON_THE_WAY -> IN_PROGRESS -> COMPLETED
+ * - الاتصال بالمريض وفتح موقعه
+ *
+ * ملاحظة:
+ * يتم العثور على سجل nurses بواسطة user_id = auth.currentUser.id،
+ * ثم نستخدم nurses.id الحقيقي في bookings.nurse_id.
+ * ============================================================
+ */
+
 @Serializable
 data class NurseDashboardProfile(
-    val id: String? = null,
+    val id: String,
     val user_id: String? = null,
     val full_name: String? = null,
     val phone: String? = null,
@@ -30,61 +49,41 @@ data class NurseDashboardProfile(
 )
 
 @Serializable
-data class NurseDashboardBooking(
-    val id: String? = null,
-    val patient_id: String? = null,
+data class NurseBooking(
+    val id: String,
+    val patient_id: String,
     val nurse_id: String? = null,
-    val service_id: String? = null,
-    val address: String? = null,
+    val service_id: String,
+    val address: String,
     val city: String? = null,
     val landmark: String? = null,
     val patient_phone: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val status: String? = null,
+    val status: String,
     val notes: String? = null,
-    val created_at: String? = null
-)
-
-@Serializable
-data class NurseDashboardService(
-    val id: String? = null,
-    val name_ar: String? = null
-)
-
-@Serializable
-data class NurseStatusUpdate(
-    val status: String
+    val created_at: String
 )
 
 class NurseDashboardActivity : AppCompatActivity() {
 
     private val NAVY = Color.rgb(5, 62, 105)
     private val BLUE = Color.rgb(31, 115, 176)
-    private val GREEN = Color.rgb(35, 145, 85)
-    private val ORANGE = Color.rgb(220, 145, 35)
-    private val RED = Color.rgb(190, 55, 55)
+    private val GREEN = Color.rgb(50, 150, 85)
+    private val ORANGE = Color.rgb(230, 145, 45)
+    private val RED = Color.rgb(205, 65, 65)
     private val TEXT = Color.rgb(45, 45, 45)
-    private val GRAY = Color.rgb(120, 120, 120)
-    private val BG = Color.rgb(247, 248, 249)
+    private val GRAY = Color.rgb(125, 125, 125)
+    private val LIGHT_GRAY = Color.rgb(247, 248, 249)
     private val LIGHT_BLUE = Color.rgb(235, 245, 251)
     private val WHITE = Color.WHITE
 
     private val scope =
-        CoroutineScope(
-            SupervisorJob() + Dispatchers.Main
-        )
-
-    private var currentAuthUserId: String? = null
-    private var currentNurseId: String? = null
-
-    private val serviceNames =
-        mutableMapOf<String, String>()
+        CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        loadNurseAndDashboard()
+        showDashboard()
     }
 
     override fun onDestroy() {
@@ -92,492 +91,173 @@ class NurseDashboardActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun dp(value: Int): Int {
-        return (
-            value * resources.displayMetrics.density
-        ).toInt()
-    }
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 
-    private fun rounded(
-        color: Int,
-        radius: Int = 18
-    ): GradientDrawable {
-
-        return GradientDrawable().apply {
+    private fun rounded(color: Int, radius: Int = 18): GradientDrawable =
+        GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
         }
-    }
 
     private fun bordered(
-        color: Int = WHITE,
-        strokeColor: Int = Color.rgb(215, 225, 232),
-        radius: Int = 16
-    ): GradientDrawable {
-
-        return GradientDrawable().apply {
+        color: Int,
+        strokeColor: Int = NAVY,
+        radius: Int = 14
+    ): GradientDrawable =
+        GradientDrawable().apply {
             setColor(color)
-            setStroke(
-                dp(1),
-                strokeColor
-            )
-            cornerRadius =
-                dp(radius).toFloat()
+            setStroke(dp(1), strokeColor)
+            cornerRadius = dp(radius).toFloat()
         }
-    }
 
     private fun text(
         value: String,
         size: Float = 16f,
         color: Int = TEXT,
         bold: Boolean = false
-    ): TextView {
-
-        return TextView(this).apply {
-
+    ): TextView =
+        TextView(this).apply {
             text = value
-
             textSize = size
-
             setTextColor(color)
-
-            gravity =
-                Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
-            if (bold) {
-                setTypeface(
-                    null,
-                    Typeface.BOLD
-                )
-            }
-
-            setPadding(
-                dp(6),
-                dp(6),
-                dp(6),
-                dp(6)
-            )
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            if (bold) setTypeface(null, Typeface.BOLD)
+            setPadding(dp(6), dp(6), dp(6), dp(6))
         }
-    }
 
-    private fun primaryButton(
-        title: String,
-        color: Int = NAVY,
+    private fun button(
+        value: String,
         action: () -> Unit
-    ): Button {
-
-        return Button(this).apply {
-
-            text = title
-
+    ): Button =
+        Button(this).apply {
+            text = value
             textSize = 16f
-
             isAllCaps = false
-
             setTextColor(WHITE)
-
-            gravity =
-                Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
-            background =
-                rounded(
-                    color,
-                    15
-                )
-
-            setOnClickListener {
-                action()
-            }
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(NAVY, 14)
+            setOnClickListener { action() }
         }
-    }
 
     private fun outlineButton(
-        title: String,
+        value: String,
         action: () -> Unit
-    ): Button {
-
-        return Button(this).apply {
-
-            text = title
-
+    ): Button =
+        Button(this).apply {
+            text = value
             textSize = 15f
-
             isAllCaps = false
-
             setTextColor(NAVY)
-
-            gravity =
-                Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
-            background =
-                bordered(
-                    WHITE,
-                    NAVY,
-                    15
-                )
-
-            setOnClickListener {
-                action()
-            }
+            gravity = Gravity.CENTER
+            background = bordered(WHITE, NAVY, 14)
+            setOnClickListener { action() }
         }
-    }
 
-    private fun space(
-        root: LinearLayout,
-        height: Int
-    ) {
-
+    private fun addSpace(root: LinearLayout, height: Int) {
         root.addView(
             Space(this),
-            LinearLayout.LayoutParams(
-                1,
-                dp(height)
-            )
+            LinearLayout.LayoutParams(1, dp(height))
         )
     }
 
-    /*
-     * ============================================================
-     * جلب بيانات الممرض
-     *
-     * المهم هنا:
-     *
-     * auth.currentUser.id
-     *       ↓
-     * nurses.user_id
-     *       ↓
-     * nurses.id
-     *
-     * وليس nurses.id = auth user id
-     * ============================================================
-     */
-
-    private fun loadNurseAndDashboard() {
-
-        val user =
-            SupabaseManager
-                .client
-                .auth
-                .currentUserOrNull()
-
-        if (user == null) {
-
-            Toast.makeText(
-                this,
-                "يجب تسجيل الدخول كممرض أولاً",
-                Toast.LENGTH_LONG
-            ).show()
-
-            finish()
-
-            return
+    private fun scroll(root: View): ScrollView =
+        ScrollView(this).apply {
+            setBackgroundColor(LIGHT_GRAY)
+            isFillViewport = true
+            addView(root)
         }
 
-        currentAuthUserId =
-            user.id
-
-        scope.launch {
-
-            try {
-
-                val nurses =
-                    SupabaseManager
-                        .client
-                        .from("nurses")
-                        .select {
-
-                            filter {
-
-                                eq(
-                                    "user_id",
-                                    user.id
-                                )
-                            }
-                        }
-                        .decodeList<NurseDashboardProfile>()
-
-                val nurse =
-                    nurses.firstOrNull()
-
-                if (nurse == null) {
-
-                    Toast.makeText(
-                        this@NurseDashboardActivity,
-                        "لم يتم العثور على سجل الممرض",
-                        Toast.LENGTH_LONG
-                    ).show()
-
-                    finish()
-
-                    return@launch
-                }
-
-                if (
-                    nurse.id.isNullOrBlank()
-                ) {
-
-                    Toast.makeText(
-                        this@NurseDashboardActivity,
-                        "معرف الممرض فارغ",
-                        Toast.LENGTH_LONG
-                    ).show()
-
-                    finish()
-
-                    return@launch
-                }
-
-                currentNurseId =
-                    nurse.id
-
-                loadServices()
-
-            } catch (e: Exception) {
-
-                Toast.makeText(
-                    this@NurseDashboardActivity,
-                    "تعذر تحميل بيانات الممرض:\n${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+    private fun baseLayout(): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(LIGHT_GRAY)
+            setPadding(dp(14), dp(10), dp(14), dp(30))
         }
-    }
-
-    /*
-     * ============================================================
-     * تحميل أسماء الخدمات
-     * ============================================================
-     */
-
-    private fun loadServices() {
-
-        scope.launch {
-
-            try {
-
-                val services =
-                    SupabaseManager
-                        .client
-                        .from("services")
-                        .select()
-                        .decodeList<NurseDashboardService>()
-
-                serviceNames.clear()
-
-                services.forEach { service ->
-
-                    if (
-                        !service.id.isNullOrBlank() &&
-                        !service.name_ar.isNullOrBlank()
-                    ) {
-
-                        serviceNames[
-                            service.id!!
-                        ] =
-                            service.name_ar!!
-                    }
-                }
-
-            } catch (e: Exception) {
-
-                /*
-                 * إذا فشل تحميل الخدمات
-                 * لا نوقف الطلبات.
-                 */
-
-                serviceNames.clear()
-            }
-
-            showDashboard()
-        }
-    }
-
-    /*
-     * ============================================================
-     * الشاشة الرئيسية للممرض
-     * ============================================================
-     */
 
     private fun showDashboard() {
 
-        val root =
-            LinearLayout(this).apply {
+        val root = baseLayout()
 
-                orientation =
-                    LinearLayout.VERTICAL
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(NAVY, 22)
+            setPadding(dp(15), dp(18), dp(15), dp(18))
+        }
 
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setBackgroundColor(BG)
-
-                setPadding(
-                    dp(14),
-                    dp(12),
-                    dp(14),
-                    dp(35)
-                )
-            }
-
-        val scroll =
-            ScrollView(this).apply {
-
-                isFillViewport = true
-
-                addView(root)
-            }
-
-        setContentView(scroll)
-
-        /*
-         * الرأس
-         */
-
-        val header =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(
-                        WHITE,
-                        20
-                    )
-
-                setPadding(
-                    dp(8),
-                    dp(8),
-                    dp(8),
-                    dp(8)
-                )
-            }
-
-        header.addView(
-            primaryButton(
-                "↻"
-            ) {
-                loadNurseAndDashboard()
-            },
-            LinearLayout.LayoutParams(
-                dp(70),
-                dp(55)
-            )
-        )
-
+        header.addView(text("👨‍⚕️", 45f, WHITE))
+        header.addView(text("لوحة الممرض", 25f, WHITE, true))
         header.addView(
             text(
-                "طلبات المريض",
-                25f,
-                NAVY,
-                true
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                dp(65),
-                1f
+                "إدارة واستقبال طلبات التمريض المنزلي",
+                14f,
+                Color.rgb(225, 238, 247)
             )
         )
 
-        header.addView(
-            outlineButton(
-                "رجوع"
-            ) {
+        root.addView(
+            header,
+            LinearLayout.LayoutParams(-1, dp(145))
+        )
+
+        addSpace(root, 12)
+
+        val profileText = text(
+            "جاري تحميل بيانات الممرض...",
+            15f,
+            GRAY
+        )
+
+        val profileBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 18)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        profileBox.addView(profileText)
+        root.addView(
+            profileBox,
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
+        addSpace(root, 12)
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        actions.addView(
+            button("↻ تحديث") {
+                showDashboard()
+            },
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+                marginEnd = dp(5)
+            }
+        )
+
+        actions.addView(
+            outlineButton("🚪 خروج") {
                 finish()
             },
-            LinearLayout.LayoutParams(
-                dp(90),
-                dp(55)
-            )
-        )
-
-        root.addView(
-            header
-        )
-
-        space(
-            root,
-            12
-        )
-
-        /*
-         * بيانات الممرض
-         */
-
-        val profile =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.CENTER
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(
-                        LIGHT_BLUE,
-                        20
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(15),
-                    dp(15),
-                    dp(15)
-                )
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+                marginStart = dp(5)
             }
-
-        profile.addView(
-            text(
-                "👨‍⚕️ الممرض",
-                22f,
-                NAVY,
-                true
-            )
         )
 
-        profile.addView(
-            text(
-                "نظام التمريض المنزلي - محافظة الأنبار",
-                14f,
-                GRAY
-            )
-        )
-
-        root.addView(
-            profile
-        )
-
-        space(
-            root,
-            15
-        )
-
-        /*
-         * الطلبات الجديدة
-         */
+        root.addView(actions)
+        addSpace(root, 14)
 
         root.addView(
             text(
-                "📥 الطلبات الجديدة",
+                "📥 الطلبات المتاحة",
                 22f,
                 NAVY,
                 true
@@ -586,39 +266,22 @@ class NurseDashboardActivity : AppCompatActivity() {
 
         root.addView(
             text(
-                "طلبات المرضى التي لم يقبلها أي ممرض",
+                "هذه الطلبات لم يتم قبولها من ممرض بعد.",
                 13f,
                 GRAY
             )
         )
 
-        space(
-            root,
-            8
-        )
+        addSpace(root, 8)
 
-        val pendingContainer =
-            LinearLayout(this).apply {
+        val pendingContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
 
-                orientation =
-                    LinearLayout.VERTICAL
+        root.addView(pendingContainer)
 
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-            }
-
-        root.addView(
-            pendingContainer
-        )
-
-        /*
-         * الطلبات المقبولة
-         */
-
-        space(
-            root,
-            22
-        )
+        addSpace(root, 18)
 
         root.addView(
             text(
@@ -629,58 +292,26 @@ class NurseDashboardActivity : AppCompatActivity() {
             )
         )
 
-        root.addView(
-            text(
-                "هنا تظهر الطلبات بعد قبولها ويمكنك متابعة المريض",
-                13f,
-                GRAY
-            )
-        )
+        addSpace(root, 8)
 
-        space(
-            root,
-            8
-        )
+        val myContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
 
-        val acceptedContainer =
-            LinearLayout(this).apply {
+        root.addView(myContainer)
 
-                orientation =
-                    LinearLayout.VERTICAL
+        setContentView(scroll(root))
 
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-            }
+        val user =
+            SupabaseManager
+                .client
+                .auth
+                .currentUserOrNull()
 
-        root.addView(
-            acceptedContainer
-        )
-
-        /*
-         * تحميل الطلبات
-         */
-
-        loadBookings(
-            pendingContainer,
-            acceptedContainer
-        )
-    }
-
-    /*
-     * ============================================================
-     * تحميل الطلبات
-     * ============================================================
-     */
-
-    private fun loadBookings(
-        pendingContainer: LinearLayout,
-        acceptedContainer: LinearLayout
-    ) {
-
-        val nurseId =
-            currentNurseId
-
-        if (nurseId.isNullOrBlank()) {
+        if (user == null) {
+            profileText.text =
+                "لم يتم تسجيل دخول الممرض.\nارجع وسجل الدخول أولاً."
             return
         }
 
@@ -688,668 +319,333 @@ class NurseDashboardActivity : AppCompatActivity() {
 
             try {
 
-                val bookings =
+                val nurse =
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .select {
+                            filter {
+                                eq("user_id", user.id)
+                            }
+                        }
+                        .decodeList<NurseDashboardProfile>()
+                        .firstOrNull()
+
+                if (nurse == null) {
+                    profileText.text =
+                        "⚠️ لم يتم العثور على ملف الممرض.\n" +
+                        "تأكد أن جدول nurses يحتوي على سجل بنفس auth user id."
+                } else {
+
+                    val name =
+                        nurse.full_name
+                            ?.takeIf { it.isNotBlank() }
+                            ?: "الممرض"
+
+                    val active =
+                        if (nurse.is_active == true)
+                            "🟢 الحساب نشط"
+                        else
+                            "🔴 الحساب غير نشط"
+
+                    val rating =
+                        nurse.rating?.let {
+                            "⭐ ${String.format("%.1f", it)}"
+                        } ?: "⭐ لا يوجد تقييم"
+
+                    profileText.text =
+                        "👨‍⚕️ $name\n$active    $rating"
+
+                    if (nurse.id.isBlank()) {
+                        profileText.text =
+                            "⚠️ سجل الممرض موجود لكن معرف nurses.id فارغ."
+                        return@launch
+                    }
+
+                    loadPendingBookings(
+                        pendingContainer,
+                        myContainer,
+                        nurse.id
+                    )
+                }
+
+            } catch (e: Exception) {
+
+                profileText.text =
+                    "تعذر تحميل بيانات الممرض.\n${e.message ?: "خطأ غير معروف"}"
+            }
+        }
+    }
+
+    private fun loadPendingBookings(
+        pendingContainer: LinearLayout,
+        myContainer: LinearLayout,
+        nurseId: String
+    ) {
+
+        scope.launch {
+
+            try {
+
+                val pending =
                     SupabaseManager
                         .client
                         .from("bookings")
-                        .select()
-                        .decodeList<NurseDashboardBooking>()
+                        .select {
+                            filter {
+                                eq("status", "PENDING")
+                            }
+                        }
+                        .decodeList<NurseBooking>()
+                        .sortedByDescending { it.created_at }
+
+                val mine =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("nurse_id", nurseId)
+                            }
+                        }
+                        .decodeList<NurseBooking>()
+                        .filter {
+                            it.status.uppercase() != "CANCELLED"
+                        }
+                        .sortedByDescending { it.created_at }
 
                 pendingContainer.removeAllViews()
-                acceptedContainer.removeAllViews()
-
-                /*
-                 * الطلبات الجديدة
-                 */
-
-                val pending =
-                    bookings
-                        .filter {
-
-                            it.status
-                                ?.uppercase() ==
-                                "PENDING" &&
-                            it.nurse_id
-                                .isNullOrBlank()
-                        }
-                        .sortedByDescending {
-
-                            it.created_at ?: ""
-                        }
-
-                /*
-                 * الطلبات الخاصة بالممرض
-                 */
-
-                val accepted =
-                    bookings
-                        .filter {
-
-                            it.nurse_id ==
-                                nurseId
-                        }
-                        .filter {
-
-                            it.status
-                                ?.uppercase() !=
-                                "CANCELLED"
-                        }
-                        .sortedByDescending {
-
-                            it.created_at ?: ""
-                        }
+                myContainer.removeAllViews()
 
                 if (pending.isEmpty()) {
-
                     pendingContainer.addView(
-                        emptyCard(
+                        emptyState(
                             "📭",
                             "لا توجد طلبات جديدة",
-                            "ستظهر هنا طلبات المرضى الجديدة"
+                            "عند وصول طلب جديد سيظهر هنا."
                         )
                     )
-
                 } else {
-
-                    pending.forEach { booking ->
-
+                    pending.forEach {
                         pendingContainer.addView(
                             bookingCard(
-                                booking,
-                                true
+                                it,
+                                nurseId,
+                                isAvailable = true
                             )
                         )
-
-                        space(
-                            pendingContainer,
-                            14
-                        )
+                        addSpace(pendingContainer, 10)
                     }
                 }
 
-                if (accepted.isEmpty()) {
-
-                    acceptedContainer.addView(
-                        emptyCard(
+                if (mine.isEmpty()) {
+                    myContainer.addView(
+                        emptyState(
                             "📋",
                             "لا توجد طلبات مقبولة",
-                            "بعد قبول أي طلب سيظهر هنا"
+                            "عندما تقبل طلباً سيظهر هنا لمتابعة حالته."
                         )
                     )
-
                 } else {
-
-                    accepted.forEach { booking ->
-
-                        acceptedContainer.addView(
+                    mine.forEach {
+                        myContainer.addView(
                             bookingCard(
-                                booking,
-                                false
+                                it,
+                                nurseId,
+                                isAvailable = false
                             )
                         )
-
-                        space(
-                            acceptedContainer,
-                            14
-                        )
+                        addSpace(myContainer, 10)
                     }
                 }
 
             } catch (e: Exception) {
 
-                val error =
-                    text(
-                        "تعذر تحميل الطلبات:\n${e.message}",
-                        15f,
-                        RED,
-                        true
-                    )
-
                 pendingContainer.addView(
-                    error
+                    text(
+                        "تعذر تحميل الطلبات.\n${e.message ?: "خطأ غير معروف"}",
+                        14f,
+                        RED
+                    )
                 )
             }
         }
     }
-
-    /*
-     * ============================================================
-     * بطاقة فارغة
-     * ============================================================
-     */
-
-    private fun emptyCard(
-        icon: String,
-        title: String,
-        description: String
-    ): LinearLayout {
-
-        return LinearLayout(this).apply {
-
-            orientation =
-                LinearLayout.VERTICAL
-
-            gravity =
-                Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
-
-            background =
-                rounded(
-                    LIGHT_BLUE,
-                    20
-                )
-
-            setPadding(
-                dp(20),
-                dp(25),
-                dp(20),
-                dp(25)
-            )
-
-            addView(
-                text(
-                    icon,
-                    45f,
-                    NAVY
-                )
-            )
-
-            addView(
-                text(
-                    title,
-                    20f,
-                    NAVY,
-                    true
-                )
-            )
-
-            addView(
-                text(
-                    description,
-                    14f,
-                    GRAY
-                )
-            )
-        }
-    }
-
-    /*
-     * ============================================================
-     * بطاقة الطلب الكاملة
-     * ============================================================
-     */
 
     private fun bookingCard(
-        booking: NurseDashboardBooking,
-        isPending: Boolean
+        booking: NurseBooking,
+        nurseId: String,
+        isAvailable: Boolean
     ): LinearLayout {
 
-        val card =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    bordered(
-                        WHITE,
-                        Color.rgb(
-                            215,
-                            225,
-                            232
-                        ),
-                        20
-                    )
-
-                elevation =
-                    dp(3).toFloat()
-
-                setPadding(
-                    dp(15),
-                    dp(15),
-                    dp(15),
-                    dp(15)
-                )
-            }
-
-        /*
-         * العنوان
-         */
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 18)
+            elevation = dp(2).toFloat()
+            setPadding(dp(14), dp(14), dp(14), dp(14))
+        }
 
         card.addView(
             text(
-                "🩺 طلب تمريض منزلي",
-                22f,
+                "🩺 طلب تمريض",
+                18f,
                 NAVY,
                 true
             )
         )
 
-        /*
-         * الحالة
-         */
-
-        val status =
-            booking.status
-                ?: "PENDING"
+        card.addView(
+            text(
+                "🔖 رقم الطلب: ${booking.id}",
+                12f,
+                GRAY
+            )
+        )
 
         card.addView(
             text(
-                statusLabel(status),
-                16f,
-                statusColor(status),
+                "📍 ${booking.city ?: ""} ${booking.landmark ?: ""}\n${booking.address}",
+                14f,
+                TEXT
+            )
+        )
+
+        if (!booking.patient_phone.isNullOrBlank()) {
+            card.addView(
+                text(
+                    "📞 هاتف المريض: ${booking.patient_phone}",
+                    14f,
+                    TEXT
+                )
+            )
+        }
+
+        card.addView(
+            text(
+                "الحالة: ${statusText(booking.status)}",
+                15f,
+                statusColor(booking.status),
                 true
             )
         )
 
-        addRow(
-            card,
-            "رقم الطلب",
-            booking.id ?: "-"
-        )
-
-        /*
-         * ⭐ اسم الخدمة الحقيقي
-         */
-
-        val serviceId =
-            booking.service_id
-
-        val serviceName =
-            if (
-                !serviceId.isNullOrBlank()
-            ) {
-
-                serviceNames[
-                    serviceId
-                ] ?: serviceId
-
-            } else {
-                "-"
-            }
-
-        addRow(
-            card,
-            "الخدمة",
-            serviceName
-        )
-
-        addRow(
-            card,
-            "رقم المريض",
-            booking.patient_phone ?: "-"
-        )
-
-        addRow(
-            card,
-            "المدينة",
-            booking.city ?: "-"
-        )
-
-        addRow(
-            card,
-            "العنوان",
-            booking.address ?: "-"
-        )
-
-        addRow(
-            card,
-            "النقطة الدالة",
-            booking.landmark ?: "-"
-        )
-
-        if (
-            !booking.notes
-                .isNullOrBlank()
-        ) {
-
-            addRow(
-                card,
-                "ملاحظات المريض",
-                booking.notes!!
+        if (!booking.notes.isNullOrBlank()) {
+            card.addView(
+                text(
+                    "📝 ${booking.notes}",
+                    13f,
+                    GRAY
+                )
             )
         }
 
-        /*
-         * موقع GPS
-         */
+        addSpace(card, 6)
 
-        if (
-            booking.latitude != null &&
+        if (isAvailable) {
+
+            card.addView(
+                button("✅ قبول الطلب") {
+                    confirmAccept(booking, nurseId)
+                },
+                LinearLayout.LayoutParams(-1, dp(55))
+            )
+
+            addSpace(card, 7)
+
+            card.addView(
+                outlineButton("❌ رفض / تجاهل") {
+                    showInfo(
+                        "الطلب",
+                        "تم إبقاء الطلب متاحاً للممرضين الآخرين.\nيمكنك تجاهله دون تغيير حالة الطلب."
+                    )
+                },
+                LinearLayout.LayoutParams(-1, dp(50))
+            )
+
+        } else {
+
+            addStatusActions(card, booking, nurseId)
+        }
+
+        if (booking.patient_phone != null) {
+
+            addSpace(card, 7)
+
+            card.addView(
+                outlineButton("📞 الاتصال بالمريض") {
+                    callPhone(booking.patient_phone)
+                },
+                LinearLayout.LayoutParams(-1, dp(50))
+            )
+        }
+
+        if (booking.latitude != null &&
             booking.longitude != null
         ) {
 
-            addRow(
-                card,
-                "موقع المريض",
-                "${booking.latitude}, ${booking.longitude}"
-            )
-
-            space(
-                card,
-                8
-            )
-
-            /*
-             * زر فتح الخرائط
-             */
+            addSpace(card, 7)
 
             card.addView(
-                primaryButton(
-                    "📍 فتح موقع المريض في الخرائط",
-                    BLUE
-                ) {
-
-                    openPatientLocation(
+                outlineButton("🗺️ فتح موقع المريض") {
+                    openLocation(
                         booking.latitude,
                         booking.longitude
                     )
                 },
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(58)
-                )
-            )
-        }
-
-        /*
-         * زر الاتصال
-         */
-
-        if (
-            !booking.patient_phone
-                .isNullOrBlank()
-        ) {
-
-            space(
-                card,
-                8
-            )
-
-            card.addView(
-                outlineButton(
-                    "📞 الاتصال بالمريض"
-                ) {
-
-                    callPatient(
-                        booking.patient_phone!!
-                    )
-                },
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(52)
-                )
-            )
-        }
-
-        /*
-         * طلب جديد
-         */
-
-        if (isPending) {
-
-            space(
-                card,
-                10
-            )
-
-            card.addView(
-                primaryButton(
-                    "✓ قبول طلب المريض",
-                    GREEN
-                ) {
-
-                    acceptBooking(
-                        booking
-                    )
-                },
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(60)
-                )
-            )
-        }
-
-        /*
-         * الطلب المقبول
-         */
-
-        if (!isPending) {
-
-            space(
-                card,
-                12
-            )
-
-            addStatusButtons(
-                card,
-                booking
+                LinearLayout.LayoutParams(-1, dp(50))
             )
         }
 
         return card
     }
 
-    /*
-     * ============================================================
-     * معلومات الصف
-     * ============================================================
-     */
-
-    private fun addRow(
-        parent: LinearLayout,
-        title: String,
-        value: String
-    ) {
-
-        val row =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-            }
-
-        row.addView(
-            text(
-                "$title:",
-                14f,
-                GRAY,
-                true
-            ),
-            LinearLayout.LayoutParams(
-                dp(110),
-                dp(48)
-            )
-        )
-
-        row.addView(
-            text(
-                value,
-                14f,
-                TEXT
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                dp(48),
-                1f
-            )
-        )
-
-        parent.addView(
-            row
-        )
-    }
-
-    /*
-     * ============================================================
-     * قبول الطلب
-     * ============================================================
-     */
-
-    private fun acceptBooking(
-        booking: NurseDashboardBooking
-    ) {
-
-        val bookingId =
-            booking.id
-
-        val nurseId =
-            currentNurseId
-
-        if (
-            bookingId.isNullOrBlank() ||
-            nurseId.isNullOrBlank()
-        ) {
-
-            Toast.makeText(
-                this,
-                "بيانات الطلب أو الممرض غير مكتملة",
-                Toast.LENGTH_LONG
-            ).show()
-
-            return
-        }
-
-        scope.launch {
-
-            try {
-
-                /*
-                 * تحديث الطلب:
-                 *
-                 * nurse_id = nurses.id
-                 * status = ACCEPTED
-                 */
-
-                SupabaseManager
-                    .client
-                    .from("bookings")
-                    .update(
-                        mapOf(
-                            "nurse_id" to nurseId,
-                            "status" to "ACCEPTED"
-                        )
-                    ) {
-
-                        filter {
-
-                            eq(
-                                "id",
-                                bookingId
-                            )
-
-                            eq(
-                                "status",
-                                "PENDING"
-                            )
-                        }
-                    }
-
-                Toast.makeText(
-                    this@NurseDashboardActivity,
-                    "تم قبول الطلب بنجاح ✓",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                loadNurseAndDashboard()
-
-            } catch (e: Exception) {
-
-                Toast.makeText(
-                    this@NurseDashboardActivity,
-                    "تعذر قبول الطلب:\n${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
-    /*
-     * ============================================================
-     * أزرار متابعة الطلب
-     * ============================================================
-     */
-
-    private fun addStatusButtons(
+    private fun addStatusActions(
         card: LinearLayout,
-        booking: NurseDashboardBooking
+        booking: NurseBooking,
+        nurseId: String
     ) {
 
-        val status =
-            booking.status
-                ?.uppercase()
-                ?: "PENDING"
-
-        when (status) {
+        when (booking.status.uppercase()) {
 
             "ACCEPTED" -> {
 
                 card.addView(
-                    primaryButton(
-                        "🚗 أنا في الطريق",
-                        BLUE
-                    ) {
-
+                    button("🚗 أنا في الطريق") {
                         updateBookingStatus(
                             booking,
+                            nurseId,
                             "ON_THE_WAY"
                         )
                     },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(58)
-                    )
+                    LinearLayout.LayoutParams(-1, dp(55))
                 )
             }
 
             "ON_THE_WAY" -> {
 
                 card.addView(
-                    primaryButton(
-                        "🩺 بدأت التمريض",
-                        GREEN
-                    ) {
-
+                    button("🩺 بدء الزيارة") {
                         updateBookingStatus(
                             booking,
+                            nurseId,
                             "IN_PROGRESS"
                         )
                     },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(58)
-                    )
+                    LinearLayout.LayoutParams(-1, dp(55))
                 )
             }
 
             "IN_PROGRESS" -> {
 
                 card.addView(
-                    primaryButton(
-                        "✓ إكمال الطلب",
-                        GREEN
-                    ) {
-
-                        updateBookingStatus(
+                    button("✅ إكمال الزيارة") {
+                        confirmComplete(
                             booking,
-                            "COMPLETED"
+                            nurseId
                         )
                     },
-                    LinearLayout.LayoutParams(
-                        -1,
-                        dp(58)
-                    )
+                    LinearLayout.LayoutParams(-1, dp(55))
                 )
             }
 
@@ -1357,8 +653,8 @@ class NurseDashboardActivity : AppCompatActivity() {
 
                 card.addView(
                     text(
-                        "✓ تم إكمال خدمة المريض",
-                        17f,
+                        "✅ اكتملت الزيارة",
+                        16f,
                         GREEN,
                         true
                     )
@@ -1367,29 +663,36 @@ class NurseDashboardActivity : AppCompatActivity() {
         }
     }
 
-    /*
-     * ============================================================
-     * تحديث حالة الطلب
-     * ============================================================
-     */
-
-    private fun updateBookingStatus(
-        booking: NurseDashboardBooking,
-        newStatus: String
+    private fun confirmAccept(
+        booking: NurseBooking,
+        nurseId: String
     ) {
 
-        val bookingId =
-            booking.id
+        AlertDialog.Builder(this)
+            .setTitle("قبول الطلب")
+            .setMessage(
+                "هل تريد قبول طلب التمريض رقم:\n\n" +
+                    booking.id +
+                    "\n\nسيصبح الطلب مرتبطاً بحسابك."
+            )
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("قبول") { _, _ ->
+                acceptBooking(booking, nurseId)
+            }
+            .show()
+    }
 
-        val nurseId =
-            currentNurseId
+    private fun acceptBooking(
+        booking: NurseBooking,
+        nurseId: String
+    ) {
 
-        if (
-            bookingId.isNullOrBlank() ||
-            nurseId.isNullOrBlank()
-        ) {
-            return
-        }
+        val loading =
+            ProgressDialog(this).apply {
+                setMessage("جاري قبول الطلب...")
+                setCancelable(false)
+                show()
+            }
 
         scope.launch {
 
@@ -1399,92 +702,137 @@ class NurseDashboardActivity : AppCompatActivity() {
                     .client
                     .from("bookings")
                     .update(
-                        NurseStatusUpdate(
-                            status = newStatus
-                        )
+                        {
+                            set("nurse_id", nurseId)
+                            set("status", "ACCEPTED")
+                        }
                     ) {
-
                         filter {
-
-                            eq(
-                                "id",
-                                bookingId
-                            )
-
-                            eq(
-                                "nurse_id",
-                                nurseId
-                            )
+                            eq("id", booking.id)
+                            eq("status", "PENDING")
                         }
                     }
 
-                Toast.makeText(
-                    this@NurseDashboardActivity,
-                    "تم تحديث حالة الطلب ✓",
-                    Toast.LENGTH_SHORT
-                ).show()
+                loading.dismiss()
 
-                loadNurseAndDashboard()
+                showInfo(
+                    "تم قبول الطلب ✅",
+                    "أصبح الطلب ضمن طلباتك.\nيمكنك الآن الانتقال إلى حالة «في الطريق»."
+                )
+
+                showDashboard()
 
             } catch (e: Exception) {
 
-                Toast.makeText(
-                    this@NurseDashboardActivity,
-                    "تعذر تحديث الحالة:\n${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                loading.dismiss()
+
+                showInfo(
+                    "تعذر قبول الطلب",
+                    e.message
+                        ?: "تحقق من صلاحيات Supabase وسياسات RLS لجدول bookings."
+                )
             }
         }
     }
 
-    /*
-     * ============================================================
-     * فتح موقع المريض
-     * ============================================================
-     */
-
-    private fun openPatientLocation(
-        latitude: Double?,
-        longitude: Double?
+    private fun updateBookingStatus(
+        booking: NurseBooking,
+        nurseId: String,
+        newStatus: String
     ) {
 
-        if (
-            latitude == null ||
-            longitude == null
-        ) {
+        val loading =
+            ProgressDialog(this).apply {
+                setMessage("جاري تحديث حالة الطلب...")
+                setCancelable(false)
+                show()
+            }
 
-            Toast.makeText(
-                this,
-                "موقع المريض غير متوفر",
-                Toast.LENGTH_LONG
-            ).show()
+        scope.launch {
 
-            return
-        }
+            try {
 
-        val uri =
-            Uri.parse(
-                "google.navigation:q=$latitude,$longitude"
-            )
+                SupabaseManager
+                    .client
+                    .from("bookings")
+                    .update(
+                        {
+                            set("status", newStatus)
+                        }
+                    ) {
+                        filter {
+                            eq("id", booking.id)
+                            eq("nurse_id", nurseId)
+                        }
+                    }
 
-        val intent =
-            Intent(
-                Intent.ACTION_VIEW,
-                uri
-            ).apply {
+                loading.dismiss()
 
-                setPackage(
-                    "com.google.android.apps.maps"
+                showDashboard()
+
+            } catch (e: Exception) {
+
+                loading.dismiss()
+
+                showInfo(
+                    "تعذر تحديث الحالة",
+                    e.message
+                        ?: "تحقق من صلاحيات تحديث bookings."
                 )
             }
+        }
+    }
+
+    private fun confirmComplete(
+        booking: NurseBooking,
+        nurseId: String
+    ) {
+
+        AlertDialog.Builder(this)
+            .setTitle("إكمال الزيارة")
+            .setMessage(
+                "هل انتهت الزيارة التمريضية للطلب؟"
+            )
+            .setNegativeButton("ليس بعد", null)
+            .setPositiveButton("نعم، مكتملة") { _, _ ->
+                updateBookingStatus(
+                    booking,
+                    nurseId,
+                    "COMPLETED"
+                )
+            }
+            .show()
+    }
+
+    private fun callPhone(phone: String) {
 
         try {
 
-            startActivity(intent)
+            startActivity(
+                Intent(
+                    Intent.ACTION_DIAL,
+                    Uri.parse("tel:$phone")
+                )
+            )
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
 
-            val fallback =
+            Toast.makeText(
+                this,
+                "تعذر فتح الاتصال",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun openLocation(
+        latitude: Double,
+        longitude: Double
+    ) {
+
+        try {
+
+            val uri =
                 Uri.parse(
                     "geo:$latitude,$longitude?q=$latitude,$longitude"
                 )
@@ -1492,98 +840,71 @@ class NurseDashboardActivity : AppCompatActivity() {
             startActivity(
                 Intent(
                     Intent.ACTION_VIEW,
-                    fallback
+                    uri
                 )
             )
+
+        } catch (_: Exception) {
+
+            Toast.makeText(
+                this,
+                "تعذر فتح الخرائط",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
-    /*
-     * ============================================================
-     * الاتصال بالمريض
-     * ============================================================
-     */
+    private fun statusText(status: String): String =
+        when (status.uppercase()) {
+            "PENDING" -> "بانتظار قبول الممرض"
+            "ACCEPTED" -> "تم قبول الطلب"
+            "ON_THE_WAY" -> "الممرض في الطريق"
+            "IN_PROGRESS" -> "الزيارة جارية"
+            "COMPLETED" -> "مكتمل"
+            "CANCELLED" -> "ملغى"
+            else -> status
+        }
 
-    private fun callPatient(
-        phone: String
+    private fun statusColor(status: String): Int =
+        when (status.uppercase()) {
+            "PENDING" -> ORANGE
+            "ACCEPTED" -> BLUE
+            "ON_THE_WAY" -> NAVY
+            "IN_PROGRESS" -> ORANGE
+            "COMPLETED" -> GREEN
+            "CANCELLED" -> RED
+            else -> GRAY
+        }
+
+    private fun emptyState(
+        icon: String,
+        title: String,
+        description: String
+    ): LinearLayout {
+
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(WHITE, 18)
+            setPadding(dp(15), dp(25), dp(15), dp(25))
+        }
+
+        box.addView(text(icon, 45f, GRAY))
+        box.addView(text(title, 19f, NAVY, true))
+        box.addView(text(description, 14f, GRAY))
+
+        return box
+    }
+
+    private fun showInfo(
+        title: String,
+        message: String
     ) {
 
-        val intent =
-            Intent(
-                Intent.ACTION_DIAL,
-                Uri.parse(
-                    "tel:$phone"
-                )
-            )
-
-        startActivity(intent)
-    }
-
-    /*
-     * ============================================================
-     * أسماء الحالات
-     * ============================================================
-     */
-
-    private fun statusLabel(
-        status: String
-    ): String {
-
-        return when (
-            status.uppercase()
-        ) {
-
-            "PENDING" ->
-                "🟠 بانتظار الممرض"
-
-            "ACCEPTED" ->
-                "🟢 تم قبول الطلب"
-
-            "ON_THE_WAY" ->
-                "🚗 الممرض في الطريق"
-
-            "IN_PROGRESS" ->
-                "🩺 الخدمة قيد التنفيذ"
-
-            "COMPLETED" ->
-                "✓ تم إكمال الخدمة"
-
-            "CANCELLED" ->
-                "🔴 تم إلغاء الطلب"
-
-            else ->
-                status
-        }
-    }
-
-    private fun statusColor(
-        status: String
-    ): Int {
-
-        return when (
-            status.uppercase()
-        ) {
-
-            "PENDING" ->
-                ORANGE
-
-            "ACCEPTED" ->
-                GREEN
-
-            "ON_THE_WAY" ->
-                BLUE
-
-            "IN_PROGRESS" ->
-                GREEN
-
-            "COMPLETED" ->
-                GREEN
-
-            "CANCELLED" ->
-                RED
-
-            else ->
-                GRAY
-        }
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("حسناً", null)
+            .show()
     }
 }
