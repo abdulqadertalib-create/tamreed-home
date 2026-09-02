@@ -138,6 +138,8 @@ class MainActivity : AppCompatActivity() {
         if (user == null) {
             showPhoneLogin()
         } else {
+            // تسجيل جهاز المريض في FCM حتى تصله الإشعارات الحقيقية.
+            FcmTokenManager.registerToken("patient")
             showHome()
         }
     }
@@ -1259,6 +1261,9 @@ class MainActivity : AppCompatActivity() {
                     "تم تسجيل الدخول بنجاح",
                     Toast.LENGTH_SHORT
                 ).show()
+
+                // بعد نجاح OTP أصبح لدينا مستخدم موثّق، نسجل جهازه في FCM.
+                FcmTokenManager.registerToken("patient")
 
                 showHome()
 
