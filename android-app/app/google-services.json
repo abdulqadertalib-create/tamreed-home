@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "502303193255",
+    "project_id": "tamreed-home-1c834",
+    "storage_bucket": "tamreed-home-1c834.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502303193255:android:cd4702e4ebf4ccd8270382",
+        "android_client_info": {
+          "package_name": "iq.tamreed.home"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAx5NL2sO4hxSgE43YcOeYDaliFTQdN20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
