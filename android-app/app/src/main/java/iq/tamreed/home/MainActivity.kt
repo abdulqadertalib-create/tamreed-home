@@ -4,6 +4,10 @@ import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
 import android.location.Location
 import android.provider.Settings
 import android.content.Intent
@@ -89,6 +93,10 @@ data class PatientNurseBrief(
 
 class MainActivity : AppCompatActivity() {
 
+    private val NOTIFICATION_PERMISSION_REQUEST_CODE = 3102
+    private var patientNotificationInitialized = false
+    private val knownBookingStatuses = mutableMapOf<String, String>()
+
     private val NAVY = Color.rgb(5, 62, 105)
     private val DARK_NAVY = Color.rgb(3, 45, 78)
     private val BLUE = Color.rgb(31, 115, 176)
@@ -120,6 +128,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NotificationHelper.createChannel(this)
+        requestNotificationPermissionIfNeeded()
 
         /*
          * أول شاشة للمستخدم هي تسجيل الدخول.
@@ -132,6 +142,18 @@ class MainActivity : AppCompatActivity() {
             showPhoneLogin()
         } else {
             showHome()
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                NOTIFICATION_PERMISSION_REQUEST_CODE
+            )
         }
     }
 
@@ -2871,6 +2893,30 @@ class MainActivity : AppCompatActivity() {
 
                 val nurseMap = nurses.associateBy { it.id }
 
+                // المرحلة 13 - ❶: تنبيه المريض عند تغيّر حالة أي طلب.
+                val currentStatuses = bookings.associate { it.id to it.status.uppercase() }
+                if (!patientNotificationInitialized) {
+                    knownBookingStatuses.clear()
+                    knownBookingStatuses.putAll(currentStatuses)
+                    patientNotificationInitialized = true
+                } else {
+                    bookings.forEach { booking ->
+                        val newStatus = booking.status.uppercase()
+                        val oldStatus = knownBookingStatuses[booking.id]
+                        if (oldStatus != null && oldStatus != newStatus) {
+                            NotificationHelper.show(
+                                this@MainActivity,
+                                "تحديث طلب التمريض",
+                                "طلبك رقم ${booking.id.take(8)}…: ${statusText(newStatus)}",
+                                (booking.id + newStatus).hashCode(),
+                                MainActivity::class.java
+                            )
+                        }
+                    }
+                    knownBookingStatuses.clear()
+                    knownBookingStatuses.putAll(currentStatuses)
+                }
+
                 loading.visibility = View.GONE
                 container.removeAllViews()
 
@@ -2979,7 +3025,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 )
             )
-            if (!nurse.phone.isNullOrBlank() && status in listOf("ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS")) {
+            if (!nurse.phone.isNullOrBlank() && status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
                 card.addView(
                     outlineButton("اتصال بالممرض") {
                         try {
@@ -3017,7 +3063,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        if (booking.latitude != null && booking.longitude != null && status in listOf("ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS")) {
+        if (booking.latitude != null && booking.longitude != null && status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
             card.addView(
                 outlineButton("📍 فتح موقع الطلب") {
                     openPatientLocationForPatient(booking.latitude, booking.longitude)
@@ -3104,7 +3150,6 @@ class MainActivity : AppCompatActivity() {
         "PENDING" -> "…"
         "ACCEPTED" -> "✓"
         "ON_THE_WAY" -> "➜"
-        "ARRIVED" -> "📍"
         "IN_PROGRESS" -> "●"
         "COMPLETED" -> "✓"
         "CANCELLED" -> "×"
@@ -3122,7 +3167,6 @@ class MainActivity : AppCompatActivity() {
             "PENDING" to "طلب",
             "ACCEPTED" to "قبول",
             "ON_THE_WAY" to "طريق",
-            "ARRIVED" to "وصل",
             "IN_PROGRESS" to "زيارة",
             "COMPLETED" to "تم"
         )
@@ -3131,9 +3175,8 @@ class MainActivity : AppCompatActivity() {
             "PENDING" -> 0
             "ACCEPTED" -> 1
             "ON_THE_WAY" -> 2
-            "ARRIVED" -> 3
-            "IN_PROGRESS" -> 4
-            "COMPLETED" -> 5
+            "IN_PROGRESS" -> 3
+            "COMPLETED" -> 4
             else -> -1
         }
 
@@ -3184,7 +3227,6 @@ class MainActivity : AppCompatActivity() {
             "PENDING" -> "بانتظار قبول الممرض"
             "ACCEPTED" -> "تم قبول الطلب"
             "ON_THE_WAY" -> "الممرض في الطريق"
-            "ARRIVED" -> "وصل الممرض إلى المريض"
             "IN_PROGRESS" -> "الزيارة جارية"
             "COMPLETED" -> "اكتملت الزيارة"
             "CANCELLED" -> "تم إلغاء الطلب"
@@ -3200,7 +3242,6 @@ class MainActivity : AppCompatActivity() {
             "PENDING" -> ORANGE
             "ACCEPTED" -> BLUE
             "ON_THE_WAY" -> BLUE
-            "ARRIVED" -> BLUE
             "IN_PROGRESS" -> GREEN
             "COMPLETED" -> GREEN
             "CANCELLED" -> RED
