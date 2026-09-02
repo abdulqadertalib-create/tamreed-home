@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.messaging.FirebaseMessaging
 
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -356,6 +357,30 @@ class NurseRequestsActivity : AppCompatActivity() {
         currentUserId =
             user.id
 
+        // ============================================================
+        // FCM: الحصول على رمز جهاز الممرض
+        // ============================================================
+        // يتم الحصول على Token الجهاز هنا فقط.
+        // حفظه في قاعدة البيانات سيتم بعد تجهيز جدول/سياسة RLS الخاصة
+        // بتوكنات الإشعارات، حتى لا نغيّر بنية Supabase الحالية عشوائياً.
+        FirebaseMessaging
+            .getInstance()
+            .token
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+
+                    // الاحتفاظ بالتوكن محلياً مؤقتاً.
+                    // يمكن استخدامه لاحقاً عند ربط جدول notification_tokens.
+                    getSharedPreferences(
+                        "tamreed_fcm",
+                        MODE_PRIVATE
+                    ).edit()
+                        .putString("nurse_fcm_token", token)
+                        .apply()
+                }
+            }
+
         scope.launch {
 
             try {
@@ -429,6 +454,21 @@ class NurseRequestsActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+
+    // ============================================================
+    // FCM Token الحالي
+    // ============================================================
+
+    private fun currentNurseFcmToken(): String? {
+        return getSharedPreferences(
+            "tamreed_fcm",
+            MODE_PRIVATE
+        ).getString(
+            "nurse_fcm_token",
+            null
+        )
     }
 
 
