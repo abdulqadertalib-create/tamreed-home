@@ -16,13 +16,15 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /*
  * ============================================================
@@ -43,6 +45,7 @@ data class NurseDashboardProfile(
     val full_name: String? = null,
     val phone: String? = null,
     val is_active: Boolean? = null,
+    val is_available: Boolean? = null,
     val rating: Double? = null
 )
 
@@ -61,12 +64,6 @@ data class NurseBooking(
     val status: String,
     val notes: String? = null,
     val created_at: String
-)
-
-@Serializable
-data class AcceptBookingParams(
-    val p_booking_id: String,
-    val p_nurse_id: String
 )
 
 class NurseDashboardActivity : AppCompatActivity() {
@@ -249,6 +246,24 @@ class NurseDashboardActivity : AppCompatActivity() {
         }
 
         profileBox.addView(profileText)
+
+        val availabilityText = text(
+            "جاري تحميل حالة التوفر...",
+            16f,
+            GRAY,
+            true
+        )
+        profileBox.addView(availabilityText)
+
+        val availabilityButton = button("⏳ جاري التحميل...") {}
+        availabilityButton.isEnabled = false
+        profileBox.addView(
+            availabilityButton,
+            LinearLayout.LayoutParams(-1, dp(52)).apply {
+                topMargin = dp(10)
+            }
+        )
+
         root.addView(
             profileBox,
             LinearLayout.LayoutParams(-1, -2)
@@ -375,13 +390,34 @@ class NurseDashboardActivity : AppCompatActivity() {
                         else
                             "🔴 الحساب غير نشط"
 
+                    val available = nurse.is_available == true
+                    availabilityText.text =
+                        if (available) "🟢 متاح لاستقبال الطلبات"
+                        else "🔴 غير متاح لاستقبال الطلبات"
+
+                    availabilityButton.text =
+                        if (available) "🔴 إيقاف استقبال الطلبات"
+                        else "🟢 تفعيل استقبال الطلبات"
+                    availabilityButton.background =
+                        rounded(if (available) RED else GREEN, 14)
+                    availabilityButton.isEnabled = true
+                    availabilityButton.setOnClickListener {
+                        setAvailability(nurse.id, !available, availabilityText, availabilityButton)
+                    }
+
                     val rating =
                         nurse.rating?.let {
                             "⭐ ${String.format("%.1f", it)}"
                         } ?: "⭐ لا يوجد تقييم"
 
+                    val availability =
+                        if (nurse.is_available == true)
+                            "🟢 متاح"
+                        else
+                            "🔴 غير متاح"
+
                     profileText.text =
-                        "👨‍⚕️ $name\n$active    $rating"
+                        "👨‍⚕️ $name\n$active    $availability    $rating"
 
                     if (nurse.id.isBlank()) {
                         profileText.text =
@@ -400,6 +436,60 @@ class NurseDashboardActivity : AppCompatActivity() {
 
                 profileText.text =
                     "تعذر تحميل بيانات الممرض.\n${e.message ?: "خطأ غير معروف"}"
+            }
+        }
+    }
+
+    private fun setAvailability(
+        nurseId: String,
+        available: Boolean,
+        availabilityText: TextView,
+        availabilityButton: Button
+    ) {
+        availabilityButton.isEnabled = false
+        availabilityButton.text = "⏳ جاري الحفظ..."
+
+        scope.launch {
+            try {
+                SupabaseManager
+                    .client
+                    .from("nurses")
+                    .update(
+                        {
+                            set("is_available", available)
+                        }
+                    ) {
+                        filter {
+                            eq("id", nurseId)
+                        }
+                    }
+
+                availabilityText.text =
+                    if (available) "🟢 متاح لاستقبال الطلبات"
+                    else "🔴 غير متاح لاستقبال الطلبات"
+
+                availabilityButton.text =
+                    if (available) "🔴 إيقاف استقبال الطلبات"
+                    else "🟢 تفعيل استقبال الطلبات"
+                availabilityButton.background =
+                    rounded(if (available) RED else GREEN, 14)
+                availabilityButton.isEnabled = true
+
+                Toast.makeText(
+                    this@NurseDashboardActivity,
+                    if (available) "تم تفعيل استقبال الطلبات ✅"
+                    else "تم إيقاف استقبال الطلبات ✅",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: Exception) {
+                availabilityButton.text = "إعادة المحاولة"
+                availabilityButton.isEnabled = true
+                availabilityButton.background = rounded(NAVY, 14)
+                Toast.makeText(
+                    this@NurseDashboardActivity,
+                    "تعذر تحديث حالة التوفر\n${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -742,27 +832,39 @@ class NurseDashboardActivity : AppCompatActivity() {
 
             try {
 
-                // القبول يتم عبر دالة PostgreSQL الآمنة:
-                // - تتحقق من أن الممرض هو صاحب الحساب.
-                // - تتحقق من أنه موثق ومتاح.
-                // - تقبل الطلب فقط إذا كان ما زال PENDING.
-                // - تمنع ممرضاً ثانياً من قبول نفس الطلب.
+                // القبول الآمن يتم داخل PostgreSQL بشكل ذري:
+                // يتحقق من الحساب والاعتماد والتوفر، ويمنع قبول نفس الطلب مرتين.
                 SupabaseManager
                     .client
                     .postgrest
                     .rpc(
                         "accept_booking",
-                        AcceptBookingParams(
-                            p_booking_id = booking.id,
-                            p_nurse_id = nurseId
-                        )
+                        buildJsonObject {
+                            put("p_booking_id", booking.id)
+                            put("p_nurse_id", nurseId)
+                        }
                     )
+
+                // بعد قبول طلب، يتوقف الممرض تلقائياً عن استقبال طلبات جديدة
+                // حتى لا يتم إرسال عدة طلبات له أثناء وجوده في زيارة.
+                SupabaseManager
+                    .client
+                    .from("nurses")
+                    .update(
+                        {
+                            set("is_available", false)
+                        }
+                    ) {
+                        filter {
+                            eq("id", nurseId)
+                        }
+                    }
 
                 loading.dismiss()
 
                 showInfo(
                     "تم قبول الطلب ✅",
-                    "أصبح الطلب ضمن طلباتك.\\nيمكنك الآن الانتقال إلى حالة «في الطريق»."
+                    "أصبح الطلب ضمن طلباتك.\nتم إيقاف استقبال الطلبات الجديدة مؤقتاً حتى تنتهي الزيارة.\n\nيمكنك الآن الانتقال إلى حالة «في الطريق»."
                 )
 
                 showDashboard()
@@ -774,12 +876,11 @@ class NurseDashboardActivity : AppCompatActivity() {
                 showInfo(
                     "تعذر قبول الطلب",
                     e.message
-                        ?: "تعذر قبول الطلب. قد يكون ممرض آخر قد قبله."
+                        ?: "تحقق من صلاحيات Supabase وسياسات RLS لجدول bookings."
                 )
             }
         }
     }
-
 
     private fun updateBookingStatus(
         booking: NurseBooking,
@@ -814,6 +915,12 @@ class NurseDashboardActivity : AppCompatActivity() {
                         }
                     }
 
+                // عند إكمال الزيارة، نعيد الممرض إلى حالة متاح فقط
+                // إذا لم تكن لديه زيارة أخرى قيد التنفيذ.
+                if (newStatus == "COMPLETED") {
+                    restoreAvailabilityIfNoActiveBookings(nurseId)
+                }
+
                 loading.dismiss()
 
                 showInfo(
@@ -831,6 +938,44 @@ class NurseDashboardActivity : AppCompatActivity() {
                     e.message
                         ?: "تحقق من صلاحيات تحديث bookings."
                 )
+            }
+        }
+    }
+
+    private fun restoreAvailabilityIfNoActiveBookings(nurseId: String) {
+        scope.launch {
+            try {
+                val activeBookings =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("nurse_id", nurseId)
+                            }
+                        }
+                        .decodeList<NurseBooking>()
+                        .filter {
+                            val status = it.status.uppercase()
+                            status !in setOf("COMPLETED", "CANCELLED")
+                        }
+
+                if (activeBookings.isEmpty()) {
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .update(
+                            {
+                                set("is_available", true)
+                            }
+                        ) {
+                            filter {
+                                eq("id", nurseId)
+                            }
+                        }
+                }
+            } catch (_: Exception) {
+                // لا نوقف إكمال الزيارة إذا تعذر تحديث حالة التوفر.
             }
         }
     }
