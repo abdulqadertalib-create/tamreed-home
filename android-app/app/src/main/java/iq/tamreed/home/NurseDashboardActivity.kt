@@ -8,11 +8,12 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,19 +24,13 @@ import kotlinx.serialization.Serializable
 
 /*
  * ============================================================
- * المرحلة الثامنة
- * لوحة الممرض:
- * - تحميل الطلبات PENDING
- * - قبول الطلب
- * - رفض الطلب
- * - متابعة الطلبات التي قبلها الممرض
- * - تغيير الحالة:
+ * المرحلة 12
+ * لوحة الممرض — مزامنة وحماية انتقال حالات الطلب:
+ * - تحديث تلقائي كل 15 ثانية.
+ * - حماية انتقال الحالة من القفز أو التحديث المتزامن:
  *   ACCEPTED -> ON_THE_WAY -> IN_PROGRESS -> COMPLETED
- * - الاتصال بالمريض وفتح موقعه
- *
- * ملاحظة:
- * يتم العثور على سجل nurses بواسطة user_id = auth.currentUser.id،
- * ثم نستخدم nurses.id الحقيقي في bookings.nurse_id.
+ * - تحديث الحالة مرتبط بالممرض الحقيقي nurses.id.
+ * - الحفاظ على الاتصال بالمريض وفتح الموقع.
  * ============================================================
  */
 
@@ -82,12 +77,35 @@ class NurseDashboardActivity : AppCompatActivity() {
     private val scope =
         CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    private val refreshHandler = Handler(Looper.getMainLooper())
+
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            if (!isFinishing && !isDestroyed) {
+                showDashboard()
+                refreshHandler.postDelayed(this, 15_000L)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showDashboard()
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshHandler.removeCallbacks(refreshRunnable)
+        refreshHandler.postDelayed(refreshRunnable, 15_000L)
+    }
+
+    override fun onPause() {
+        refreshHandler.removeCallbacks(refreshRunnable)
+        super.onPause()
+    }
+
     override fun onDestroy() {
+        refreshHandler.removeCallbacks(refreshRunnable)
         scope.cancel()
         super.onDestroy()
     }
@@ -616,6 +634,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                         updateBookingStatus(
                             booking,
                             nurseId,
+                            "ACCEPTED",
                             "ON_THE_WAY"
                         )
                     },
@@ -630,6 +649,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                         updateBookingStatus(
                             booking,
                             nurseId,
+                            "ON_THE_WAY",
                             "IN_PROGRESS"
                         )
                     },
@@ -739,6 +759,7 @@ class NurseDashboardActivity : AppCompatActivity() {
     private fun updateBookingStatus(
         booking: NurseBooking,
         nurseId: String,
+        expectedStatus: String,
         newStatus: String
     ) {
 
@@ -764,11 +785,16 @@ class NurseDashboardActivity : AppCompatActivity() {
                         filter {
                             eq("id", booking.id)
                             eq("nurse_id", nurseId)
+                            eq("status", expectedStatus)
                         }
                     }
 
                 loading.dismiss()
 
+                showInfo(
+                    "تم تحديث حالة الطلب",
+                    "${statusText(newStatus)}\n\nسيتم تحديث شاشة المريض تلقائياً."
+                )
                 showDashboard()
 
             } catch (e: Exception) {
@@ -799,6 +825,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                 updateBookingStatus(
                     booking,
                     nurseId,
+                    "IN_PROGRESS",
                     "COMPLETED"
                 )
             }
