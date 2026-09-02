@@ -79,6 +79,11 @@ data class NurseBookingAssignment(
     val status: String
 )
 
+@Serializable
+data class NurseBookingStatusUpdate(
+    val status: String
+)
+
 
 // ============================================================
 // الشاشة
@@ -857,12 +862,20 @@ class NurseRequestsActivity : AppCompatActivity() {
                 isAssignedToThisNurse ->
                     "🟢 تم قبول الطلب"
 
+                status == "ON_THE_WAY" &&
+                isAssignedToThisNurse ->
+                    "🚗 الممرض في الطريق إلى المريض"
+
+                status == "IN_PROGRESS" &&
+                isAssignedToThisNurse ->
+                    "🔵 الزيارة جارية الآن"
+
                 status == "PENDING" &&
                 booking.nurse_id.isNullOrBlank() ->
                     "🟠 طلب جديد بانتظار الممرض"
 
                 status == "COMPLETED" ->
-                    "✓ تم إكمال الطلب"
+                    "✓ تم إكمال الزيارة"
 
                 status == "CANCELLED" ->
                     "🔴 تم إلغاء الطلب"
@@ -876,6 +889,12 @@ class NurseRequestsActivity : AppCompatActivity() {
             when {
 
                 status == "ACCEPTED" ->
+                    GREEN
+
+                status == "IN_PROGRESS" ->
+                    NAVY
+
+                status == "COMPLETED" ->
                     GREEN
 
                 status == "CANCELLED" ->
@@ -1031,17 +1050,18 @@ class NurseRequestsActivity : AppCompatActivity() {
 
 
         // ========================================================
-        // الطلب المقبول
+        // الطلب المقبول ومراحل تنفيذ الزيارة
         // ========================================================
 
         if (
-            status == "ACCEPTED" &&
-            isAssignedToThisNurse
+            isAssignedToThisNurse &&
+            status != "CANCELLED" &&
+            status != "COMPLETED"
         ) {
 
             val detailsButton =
                 primaryButton(
-                    "📍 تفاصيل الطلب والذهاب إلى المريض",
+                    "📍 فتح موقع المريض على الخريطة",
                     NAVY
                 ) {
 
@@ -1051,18 +1071,87 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
                 }
 
-
             card.addView(
                 detailsButton,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(58)
+                    dp(56)
                 ).apply {
-
-                    topMargin =
-                        dp(10)
+                    topMargin = dp(10)
                 }
             )
+
+            when (status) {
+
+                "ACCEPTED" -> {
+                    val button =
+                        primaryButton(
+                            "🚗 أنا في الطريق إلى المريض",
+                            ORANGE
+                        ) {
+                            updateBookingStatus(
+                                booking,
+                                "ON_THE_WAY"
+                            )
+                        }
+
+                    card.addView(
+                        button,
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(56)
+                        ).apply {
+                            topMargin = dp(8)
+                        }
+                    )
+                }
+
+                "ON_THE_WAY" -> {
+                    val button =
+                        primaryButton(
+                            "▶ بدء الزيارة",
+                            GREEN
+                        ) {
+                            updateBookingStatus(
+                                booking,
+                                "IN_PROGRESS"
+                            )
+                        }
+
+                    card.addView(
+                        button,
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(56)
+                        ).apply {
+                            topMargin = dp(8)
+                        }
+                    )
+                }
+
+                "IN_PROGRESS" -> {
+                    val button =
+                        primaryButton(
+                            "✓ إكمال الزيارة",
+                            GREEN
+                        ) {
+                            updateBookingStatus(
+                                booking,
+                                "COMPLETED"
+                            )
+                        }
+
+                    card.addView(
+                        button,
+                        LinearLayout.LayoutParams(
+                            -1,
+                            dp(56)
+                        ).apply {
+                            topMargin = dp(8)
+                        }
+                    )
+                }
+            }
         }
 
 
@@ -1288,6 +1377,187 @@ class NurseRequestsActivity : AppCompatActivity() {
                     Toast.LENGTH_LONG
                 ).show()
             }
+        }
+    }
+
+
+    // ============================================================
+    // تحديث مرحلة الطلب
+    // ============================================================
+
+    private fun updateBookingStatus(
+        booking: NurseRequestsBooking,
+        newStatus: String
+    ) {
+
+        val dbNurseId = nurseId
+        val bookingId = booking.id
+
+        if (dbNurseId.isNullOrBlank()) {
+            Toast.makeText(
+                this,
+                "تعذر تحديد معرف الممرض",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        if (bookingId.isNullOrBlank()) {
+            Toast.makeText(
+                this,
+                "رقم الطلب غير صالح",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        scope.launch {
+
+            try {
+
+                // لا نسمح بتحديث طلب ممرض آخر.
+                val current =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("id", bookingId)
+                                eq("nurse_id", dbNurseId)
+                            }
+                        }
+                        .decodeList<NurseRequestsBooking>()
+                        .firstOrNull()
+
+                if (current == null) {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "لا يمكن تحديث هذا الطلب لأنه غير مرتبط بهذا الممرض",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+
+                val storedStatus =
+                    current.status
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "PENDING"
+
+                val currentStatus =
+                    storedStatus.uppercase()
+
+                val allowed =
+                    when (currentStatus) {
+                        "ACCEPTED" ->
+                            newStatus == "ON_THE_WAY"
+
+                        "ON_THE_WAY" ->
+                            newStatus == "IN_PROGRESS"
+
+                        "IN_PROGRESS" ->
+                            newStatus == "COMPLETED"
+
+                        else ->
+                            false
+                    }
+
+                if (!allowed) {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "لا يمكن الانتقال من ${statusTextForUpdate(currentStatus)} إلى ${statusTextForUpdate(newStatus)}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+
+                SupabaseManager
+                    .client
+                    .from("bookings")
+                    .update(
+                        NurseBookingStatusUpdate(
+                            status = newStatus
+                        )
+                    ) {
+                        filter {
+                            eq("id", bookingId)
+                            eq("nurse_id", dbNurseId)
+                            eq("status", storedStatus)
+                        }
+                    }
+
+                val updated =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("id", bookingId)
+                                eq("nurse_id", dbNurseId)
+                            }
+                        }
+                        .decodeList<NurseRequestsBooking>()
+                        .firstOrNull()
+
+                if (
+                    updated?.status
+                        ?.uppercase() == newStatus
+                ) {
+
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "✓ تم تحديث حالة الطلب إلى ${statusTextForUpdate(newStatus)}",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    loadRequests()
+
+                } else {
+
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "لم يتم تحديث حالة الطلب. تحقق من صلاحيات RLS في جدول bookings",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+
+                Toast.makeText(
+                    this@NurseRequestsActivity,
+                    "تعذر تحديث حالة الطلب:\n${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+
+    private fun statusTextForUpdate(
+        status: String
+    ): String {
+
+        return when (status.uppercase()) {
+
+            "ACCEPTED" ->
+                "تم القبول"
+
+            "ON_THE_WAY" ->
+                "في الطريق"
+
+            "IN_PROGRESS" ->
+                "الزيارة جارية"
+
+            "COMPLETED" ->
+                "مكتملة"
+
+            "CANCELLED" ->
+                "ملغاة"
+
+            "PENDING" ->
+                "قيد الانتظار"
+
+            else ->
+                status
         }
     }
 
