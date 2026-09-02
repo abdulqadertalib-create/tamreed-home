@@ -2979,7 +2979,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 )
             )
-            if (!nurse.phone.isNullOrBlank() && status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
+            if (!nurse.phone.isNullOrBlank() && status in listOf("ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS")) {
                 card.addView(
                     outlineButton("اتصال بالممرض") {
                         try {
@@ -3017,7 +3017,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        if (booking.latitude != null && booking.longitude != null && status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
+        if (booking.latitude != null && booking.longitude != null && status in listOf("ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS")) {
             card.addView(
                 outlineButton("📍 فتح موقع الطلب") {
                     openPatientLocationForPatient(booking.latitude, booking.longitude)
@@ -3104,6 +3104,7 @@ class MainActivity : AppCompatActivity() {
         "PENDING" -> "…"
         "ACCEPTED" -> "✓"
         "ON_THE_WAY" -> "➜"
+        "ARRIVED" -> "📍"
         "IN_PROGRESS" -> "●"
         "COMPLETED" -> "✓"
         "CANCELLED" -> "×"
@@ -3121,6 +3122,7 @@ class MainActivity : AppCompatActivity() {
             "PENDING" to "طلب",
             "ACCEPTED" to "قبول",
             "ON_THE_WAY" to "طريق",
+            "ARRIVED" to "وصل",
             "IN_PROGRESS" to "زيارة",
             "COMPLETED" to "تم"
         )
@@ -3129,8 +3131,9 @@ class MainActivity : AppCompatActivity() {
             "PENDING" -> 0
             "ACCEPTED" -> 1
             "ON_THE_WAY" -> 2
-            "IN_PROGRESS" -> 3
-            "COMPLETED" -> 4
+            "ARRIVED" -> 3
+            "IN_PROGRESS" -> 4
+            "COMPLETED" -> 5
             else -> -1
         }
 
@@ -3181,6 +3184,7 @@ class MainActivity : AppCompatActivity() {
             "PENDING" -> "بانتظار قبول الممرض"
             "ACCEPTED" -> "تم قبول الطلب"
             "ON_THE_WAY" -> "الممرض في الطريق"
+            "ARRIVED" -> "وصل الممرض إلى المريض"
             "IN_PROGRESS" -> "الزيارة جارية"
             "COMPLETED" -> "اكتملت الزيارة"
             "CANCELLED" -> "تم إلغاء الطلب"
@@ -3196,6 +3200,7 @@ class MainActivity : AppCompatActivity() {
             "PENDING" -> ORANGE
             "ACCEPTED" -> BLUE
             "ON_THE_WAY" -> BLUE
+            "ARRIVED" -> BLUE
             "IN_PROGRESS" -> GREEN
             "COMPLETED" -> GREEN
             "CANCELLED" -> RED
