@@ -42,6 +42,7 @@ data class NurseDashboardProfile(
     val full_name: String? = null,
     val phone: String? = null,
     val is_active: Boolean? = null,
+    val is_available: Boolean? = null,
     val rating: Double? = null
 )
 
