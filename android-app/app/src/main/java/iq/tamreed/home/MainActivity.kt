@@ -3005,6 +3005,18 @@ class MainActivity : AppCompatActivity() {
             card.addView(text("📝 ${booking.notes}", 13f, GRAY))
         }
 
+        // يسمح للمريض بإلغاء الطلب قبل وصول الممرض وبدء الزيارة فقط.
+        if (status == "PENDING" || status == "ACCEPTED") {
+            card.addView(
+                outlineButton("إلغاء الطلب") {
+                    confirmCancelBooking(booking)
+                },
+                LinearLayout.LayoutParams(-1, dp(48)).apply {
+                    topMargin = dp(8)
+                }
+            )
+        }
+
         if (booking.latitude != null && booking.longitude != null && status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
             card.addView(
                 outlineButton("📍 فتح موقع الطلب") {
@@ -3020,6 +3032,55 @@ class MainActivity : AppCompatActivity() {
                 setMargins(0, dp(4), 0, dp(12))
             }
         )
+    }
+
+    private fun confirmCancelBooking(booking: PatientBooking) {
+        AlertDialog.Builder(this)
+            .setTitle("إلغاء الطلب")
+            .setMessage("هل أنت متأكد من إلغاء هذا الطلب؟")
+            .setNegativeButton("رجوع", null)
+            .setPositiveButton("إلغاء الطلب") { _, _ ->
+                cancelBooking(booking.id)
+            }
+            .show()
+    }
+
+    private fun cancelBooking(bookingId: String) {
+        val user = SupabaseManager.client.auth.currentUserOrNull()
+        if (user == null) {
+            Toast.makeText(this, "سجل الدخول أولاً", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        scope.launch {
+            try {
+                SupabaseManager.client
+                    .from("bookings")
+                    .update(mapOf("status" to "CANCELLED")) {
+                        filter {
+                            eq("id", bookingId)
+                            eq("patient_id", user.id)
+                        }
+                    }
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "تم إلغاء الطلب بنجاح",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                loadPatientBookings(
+                    user.id,
+                    currentBookingsContainer,
+                    currentBookingsLoading
+                )
+            } catch (e: Exception) {
+                showError(
+                    "تعذر إلغاء الطلب",
+                    e.message ?: "حدث خطأ غير معروف"
+                )
+            }
+        }
     }
 
     private fun addRow(parent: LinearLayout, title: String, value: String) {
