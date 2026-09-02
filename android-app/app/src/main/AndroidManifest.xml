@@ -18,6 +18,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
+        <!-- خدمة Firebase Cloud Messaging -->
+        <service
+            android:name=".TamreedFirebaseMessagingService"
+            android:exported="false">
+
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+
+        </service>
+
         <!-- شاشة دخول الممرض -->
         <activity
             android:name=".NurseLoginActivity"
