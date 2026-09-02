@@ -407,8 +407,14 @@ class NurseDashboardActivity : AppCompatActivity() {
                             "⭐ ${String.format("%.1f", it)}"
                         } ?: "⭐ لا يوجد تقييم"
 
+                    val availability =
+                        if (nurse.is_available == true)
+                            "🟢 متاح"
+                        else
+                            "🔴 غير متاح"
+
                     profileText.text =
-                        "👨‍⚕️ $name\n$active    $rating"
+                        "👨‍⚕️ $name\n$active    $availability    $rating"
 
                     if (nurse.id.isBlank()) {
                         profileText.text =
@@ -838,11 +844,26 @@ class NurseDashboardActivity : AppCompatActivity() {
                         }
                     }
 
+                // بعد قبول طلب، يتوقف الممرض تلقائياً عن استقبال طلبات جديدة
+                // حتى لا يتم إرسال عدة طلبات له أثناء وجوده في زيارة.
+                SupabaseManager
+                    .client
+                    .from("nurses")
+                    .update(
+                        {
+                            set("is_available", false)
+                        }
+                    ) {
+                        filter {
+                            eq("id", nurseId)
+                        }
+                    }
+
                 loading.dismiss()
 
                 showInfo(
                     "تم قبول الطلب ✅",
-                    "أصبح الطلب ضمن طلباتك.\nيمكنك الآن الانتقال إلى حالة «في الطريق»."
+                    "أصبح الطلب ضمن طلباتك.\nتم إيقاف استقبال الطلبات الجديدة مؤقتاً حتى تنتهي الزيارة.\n\nيمكنك الآن الانتقال إلى حالة «في الطريق»."
                 )
 
                 showDashboard()
@@ -893,6 +914,12 @@ class NurseDashboardActivity : AppCompatActivity() {
                         }
                     }
 
+                // عند إكمال الزيارة، نعيد الممرض إلى حالة متاح فقط
+                // إذا لم تكن لديه زيارة أخرى قيد التنفيذ.
+                if (newStatus == "COMPLETED") {
+                    restoreAvailabilityIfNoActiveBookings(nurseId)
+                }
+
                 loading.dismiss()
 
                 showInfo(
@@ -910,6 +937,44 @@ class NurseDashboardActivity : AppCompatActivity() {
                     e.message
                         ?: "تحقق من صلاحيات تحديث bookings."
                 )
+            }
+        }
+    }
+
+    private fun restoreAvailabilityIfNoActiveBookings(nurseId: String) {
+        scope.launch {
+            try {
+                val activeBookings =
+                    SupabaseManager
+                        .client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("nurse_id", nurseId)
+                            }
+                        }
+                        .decodeList<NurseBooking>()
+                        .filter {
+                            val status = it.status.uppercase()
+                            status !in setOf("COMPLETED", "CANCELLED")
+                        }
+
+                if (activeBookings.isEmpty()) {
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .update(
+                            {
+                                set("is_available", true)
+                            }
+                        ) {
+                            filter {
+                                eq("id", nurseId)
+                            }
+                        }
+                }
+            } catch (_: Exception) {
+                // لا نوقف إكمال الزيارة إذا تعذر تحديث حالة التوفر.
             }
         }
     }
