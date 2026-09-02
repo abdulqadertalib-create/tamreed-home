@@ -646,11 +646,26 @@ class NurseDashboardActivity : AppCompatActivity() {
             "ON_THE_WAY" -> {
 
                 card.addView(
-                    button("🩺 بدء الزيارة") {
+                    button("📍 وصلت إلى المريض") {
                         updateBookingStatus(
                             booking,
                             nurseId,
                             "ON_THE_WAY",
+                            "ARRIVED"
+                        )
+                    },
+                    LinearLayout.LayoutParams(-1, dp(55))
+                )
+            }
+
+            "ARRIVED" -> {
+
+                card.addView(
+                    button("🩺 بدء الزيارة") {
+                        updateBookingStatus(
+                            booking,
+                            nurseId,
+                            "ARRIVED",
                             "IN_PROGRESS"
                         )
                     },
@@ -888,6 +903,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             "PENDING" -> "بانتظار قبول الممرض"
             "ACCEPTED" -> "تم قبول الطلب"
             "ON_THE_WAY" -> "الممرض في الطريق"
+            "ARRIVED" -> "وصل الممرض إلى المريض"
             "IN_PROGRESS" -> "الزيارة جارية"
             "COMPLETED" -> "مكتمل"
             "CANCELLED" -> "ملغى"
@@ -899,6 +915,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             "PENDING" -> ORANGE
             "ACCEPTED" -> BLUE
             "ON_THE_WAY" -> NAVY
+            "ARRIVED" -> BLUE
             "IN_PROGRESS" -> ORANGE
             "COMPLETED" -> GREEN
             "CANCELLED" -> RED
