@@ -247,6 +247,45 @@ class NurseDashboardActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(-1, -2)
         )
 
+        addSpace(root, 10)
+
+        // حالة التوفر لاستقبال الطلبات الجديدة
+        val availabilityBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 18)
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+        }
+
+        val availabilityText = text(
+            "جاري تحميل حالة التوفر...",
+            17f,
+            GRAY,
+            true
+        )
+
+        val availabilityButton = button("جاري التحميل...") {
+            // يتم تفعيل الزر بعد تحميل بيانات الممرض
+        }
+
+        availabilityBox.addView(
+            availabilityText,
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
+        addSpace(availabilityBox, 6)
+
+        availabilityBox.addView(
+            availabilityButton,
+            LinearLayout.LayoutParams(-1, dp(52))
+        )
+
+        root.addView(
+            availabilityBox,
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
         addSpace(root, 12)
 
         val actions = LinearLayout(this).apply {
@@ -376,6 +415,43 @@ class NurseDashboardActivity : AppCompatActivity() {
                     profileText.text =
                         "👨‍⚕️ $name\n$active    $rating"
 
+                    val available = nurse.is_available == true
+
+                    availabilityText.text =
+                        if (available)
+                            "🟢 متاح لاستقبال الطلبات الجديدة"
+                        else
+                            "🔴 غير متاح لاستقبال الطلبات الجديدة"
+
+                    availabilityText.setTextColor(
+                        if (available) GREEN else RED
+                    )
+
+                    availabilityButton.text =
+                        if (available)
+                            "🔴 إيقاف استقبال الطلبات"
+                        else
+                            "🟢 أصبحت متاحاً لاستقبال الطلبات"
+
+                    availabilityButton.setTextColor(
+                        if (available) WHITE else WHITE
+                    )
+
+                    availabilityButton.background =
+                        rounded(
+                            if (available) RED else GREEN,
+                            14
+                        )
+
+                    availabilityButton.setOnClickListener {
+                        setNurseAvailability(
+                            nurse.id,
+                            !available,
+                            availabilityText,
+                            availabilityButton
+                        )
+                    }
+
                     if (nurse.id.isBlank()) {
                         profileText.text =
                             "⚠️ سجل الممرض موجود لكن معرف nurses.id فارغ."
@@ -393,6 +469,80 @@ class NurseDashboardActivity : AppCompatActivity() {
 
                 profileText.text =
                     "تعذر تحميل بيانات الممرض.\n${e.message ?: "خطأ غير معروف"}"
+            }
+        }
+    }
+
+    private fun setNurseAvailability(
+        nurseId: String,
+        available: Boolean,
+        statusView: TextView,
+        actionButton: Button
+    ) {
+        actionButton.isEnabled = false
+        actionButton.text = "جاري الحفظ..."
+
+        scope.launch {
+            try {
+                SupabaseManager
+                    .client
+                    .from("nurses")
+                    .update(
+                        {
+                            set("is_available", available)
+                        }
+                    ) {
+                        filter {
+                            eq("id", nurseId)
+                        }
+                    }
+
+                statusView.text =
+                    if (available)
+                        "🟢 متاح لاستقبال الطلبات الجديدة"
+                    else
+                        "🔴 غير متاح لاستقبال الطلبات الجديدة"
+
+                statusView.setTextColor(
+                    if (available) GREEN else RED
+                )
+
+                actionButton.text =
+                    if (available)
+                        "🔴 إيقاف استقبال الطلبات"
+                    else
+                        "🟢 أصبحت متاحاً لاستقبال الطلبات"
+
+                actionButton.background =
+                    rounded(
+                        if (available) RED else GREEN,
+                        14
+                    )
+
+                actionButton.isEnabled = true
+
+                Toast.makeText(
+                    this@NurseDashboardActivity,
+                    if (available)
+                        "تم تفعيل حالة التوفر ✅"
+                    else
+                        "تم إيقاف استقبال الطلبات 🔴",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } catch (e: Exception) {
+                actionButton.isEnabled = true
+                actionButton.text =
+                    if (available)
+                        "🟢 أصبحت متاحاً لاستقبال الطلبات"
+                    else
+                        "🔴 إيقاف استقبال الطلبات"
+
+                Toast.makeText(
+                    this@NurseDashboardActivity,
+                    "تعذر حفظ حالة التوفر: ${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
