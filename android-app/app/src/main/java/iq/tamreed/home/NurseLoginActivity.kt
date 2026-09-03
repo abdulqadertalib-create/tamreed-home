@@ -802,7 +802,7 @@ class NurseLoginActivity : AppCompatActivity() {
                 if (code.length != 6) {
                     otp.error = "أدخل رمز التحقق المكوّن من 6 أرقام"
                     otp.requestFocus()
-                    return@button
+                    return@primaryButton
                 }
 
                 verifyOtp(code)
