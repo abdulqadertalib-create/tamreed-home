@@ -2,7 +2,6 @@ package iq.tamreed.home
 
 import android.app.AlertDialog
 import android.app.ProgressDialog
-import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -11,7 +10,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputFilter
-import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -84,25 +82,12 @@ class AdminActivity : AppCompatActivity() {
             cornerRadius = dp(radius).toFloat()
         }
 
-    private fun rounded(
-        color: Int,
-        radius: Int = 18
-    ): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = dp(radius).toFloat()
-        }
+    // Helpers used by the professional login/OTP UI.
+    private fun rounded(color: Int, radius: Int = 18): GradientDrawable =
+        bg(color, radius)
 
-    private fun bordered(
-        color: Int = white,
-        strokeColor: Int = border,
-        radius: Int = 16
-    ): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(color)
-            setStroke(dp(1), strokeColor)
-            cornerRadius = dp(radius).toFloat()
-        }
+    private fun bordered(color: Int, stroke: Int, radius: Int = 18): GradientDrawable =
+        bg(color, radius, stroke)
 
     private fun text(value: String, size: Float, color: Int = navy, bold: Boolean = false) =
         TextView(this).apply {
@@ -149,19 +134,6 @@ class AdminActivity : AppCompatActivity() {
             background = bg(white, 14, navy)
             setOnClickListener { action() }
         }
-
-    private fun addSpace(
-        parent: LinearLayout,
-        height: Int
-    ) {
-        parent.addView(
-            Space(this),
-            LinearLayout.LayoutParams(
-                1,
-                dp(height)
-            )
-        )
-    }
 
     private fun checkAdmin() {
         val user = SupabaseManager.client.auth.currentUserOrNull()
@@ -466,7 +438,7 @@ class AdminActivity : AppCompatActivity() {
                     )
                     try {
                         SupabaseManager.client.auth.signInWith(OTP) {
-                            this.phone = normalized
+                            phone = normalized
                         }
                         loading.dismiss()
                         showOtp(normalized)
