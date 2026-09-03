@@ -2,6 +2,7 @@ package iq.tamreed.home
 
 import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -40,6 +41,7 @@ class NurseLoginActivity : AppCompatActivity() {
     private val DARK_NAVY = Color.rgb(3, 45, 78)
     private val BLUE = Color.rgb(31, 115, 176)
     private val LIGHT_BLUE = Color.rgb(235, 245, 251)
+    private val GREEN = Color.rgb(50, 150, 85)
     private val TEXT = Color.rgb(45, 45, 45)
     private val GRAY = Color.rgb(120, 120, 120)
     private val LIGHT_GRAY = Color.rgb(247, 248, 249)
