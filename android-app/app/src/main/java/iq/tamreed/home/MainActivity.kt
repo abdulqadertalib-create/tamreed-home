@@ -121,12 +121,8 @@ class MainActivity : AppCompatActivity() {
     private var selectedLongitude: Double? = null
     private var selectedAddress = ""
     private var currentLocationText = "لم يتم تحديد الموقع"
+    private var requestLocationStatusView: TextView? = null
     private val LOCATION_REQUEST_CODE = 2001
-
-    // مراجع واجهة الموقع داخل شاشة إنشاء الطلب حتى يتم التحديث مباشرة
-    // بدون فتح شاشة ثانية.
-    private var inlineLocationStatusView: TextView? = null
-    private var inlineLocationPreview: LocationPreviewView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -1699,45 +1695,30 @@ class MainActivity : AppCompatActivity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
         val root = baseLayout().apply {
-            setPadding(dp(12), dp(6), dp(12), dp(28))
+            setPadding(dp(14), dp(4), dp(14), dp(24))
         }
 
-        // ---------------------------------------------------------
-        // العنوان
-        // ---------------------------------------------------------
-        root.addView(
-            topBar(
-                "طلب ممرض",
-                ::showHome
-            ),
-            LinearLayout.LayoutParams(-1, dp(56))
-        )
+        root.addView(topBar("طلب ممرض", ::showHome))
 
-        addSpace(root, 8)
+        addSpace(root, 6)
 
         root.addView(
-            text("بيانات طلب التمريض", 24f, NAVY, true).apply {
+            text("أدخل بيانات طلب الخدمة", 24f, NAVY, true).apply {
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(40))
+            LinearLayout.LayoutParams(-1, dp(42))
         )
 
         root.addView(
-            text(
-                "أدخل بيانات المريض والموقع بالتفصيل",
-                13f,
-                GRAY
-            ).apply {
+            text("املأ المعلومات الأساسية وحدد موقع المريض مباشرة من هذه الشاشة", 13f, GRAY).apply {
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(27))
+            LinearLayout.LayoutParams(-1, dp(30))
         )
 
-        addSpace(root, 8)
-
-        // ---------------------------------------------------------
-        // بطاقة المعلومات الأساسية
-        // ---------------------------------------------------------
+        // ----------------------------------------------------
+        // المعلومات الأساسية
+        // ----------------------------------------------------
         val basicCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -1747,46 +1728,77 @@ class MainActivity : AppCompatActivity() {
         }
 
         basicCard.addView(
-            text("المعلومات الأساسية", 17f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(30))
+            text("👤  المعلومات الأساسية", 17f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(34))
         )
 
-        // الخدمة
-        basicCard.addView(
-            text("اختر الخدمة المطلوبة", 13f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(24)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        val service = Spinner(this).apply {
+        val patient = EditText(this).apply {
+            hint = "اسم المريض"
+            textSize = 16f
+            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             background = bordered(WHITE, BORDER, 14)
+            setPadding(dp(14), 0, dp(14), 0)
+            maxLines = 1
+            isSingleLine = true
+        }
+        basicCard.addView(patient, LinearLayout.LayoutParams(-1, dp(52)).apply {
+            topMargin = dp(5)
+        })
+
+        val patientPhoneInput = EditText(this).apply {
+            hint = "رقم هاتف المريض"
+            textSize = 16f
+            gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_PHONE
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            maxLines = 1
+            isSingleLine = true
+            background = bordered(WHITE, BORDER, 14)
+            setPadding(dp(12), 0, dp(12), 0)
+            setText(if (patientPhone.isBlank()) phoneNumber else patientPhone)
+        }
+        basicCard.addView(patientPhoneInput, LinearLayout.LayoutParams(-1, dp(52)).apply {
+            topMargin = dp(7)
+        })
+
+        basicCard.addView(
+            text("يستخدم الممرض هذا الرقم للتواصل مع المريض عند الحاجة.", 11f, GRAY).apply {
+                gravity = Gravity.RIGHT
+                includeFontPadding = true
+            },
+            LinearLayout.LayoutParams(-1, dp(25))
+        )
+
+        root.addView(basicCard, LinearLayout.LayoutParams(-1, dp(174)))
+        addSpace(root, 8)
+
+        // ----------------------------------------------------
+        // الخدمة
+        // ----------------------------------------------------
+        val serviceCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 20)
+            elevation = dp(2).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
         }
 
+        serviceCard.addView(
+            text("🩺  الخدمة المطلوبة", 17f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(34))
+        )
+
+        val service = Spinner(this)
         val serviceNames = mutableListOf("جاري تحميل الخدمات...")
         val serviceItems = mutableListOf<ServiceRecord>()
-
         service.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
             serviceNames
         )
+        serviceCard.addView(service, LinearLayout.LayoutParams(-1, dp(50)))
 
-        basicCard.addView(
-            service,
-            LinearLayout.LayoutParams(-1, dp(52)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        // تحميل الخدمات الحقيقية من جدول services.
         scope.launch {
             try {
                 val loadedServices =
@@ -1818,7 +1830,6 @@ class MainActivity : AppCompatActivity() {
                     android.R.layout.simple_spinner_dropdown_item,
                     serviceNames
                 )
-
                 Toast.makeText(
                     this@MainActivity,
                     "تعذر تحميل الخدمات: ${e.message ?: "خطأ غير معروف"}",
@@ -1827,89 +1838,79 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // اسم المريض
-        val patient = EditText(this).apply {
-            hint = "اسم المريض"
-            textSize = 16f
-            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
-            inputType = InputType.TYPE_CLASS_TEXT
-            background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(14), 0, dp(14), 0)
-        }
-
-        basicCard.addView(
-            text("اسم المريض", 13f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(24)).apply {
-                topMargin = dp(7)
-            }
-        )
-
-        basicCard.addView(
-            patient,
-            LinearLayout.LayoutParams(-1, dp(52)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        // هاتف المريض
-        val patientPhoneInput = EditText(this).apply {
-            hint = "رقم هاتف المريض"
-            textSize = 16f
-            gravity = Gravity.CENTER
-            inputType = InputType.TYPE_CLASS_PHONE
-            layoutDirection = View.LAYOUT_DIRECTION_LTR
-            textDirection = View.TEXT_DIRECTION_LTR
-            maxLines = 1
-            isSingleLine = true
-            background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(14), 0, dp(14), 0)
-            setText(phoneNumber)
-        }
-
-        basicCard.addView(
-            text("رقم هاتف المريض للتواصل", 13f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(24)).apply {
-                topMargin = dp(7)
-            }
-        )
-
-        basicCard.addView(
-            patientPhoneInput,
-            LinearLayout.LayoutParams(-1, dp(52)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        basicCard.addView(
-            text(
-                "يستخدم الممرض هذا الرقم للتواصل مع المريض عند الحاجة.",
-                10f,
-                GRAY
-            ).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(20)).apply {
-                topMargin = dp(2)
-            }
-        )
-
-        root.addView(
-            basicCard,
-            LinearLayout.LayoutParams(-1, dp(272))
-        )
-
+        root.addView(serviceCard, LinearLayout.LayoutParams(-1, dp(104)))
         addSpace(root, 8)
 
-        // ---------------------------------------------------------
-        // بطاقة المدينة والعنوان
-        // ---------------------------------------------------------
+        // ----------------------------------------------------
+        // الموقع: داخل نفس الشاشة
+        // ----------------------------------------------------
+        val locationCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(WHITE, 20)
+            elevation = dp(2).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        val locationHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        locationHeader.addView(
+            text("📍", 28f, NAVY),
+            LinearLayout.LayoutParams(dp(42), dp(40))
+        )
+        locationHeader.addView(
+            text("موقع المريض", 18f, NAVY, true).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
+            },
+            LinearLayout.LayoutParams(0, dp(40), 1f)
+        )
+        locationCard.addView(locationHeader)
+
+        val locationStatus = text(
+            if (selectedAddress.isBlank()) "لم يتم تحديد الموقع بعد" else selectedAddress,
+            13f,
+            if (selectedAddress.isBlank()) GRAY else GREEN
+        ).apply {
+            gravity = Gravity.CENTER
+            includeFontPadding = true
+            background = rounded(LIGHT_BLUE, 14)
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+        }
+        requestLocationStatusView = locationStatus
+
+        locationCard.addView(
+            locationStatus,
+            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(4) }
+        )
+
+        val locationButton = button("📍  تحديد موقعي الآن") {
+            locationStatus.text = "جاري تحديد موقع المريض..."
+            locationStatus.setTextColor(NAVY)
+            getCurrentLocation(locationStatus)
+        }
+        locationCard.addView(
+            locationButton,
+            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) }
+        )
+
+        locationCard.addView(
+            text("سيتم حفظ الإحداثيات وإرسالها للممرض للوصول إلى المريض.", 10f, GRAY).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = true
+            },
+            LinearLayout.LayoutParams(-1, dp(22))
+        )
+
+        root.addView(locationCard, LinearLayout.LayoutParams(-1, dp(174)))
+        addSpace(root, 8)
+
+        // ----------------------------------------------------
+        // المدينة والنقطة الدالة
+        // ----------------------------------------------------
         val addressCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -1919,28 +1920,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         addressCard.addView(
-            text("المدينة والعنوان", 17f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(30))
+            text("🏠  عنوان الوصول", 17f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(34))
         )
 
-        addressCard.addView(
-            text("المدينة / القضاء", 13f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(24)).apply {
-                topMargin = dp(2)
-            }
-        )
-
-        val citySpinner = Spinner(this).apply {
-            background = bordered(WHITE, BORDER, 14)
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
+        val citySpinner = Spinner(this)
         val anbarCities = arrayOf(
             "اختر المدينة / القضاء",
             "الرمادي",
@@ -1957,308 +1941,109 @@ class MainActivity : AppCompatActivity() {
             "البغدادي",
             "عامرية الصمود"
         )
-
         citySpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
             anbarCities
         )
-
-        addressCard.addView(
-            citySpinner,
-            LinearLayout.LayoutParams(-1, dp(50)).apply {
-                topMargin = dp(3)
-            }
-        )
+        addressCard.addView(citySpinner, LinearLayout.LayoutParams(-1, dp(48)))
 
         val landmarkInput = EditText(this).apply {
-            hint = "أقرب نقطة دالة (جامع، مدرسة، مستشفى، شارع...)"
+            hint = "أقرب نقطة دالة: جامع، مدرسة، مستشفى، شارع..."
             textSize = 15f
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
-            inputType =
-                InputType.TYPE_CLASS_TEXT or
-                    InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            singleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             background = bordered(WHITE, BORDER, 14)
             setPadding(dp(14), 0, dp(14), 0)
+            maxLines = 1
+            isSingleLine = true
         }
+        addressCard.addView(landmarkInput, LinearLayout.LayoutParams(-1, dp(50)).apply {
+            topMargin = dp(6)
+        })
 
-        addressCard.addView(
-            text("أقرب نقطة دالة", 13f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(24)).apply {
-                topMargin = dp(7)
-            }
-        )
-
-        addressCard.addView(
-            landmarkInput,
-            LinearLayout.LayoutParams(-1, dp(50)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        root.addView(
-            addressCard,
-            LinearLayout.LayoutParams(-1, dp(185))
-        )
-
+        root.addView(addressCard, LinearLayout.LayoutParams(-1, dp(146)))
         addSpace(root, 8)
 
-        // ---------------------------------------------------------
-        // بطاقة الموقع - تحديد مباشر داخل نفس الشاشة
-        // ---------------------------------------------------------
-        val locationCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
-            elevation = dp(2).toFloat()
-            setPadding(dp(10), dp(10), dp(10), dp(10))
-        }
-
-        val locationHeader = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
-        locationHeader.addView(
-            text("📍", 27f, NAVY, true).apply {
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(dp(42), dp(36))
-        )
-
-        locationHeader.addView(
-            text("الموقع", 18f, NAVY, true).apply {
-                gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(0, dp(36), 1f)
-        )
-
-        val locationBadge = text(
-            if (selectedLatitude != null && selectedLongitude != null)
-                "تم التحديد"
-            else
-                "مطلوب",
-            10f,
-            if (selectedLatitude != null && selectedLongitude != null) GREEN else ORANGE,
-            true
-        ).apply {
-            gravity = Gravity.CENTER
-            background = rounded(
-                if (selectedLatitude != null && selectedLongitude != null)
-                    Color.rgb(232, 248, 237)
-                else
-                    Color.rgb(255, 246, 229),
-                10
-            )
-        }
-
-        locationHeader.addView(
-            locationBadge,
-            LinearLayout.LayoutParams(dp(68), dp(28))
-        )
-
-        locationCard.addView(locationHeader)
-
-        // معاينة خريطة خفيفة مرسومة داخل التطبيق؛ لا تفتح صفحة ثانية.
-        val preview = LocationPreviewView(this)
-        inlineLocationPreview = preview
-
-        locationCard.addView(
-            preview,
-            LinearLayout.LayoutParams(-1, dp(132)).apply {
-                topMargin = dp(4)
-            }
-        )
-
-        val locationStatus = text(
-            currentLocationText,
-            11f,
-            if (selectedLatitude != null) GREEN else GRAY
-        ).apply {
-            gravity = Gravity.CENTER
-            includeFontPadding = true
-            maxLines = 2
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        }
-
-        inlineLocationStatusView = locationStatus
-
-        locationCard.addView(
-            locationStatus,
-            LinearLayout.LayoutParams(-1, dp(38)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        locationCard.addView(
-            button("📍  تحديد موقعي الحالي") {
-                locationStatus.text = "جاري تحديد الموقع..."
-                locationStatus.setTextColor(NAVY)
-                getCurrentLocation(locationStatus)
-
-                // تحديث العلامة بصرياً عند نجاح الحصول على الإحداثيات.
-                preview.invalidate()
-            },
-            LinearLayout.LayoutParams(-1, dp(50)).apply {
-                topMargin = dp(3)
-            }
-        )
-
-        locationCard.addView(
-            text(
-                "سيتم إرسال هذا الموقع للممرض ليسهل الوصول إلى المريض.",
-                10f,
-                GRAY
-            ).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(22)).apply {
-                topMargin = dp(2)
-            }
-        )
-
-        root.addView(
-            locationCard,
-            LinearLayout.LayoutParams(-1, dp(275))
-        )
-
-        addSpace(root, 8)
-
-        // ---------------------------------------------------------
+        // ----------------------------------------------------
         // الملاحظات
-        // ---------------------------------------------------------
+        // ----------------------------------------------------
         val notesCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 20)
-            elevation = dp(2).toFloat()
-            setPadding(dp(12), dp(9), dp(12), dp(9))
+            elevation = dp(1).toFloat()
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
-
         notesCard.addView(
-            text("ملاحظات إضافية (اختياري)", 16f, NAVY, true).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(29))
+            text("📝  ملاحظات إضافية (اختياري)", 16f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(32))
         )
 
         val notes = EditText(this).apply {
-            hint = "اكتب أي ملاحظات تساعد الممرض على فهم الحالة..."
+            hint = "اكتب أي معلومة تساعد الممرض على فهم الحالة..."
             textSize = 14f
             gravity = Gravity.TOP or Gravity.RIGHT
-            inputType =
-                InputType.TYPE_CLASS_TEXT or
-                    InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            maxLines = 4
-            minLines = 3
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 2
+            maxLines = 3
             background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(13), dp(10), dp(13), dp(10))
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
-
-        notesCard.addView(
-            notes,
-            LinearLayout.LayoutParams(-1, dp(82)).apply {
-                topMargin = dp(4)
-            }
-        )
-
-        root.addView(
-            notesCard,
-            LinearLayout.LayoutParams(-1, dp(125))
-        )
-
+        notesCard.addView(notes, LinearLayout.LayoutParams(-1, dp(66)))
+        root.addView(notesCard, LinearLayout.LayoutParams(-1, dp(108)))
         addSpace(root, 8)
 
-        // ---------------------------------------------------------
-        // تنبيه طبي مختصر
-        // ---------------------------------------------------------
+        // ----------------------------------------------------
+        // تنبيه طبي + إرسال
+        // ----------------------------------------------------
         root.addView(
             medicalVisualCard(
                 "🛡️",
                 "تنبيه طبي",
                 "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. في الحالات الحرجة اتصل بالإسعاف فوراً."
             ),
-            LinearLayout.LayoutParams(-1, dp(105))
+            LinearLayout.LayoutParams(-1, dp(86))
         )
 
         addSpace(root, 8)
 
-        // ---------------------------------------------------------
-        // مراجعة سريعة قبل الإرسال
-        // ---------------------------------------------------------
-        root.addView(
-            medicalVisualCard(
-                "📋",
-                "راجع بيانات الطلب قبل الإرسال",
-                "تأكد من الاسم والهاتف والخدمة والمدينة والموقع."
-            ),
-            LinearLayout.LayoutParams(-1, dp(105))
-        )
-
-        addSpace(root, 9)
-
-        // ---------------------------------------------------------
-        // إرسال الطلب
-        // ---------------------------------------------------------
         root.addView(
             button("📨  إرسال طلب التمريض الآن") {
 
-                if (service.selectedItemPosition == 0) {
-                    Toast.makeText(
-                        this,
-                        "اختر الخدمة أولاً",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                if (service.selectedItemPosition == 0 ||
+                    serviceItems.isEmpty() ||
+                    service.selectedItemPosition > serviceItems.size
+                ) {
+                    Toast.makeText(this, "اختر الخدمة أولاً", Toast.LENGTH_SHORT).show()
                     return@button
                 }
 
-                val patientName =
-                    patient.text.toString().trim()
-
+                val patientName = patient.text.toString().trim()
                 if (patientName.isEmpty()) {
                     patient.error = "أدخل اسم المريض"
                     patient.requestFocus()
                     return@button
                 }
 
-                val enteredPhone =
-                    normalizeIraqPhone(
-                        patientPhoneInput.text.toString().trim()
-                    )
-
+                val enteredPhone = normalizeIraqPhone(
+                    patientPhoneInput.text.toString().trim()
+                )
                 if (enteredPhone == null) {
-                    patientPhoneInput.error =
-                        "أدخل رقم هاتف عراقي صحيح"
+                    patientPhoneInput.error = "أدخل رقم هاتف عراقي صحيح"
                     patientPhoneInput.requestFocus()
                     return@button
                 }
 
-                if (citySpinner.selectedItemPosition == 0) {
-                    Toast.makeText(
-                        this,
-                        "اختر المدينة / القضاء",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                val selectedCityValue = citySpinner.selectedItem.toString().trim()
+                if (selectedCityValue == "اختر المدينة / القضاء") {
+                    Toast.makeText(this, "اختر المدينة / القضاء", Toast.LENGTH_SHORT).show()
                     return@button
                 }
 
-                val selectedCityValue =
-                    citySpinner.selectedItem.toString().trim()
-
-                val enteredLandmark =
-                    landmarkInput.text.toString().trim()
-
+                val enteredLandmark = landmarkInput.text.toString().trim()
                 if (enteredLandmark.isEmpty()) {
-                    landmarkInput.error =
-                        "أدخل أقرب نقطة دالة"
+                    landmarkInput.error = "أدخل أقرب نقطة دالة"
                     landmarkInput.requestFocus()
                     return@button
                 }
@@ -2266,9 +2051,10 @@ class MainActivity : AppCompatActivity() {
                 if (selectedLatitude == null || selectedLongitude == null) {
                     Toast.makeText(
                         this,
-                        "حدد موقع المريض أولاً من نفس الشاشة",
+                        "حدد موقع المريض مباشرة من زر تحديد موقعي الآن",
                         Toast.LENGTH_LONG
                     ).show()
+                    locationStatus.requestFocus()
                     return@button
                 }
 
@@ -2276,21 +2062,7 @@ class MainActivity : AppCompatActivity() {
                 selectedCity = selectedCityValue
                 landmark = enteredLandmark
 
-                if (
-                    serviceItems.isEmpty() ||
-                    service.selectedItemPosition <= 0 ||
-                    service.selectedItemPosition > serviceItems.size
-                ) {
-                    Toast.makeText(
-                        this,
-                        "اختر خدمة متاحة أولاً",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@button
-                }
-
-                val selectedService =
-                    serviceItems[service.selectedItemPosition - 1]
+                val selectedService = serviceItems[service.selectedItemPosition - 1]
 
                 createBooking(
                     selectedService,
@@ -2311,157 +2083,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         setContentView(scroll(root))
-    }
-
-    private inner class LocationPreviewView(context: android.content.Context) :
-        View(context) {
-
-        private val roadPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(226, 231, 235)
-            style = Paint.Style.STROKE
-            strokeWidth = dp(13).toFloat()
-        }
-
-        private val thinRoadPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(239, 242, 244)
-            style = Paint.Style.STROKE
-            strokeWidth = dp(6).toFloat()
-        }
-
-        private val parkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(229, 242, 231)
-            style = Paint.Style.FILL
-        }
-
-        private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(244, 246, 247)
-            style = Paint.Style.STROKE
-            strokeWidth = dp(1).toFloat()
-        }
-
-        private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = NAVY
-            style = Paint.Style.FILL
-        }
-
-        private val markerRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(45, 31, 115, 176)
-            style = Paint.Style.FILL
-        }
-
-        override fun onDraw(canvas: Canvas) {
-            super.onDraw(canvas)
-
-            val w = width.toFloat()
-            val h = height.toFloat()
-
-            canvas.drawRoundRect(
-                0f,
-                0f,
-                w,
-                h,
-                dp(16).toFloat(),
-                dp(16).toFloat(),
-                Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.rgb(249, 251, 252)
-                    style = Paint.Style.FILL
-                }
-            )
-
-            // مساحات خضراء خفيفة تعطي إحساس الخريطة.
-            canvas.drawRoundRect(
-                w * 0.02f,
-                h * 0.10f,
-                w * 0.28f,
-                h * 0.38f,
-                dp(20).toFloat(),
-                dp(20).toFloat(),
-                parkPaint
-            )
-
-            canvas.drawRoundRect(
-                w * 0.72f,
-                h * 0.60f,
-                w * 0.98f,
-                h * 0.94f,
-                dp(20).toFloat(),
-                dp(20).toFloat(),
-                parkPaint
-            )
-
-            // شبكة طرق بسيطة.
-            var x = -w
-            while (x < w * 2f) {
-                canvas.drawLine(x, 0f, x + w, h, gridPaint)
-                x += dp(35)
-            }
-
-            var y = 0f
-            while (y < h) {
-                canvas.drawLine(0f, y, w, y + h * 0.18f, gridPaint)
-                y += dp(28)
-            }
-
-            // طرق رئيسية.
-            val road1 = Path().apply {
-                moveTo(-w * 0.1f, h * 0.80f)
-                lineTo(w * 0.35f, h * 0.52f)
-                lineTo(w * 0.70f, h * 0.48f)
-                lineTo(w * 1.1f, h * 0.18f)
-            }
-            canvas.drawPath(road1, roadPaint)
-
-            val road2 = Path().apply {
-                moveTo(w * 0.05f, -h * 0.10f)
-                lineTo(w * 0.38f, h * 0.35f)
-                lineTo(w * 0.55f, h * 0.80f)
-                lineTo(w * 0.82f, h * 1.1f)
-            }
-            canvas.drawPath(road2, thinRoadPaint)
-
-            val cx = w / 2f
-            val cy = h / 2f
-
-            // دائرة الموقع.
-            canvas.drawCircle(
-                cx,
-                cy,
-                dp(32).toFloat(),
-                markerRingPaint
-            )
-
-            canvas.drawCircle(
-                cx,
-                cy,
-                dp(14).toFloat(),
-                markerPaint
-            )
-
-            canvas.drawCircle(
-                cx,
-                cy,
-                dp(5).toFloat(),
-                Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = WHITE
-                    style = Paint.Style.FILL
-                }
-            )
-
-            // إذا لم يحدد الموقع بعد، نوضح أن هذه معاينة فقط.
-            if (selectedLatitude == null || selectedLongitude == null) {
-                val hint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = GRAY
-                    textSize = dp(11).toFloat()
-                    textAlign = Paint.Align.CENTER
-                }
-                canvas.drawText(
-                    "اضغط «تحديد موقعي الحالي»",
-                    cx,
-                    h - dp(10).toFloat(),
-                    hint
-                )
-            }
-        }
     }
 
     private fun createBooking(
@@ -2917,13 +2538,10 @@ class MainActivity : AppCompatActivity() {
                         location.longitude
                     )
                     currentLocationText =
-                        "تم تحديد الموقع بنجاح ✓  %.5f, %.5f".format(
-                            location.latitude,
-                            location.longitude
-                        )
+                        "تم تحديد الموقع بنجاح ✅\n\n" +
+                        "خط العرض: %.6f\n".format(location.latitude) +
+                        "خط الطول: %.6f".format(location.longitude)
                     statusView.text = currentLocationText
-                    statusView.setTextColor(GREEN)
-                    inlineLocationPreview?.invalidate()
                     Toast.makeText(
                         this,
                         "تم تحديد موقعك بنجاح",
@@ -2977,17 +2595,15 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == LOCATION_REQUEST_CODE) {
             if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
-                val inlineStatus = inlineLocationStatusView
-
-                if (inlineStatus != null) {
-                    inlineStatus.text = "جاري تحديد موقعك..."
-                    inlineStatus.setTextColor(NAVY)
-                    getCurrentLocation(inlineStatus)
+                val requestStatus = requestLocationStatusView
+                if (requestStatus != null) {
+                    requestStatus.text = "جاري تحديد موقع المريض..."
+                    getCurrentLocation(requestStatus)
                 } else {
                     Toast.makeText(
                         this,
-                        "تم السماح بالموقع. اضغط تحديد الموقع مرة أخرى.",
-                        Toast.LENGTH_LONG
+                        "تم السماح بالموقع.",
+                        Toast.LENGTH_SHORT
                     ).show()
                 }
             } else {
