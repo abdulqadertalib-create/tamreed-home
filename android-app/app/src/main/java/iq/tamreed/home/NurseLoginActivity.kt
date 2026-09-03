@@ -857,6 +857,58 @@ class NurseLoginActivity : AppCompatActivity() {
 
         scope.launch {
             try {
+                // قد يكون للمستخدم سجل ممرض موجود مسبقاً في nurses.
+                // لا نحاول INSERT مرة ثانية لأن user_id عليه قيد UNIQUE.
+                val existing = SupabaseManager.client
+                    .from("nurses")
+                    .select {
+                        filter {
+                            eq("user_id", user.id)
+                        }
+                    }
+                    .decodeList<NurseLoginRecord>()
+
+                if (existing.isNotEmpty()) {
+                    val oldNurse = existing.first()
+
+                    // إذا كان الحساب معتمداً بالفعل، لا نسمح بتسجيل حساب جديد فوقه.
+                    if (oldNurse.is_verified == true) {
+                        loading.dismiss()
+                        isNewNurseRegistration = false
+                        showError(
+                            "الحساب موجود ومعتمد",
+                            "هذا الرقم مرتبط بحساب ممرض معتمد بالفعل. استخدم «دخول الممرضين» بدلاً من إنشاء حساب جديد."
+                        )
+                        return@launch
+                    }
+
+                    // الحساب موجود لكنه غير معتمد:
+                    // نحدّث بياناته بدلاً من إنشاء صف جديد.
+                    SupabaseManager.client
+                        .from("nurses")
+                        .update(
+                            mapOf(
+                                "full_name" to fullName,
+                                "phone" to phone,
+                                "specialty" to specialty,
+                                "experience_years" to experienceYears,
+                                "city" to city,
+                                "address" to address,
+                                "is_available" to true,
+                                "is_verified" to false
+                            )
+                        ) {
+                            filter {
+                                eq("user_id", user.id)
+                            }
+                        }
+
+                    loading.dismiss()
+                    showAccountCreatedDialog()
+                    return@launch
+                }
+
+                // لا يوجد سجل سابق، لذلك ننشئ سجل الممرض الجديد.
                 val record = NurseCreateRecord(
                     user_id = user.id,
                     full_name = fullName,
