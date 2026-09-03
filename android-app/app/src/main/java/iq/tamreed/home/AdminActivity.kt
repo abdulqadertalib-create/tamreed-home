@@ -10,6 +10,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputFilter
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -134,6 +135,13 @@ class AdminActivity : AppCompatActivity() {
             background = bg(white, 14, navy)
             setOnClickListener { action() }
         }
+
+    private fun addSpace(parent: LinearLayout, height: Int) {
+        parent.addView(
+            Space(this),
+            LinearLayout.LayoutParams(1, dp(height))
+        )
+    }
 
     private fun checkAdmin() {
         val user = SupabaseManager.client.auth.currentUserOrNull()
@@ -438,7 +446,7 @@ class AdminActivity : AppCompatActivity() {
                     )
                     try {
                         SupabaseManager.client.auth.signInWith(OTP) {
-                            phone = normalized
+                            this.phone = normalized
                         }
                         loading.dismiss()
                         showOtp(normalized)
