@@ -466,7 +466,7 @@ class AdminActivity : AppCompatActivity() {
                     )
                     try {
                         SupabaseManager.client.auth.signInWith(OTP) {
-                            phone = normalized
+                            this.phone = normalized
                         }
                         loading.dismiss()
                         showOtp(normalized)
