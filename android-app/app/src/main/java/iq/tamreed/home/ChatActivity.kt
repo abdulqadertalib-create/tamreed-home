@@ -3,6 +3,7 @@ package iq.tamreed.home
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.widget.FrameLayout
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -251,7 +252,7 @@ class ChatActivity : AppCompatActivity() {
 
         scrollView.addView(
             messagesContainer,
-            ScrollView.LayoutParams(-1, -2)
+            FrameLayout.LayoutParams(-1, -2)
         )
 
         root.addView(
