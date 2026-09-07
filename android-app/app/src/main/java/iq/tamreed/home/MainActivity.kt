@@ -84,6 +84,7 @@ data class PatientBooking(
 @Serializable
 data class PatientNurseBrief(
     val id: String,
+    val user_id: String? = null,
     val full_name: String? = null,
     val phone: String? = null
 )
@@ -2936,17 +2937,49 @@ class MainActivity : AppCompatActivity() {
                     true
                 )
             )
-            if (!nurse.phone.isNullOrBlank() && status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
-                card.addView(
-                    outlineButton("اتصال بالممرض") {
-                        try {
-                            startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${nurse.phone}")))
-                        } catch (_: Exception) {
-                            Toast.makeText(this, "تعذر فتح الاتصال", Toast.LENGTH_SHORT).show()
+            if (status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
+
+                if (!nurse.phone.isNullOrBlank()) {
+                    card.addView(
+                        outlineButton("اتصال بالممرض") {
+                            try {
+                                startActivity(
+                                    Intent(
+                                        Intent.ACTION_DIAL,
+                                        Uri.parse("tel:${nurse.phone}")
+                                    )
+                                )
+                            } catch (_: Exception) {
+                                Toast.makeText(
+                                    this,
+                                    "تعذر فتح الاتصال",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        LinearLayout.LayoutParams(-1, dp(48)).apply {
+                            topMargin = dp(7)
                         }
-                    },
-                    LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(7) }
-                )
+                    )
+                }
+
+                if (!nurse.user_id.isNullOrBlank()) {
+                    card.addView(
+                        button("المحادثة مع الممرض") {
+                            openChat(
+                                booking = booking,
+                                receiverId = nurse.user_id!!,
+                                receiverName =
+                                    nurse.full_name
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: "الممرض"
+                            )
+                        },
+                        LinearLayout.LayoutParams(-1, dp(48)).apply {
+                            topMargin = dp(7)
+                        }
+                    )
+                }
             }
         } else if (status == "PENDING") {
             card.addView(
@@ -3173,73 +3206,213 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 10)
 
-        val search =
-            EditText(this).apply {
-
-                hint = "ابحث..."
-
-                textSize = 16f
-
-                gravity = Gravity.RIGHT
-
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        15
-                    )
-
-                setPadding(
-                    dp(15),
-                    dp(5),
-                    dp(15),
-                    dp(5)
-                )
-            }
-
         root.addView(
-            search,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(60)
-            )
-        )
-
-        addSpace(root, 20)
-
-        root.addView(
-            chatCard(
-                "🛡️",
-                "دعم التمريض",
-                "تواصل مع فريق التمريض",
+            text(
+                "محادثات طلبات التمريض",
+                20f,
+                NAVY,
                 true
-            ) {
-
-                Toast.makeText(
-                    this,
-                    "سيتم فتح المحادثة في المرحلة التالية",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        )
-
-        addSpace(root, 20)
-
-        root.addView(
-            emptyState(
-                "💬",
-                "لا توجد محادثات بعد",
-                "ستظهر محادثاتك هنا عند بدء التواصل"
             )
         )
 
-        addSpace(root, 15)
+        root.addView(
+            text(
+                "يمكنك مراسلة الممرض المعين بعد قبول الطلب.",
+                13f,
+                GRAY
+            )
+        )
+
+        addSpace(root, 12)
+
+        val loading = text(
+            "جاري تحميل المحادثات...",
+            14f,
+            GRAY
+        )
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
 
         root.addView(
-            bottomNavigation("chat")
+            loading,
+            LinearLayout.LayoutParams(-1, dp(42))
         )
+
+        root.addView(
+            container,
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
+        addSpace(root, 12)
+
+        root.addView(bottomNavigation("chat"))
 
         setContentView(scroll(root))
+
+        val user =
+            SupabaseManager.client.auth.currentUserOrNull()
+
+        if (user == null) {
+            loading.text = "سجل الدخول أولاً لعرض المحادثات"
+            return
+        }
+
+        scope.launch {
+            try {
+                val bookings =
+                    SupabaseManager.client
+                        .from("bookings")
+                        .select {
+                            filter {
+                                eq("patient_id", user.id)
+                            }
+                        }
+                        .decodeList<PatientBooking>()
+                        .filter {
+                            it.status.uppercase() in
+                                listOf(
+                                    "ACCEPTED",
+                                    "ON_THE_WAY",
+                                    "IN_PROGRESS"
+                                ) &&
+                                !it.nurse_id.isNullOrBlank()
+                        }
+                        .sortedByDescending { it.created_at }
+
+                val nurseIds =
+                    bookings.mapNotNull {
+                        it.nurse_id?.takeIf { id -> id.isNotBlank() }
+                    }.distinct()
+
+                val nurses =
+                    if (nurseIds.isNotEmpty()) {
+                        SupabaseManager.client
+                            .from("nurses")
+                            .select()
+                            .decodeList<PatientNurseBrief>()
+                            .filter { it.id in nurseIds }
+                    } else {
+                        emptyList()
+                    }
+
+                val nurseMap =
+                    nurses.associateBy { it.id }
+
+                container.removeAllViews()
+
+                if (bookings.isEmpty()) {
+                    loading.visibility = View.GONE
+
+                    container.addView(
+                        emptyState(
+                            "💬",
+                            "لا توجد محادثات نشطة",
+                            "ستظهر هنا محادثة الممرض عند قبول أحد طلباتك."
+                        )
+                    )
+                } else {
+                    loading.visibility = View.GONE
+
+                    bookings.forEach { booking ->
+
+                        val nurse =
+                            nurseMap[booking.nurse_id]
+
+                        if (nurse == null ||
+                            nurse.user_id.isNullOrBlank()
+                        ) {
+                            return@forEach
+                        }
+
+                        val name =
+                            nurse.full_name
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "الممرض"
+
+                        val card =
+                            chatCard(
+                                "✉",
+                                name,
+                                "طلب رقم ${booking.id.take(8)} • ${statusText(booking.status)}",
+                                true
+                            ) {
+                                openChat(
+                                    booking = booking,
+                                    receiverId = nurse.user_id!!,
+                                    receiverName = name
+                                )
+                            }
+
+                        container.addView(
+                            card,
+                            LinearLayout.LayoutParams(
+                                -1,
+                                -2
+                            ).apply {
+                                bottomMargin = dp(10)
+                            }
+                        )
+                    }
+                }
+
+            } catch (e: Exception) {
+                loading.visibility = View.VISIBLE
+                loading.text =
+                    "تعذر تحميل المحادثات\n${e.message ?: "خطأ غير معروف"}"
+            }
+        }
+    }
+
+    private fun openChat(
+        booking: PatientBooking,
+        receiverId: String,
+        receiverName: String
+    ) {
+        val user =
+            SupabaseManager.client.auth.currentUserOrNull()
+
+        if (user == null) {
+            Toast.makeText(
+                this,
+                "سجل الدخول أولاً",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        if (booking.id.isBlank() ||
+            receiverId.isBlank()
+        ) {
+            Toast.makeText(
+                this,
+                "بيانات المحادثة غير مكتملة",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        startActivity(
+            Intent(
+                this,
+                ChatActivity::class.java
+            ).apply {
+                putExtra(
+                    ChatActivity.EXTRA_BOOKING_ID,
+                    booking.id
+                )
+                putExtra(
+                    ChatActivity.EXTRA_RECEIVER_ID,
+                    receiverId
+                )
+                putExtra(
+                    ChatActivity.EXTRA_RECEIVER_NAME,
+                    receiverName
+                )
+            }
+        )
     }
 
     private fun chatCard(
