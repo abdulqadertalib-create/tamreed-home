@@ -373,13 +373,13 @@ class MainActivity : AppCompatActivity() {
         )
 
         bar.addView(
-            text("🔔", 23f, NAVY),
-            LinearLayout.LayoutParams(dp(55), dp(55))
+            realIcon(android.R.drawable.ic_popup_reminder, 24),
+            LinearLayout.LayoutParams(dp(50), dp(50))
         )
 
         bar.addView(
-            text("🛒", 22f, NAVY),
-            LinearLayout.LayoutParams(dp(55), dp(55))
+            realIcon(android.R.drawable.ic_menu_view, 24),
+            LinearLayout.LayoutParams(dp(50), dp(50))
         )
 
         return bar
@@ -1696,83 +1696,71 @@ class MainActivity : AppCompatActivity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
         val root = baseLayout().apply {
-            setPadding(dp(14), dp(4), dp(14), dp(24))
+            setPadding(dp(12), dp(2), dp(12), dp(18))
         }
 
         root.addView(topBar("طلب ممرض", ::showHome))
 
-        addSpace(root, 6)
-
+        addSpace(root, 3)
         root.addView(
-            text("أدخل بيانات طلب الخدمة", 24f, NAVY, true).apply {
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(42))
+            text("إتمام طلب التمريض", 22f, NAVY, true),
+            LinearLayout.LayoutParams(-1, dp(38))
         )
-
         root.addView(
-            text("املأ المعلومات الأساسية وحدد موقع المريض مباشرة من هذه الشاشة", 13f, GRAY).apply {
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(30))
+            text("أدخل بيانات المريض وحدد موقع الوصول بدقة", 12f, GRAY),
+            LinearLayout.LayoutParams(-1, dp(25))
         )
+        addSpace(root, 4)
 
         // ----------------------------------------------------
-        // المعلومات الأساسية
+        // المعلومات الأساسية — رقم الهاتف لا يظهر للمريض هنا.
+        // رقم الحساب الحالي يُحفظ تلقائياً ويراه الممرض فقط.
         // ----------------------------------------------------
         val basicCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
+            background = rounded(WHITE, 18)
             elevation = dp(2).toFloat()
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setPadding(dp(11), dp(7), dp(11), dp(7))
         }
 
-        basicCard.addView(
-            text("👤  المعلومات الأساسية", 17f, NAVY, true),
-            LinearLayout.LayoutParams(-1, dp(34))
+        val basicHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        basicHeader.addView(realIcon(android.R.drawable.ic_menu_myplaces, 25))
+        basicHeader.addView(
+            text("المعلومات الأساسية", 16f, NAVY, true).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
+            },
+            LinearLayout.LayoutParams(0, dp(32), 1f)
         )
+        basicCard.addView(basicHeader)
 
         val patient = EditText(this).apply {
             hint = "اسم المريض"
-            textSize = 16f
+            textSize = 15f
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(14), 0, dp(14), 0)
+            background = bordered(WHITE, BORDER, 13)
+            setPadding(dp(13), 0, dp(13), 0)
             maxLines = 1
             isSingleLine = true
         }
-        basicCard.addView(patient, LinearLayout.LayoutParams(-1, dp(52)).apply {
-            topMargin = dp(5)
-        })
-
-        val patientPhoneInput = EditText(this).apply {
-            hint = "رقم هاتف المريض"
-            textSize = 16f
-            gravity = Gravity.CENTER
-            inputType = InputType.TYPE_CLASS_PHONE
-            layoutDirection = View.LAYOUT_DIRECTION_LTR
-            maxLines = 1
-            isSingleLine = true
-            background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(12), 0, dp(12), 0)
-            setText(if (patientPhone.isBlank()) phoneNumber else patientPhone)
-        }
-        basicCard.addView(patientPhoneInput, LinearLayout.LayoutParams(-1, dp(52)).apply {
-            topMargin = dp(7)
+        basicCard.addView(patient, LinearLayout.LayoutParams(-1, dp(48)).apply {
+            topMargin = dp(4)
         })
 
         basicCard.addView(
-            text("يستخدم الممرض هذا الرقم للتواصل مع المريض عند الحاجة.", 11f, GRAY).apply {
+            text("سيتم استخدام رقم حسابك المسجل للتواصل معك عند الحاجة.", 10f, GRAY).apply {
                 gravity = Gravity.RIGHT
-                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(20))
         )
 
-        root.addView(basicCard, LinearLayout.LayoutParams(-1, dp(174)))
-        addSpace(root, 8)
+        root.addView(basicCard, LinearLayout.LayoutParams(-1, dp(108)))
+        addSpace(root, 6)
 
         // ----------------------------------------------------
         // الخدمة
@@ -1780,15 +1768,24 @@ class MainActivity : AppCompatActivity() {
         val serviceCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
+            background = rounded(WHITE, 18)
             elevation = dp(2).toFloat()
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setPadding(dp(11), dp(7), dp(11), dp(7))
         }
 
-        serviceCard.addView(
-            text("🩺  الخدمة المطلوبة", 17f, NAVY, true),
-            LinearLayout.LayoutParams(-1, dp(34))
+        val serviceHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        serviceHeader.addView(realIcon(android.R.drawable.ic_menu_agenda, 25))
+        serviceHeader.addView(
+            text("الخدمة المطلوبة", 16f, NAVY, true).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
+            },
+            LinearLayout.LayoutParams(0, dp(32), 1f)
         )
+        serviceCard.addView(serviceHeader)
 
         val service = Spinner(this)
         val serviceNames = mutableListOf("جاري تحميل الخدمات...")
@@ -1798,7 +1795,7 @@ class MainActivity : AppCompatActivity() {
             android.R.layout.simple_spinner_dropdown_item,
             serviceNames
         )
-        serviceCard.addView(service, LinearLayout.LayoutParams(-1, dp(50)))
+        serviceCard.addView(service, LinearLayout.LayoutParams(-1, dp(44)))
 
         scope.launch {
             try {
@@ -1806,9 +1803,7 @@ class MainActivity : AppCompatActivity() {
                     SupabaseManager.client
                         .from("services")
                         .select {
-                            filter {
-                                eq("is_active", true)
-                            }
+                            filter { eq("is_active", true) }
                         }
                         .decodeList<ServiceRecord>()
 
@@ -1839,18 +1834,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        root.addView(serviceCard, LinearLayout.LayoutParams(-1, dp(104)))
-        addSpace(root, 8)
+        root.addView(serviceCard, LinearLayout.LayoutParams(-1, dp(91)))
+        addSpace(root, 6)
 
         // ----------------------------------------------------
-        // الموقع: داخل نفس الشاشة
+        // الموقع
         // ----------------------------------------------------
         val locationCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
+            background = rounded(WHITE, 18)
             elevation = dp(2).toFloat()
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setPadding(dp(11), dp(7), dp(11), dp(7))
         }
 
         val locationHeader = LinearLayout(this).apply {
@@ -1858,113 +1853,97 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
-
+        locationHeader.addView(realIcon(android.R.drawable.ic_menu_mylocation, 25))
         locationHeader.addView(
-            text("📍", 28f, NAVY),
-            LinearLayout.LayoutParams(dp(42), dp(40))
-        )
-        locationHeader.addView(
-            text("موقع المريض", 18f, NAVY, true).apply {
+            text("موقع المريض", 16f, NAVY, true).apply {
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(40), 1f)
+            LinearLayout.LayoutParams(0, dp(32), 1f)
         )
         locationCard.addView(locationHeader)
 
         val locationStatus = text(
-            if (selectedAddress.isBlank()) "لم يتم تحديد الموقع بعد" else selectedAddress,
-            13f,
+            if (selectedAddress.isBlank()) "لم يتم تحديد الموقع بعد" else "تم تحديد الموقع بنجاح",
+            12f,
             if (selectedAddress.isBlank()) GRAY else GREEN
         ).apply {
             gravity = Gravity.CENTER
-            includeFontPadding = true
-            background = rounded(LIGHT_BLUE, 14)
-            setPadding(dp(8), dp(4), dp(8), dp(4))
+            background = rounded(LIGHT_BLUE, 12)
+            setPadding(dp(6), dp(2), dp(6), dp(2))
         }
         requestLocationStatusView = locationStatus
-
         locationCard.addView(
             locationStatus,
-            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(4) }
+            LinearLayout.LayoutParams(-1, dp(38)).apply { topMargin = dp(3) }
         )
 
-        val locationButton = button("📍  تحديد موقعي الآن") {
+        val locationButton = button("تحديد موقعي الآن") {
             locationStatus.text = "جاري تحديد موقع المريض..."
             locationStatus.setTextColor(NAVY)
             getCurrentLocation(locationStatus)
         }
         locationCard.addView(
             locationButton,
-            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) }
+            LinearLayout.LayoutParams(-1, dp(43)).apply { topMargin = dp(4) }
         )
 
-        locationCard.addView(
-            text("سيتم حفظ الإحداثيات وإرسالها للممرض للوصول إلى المريض.", 10f, GRAY).apply {
-                gravity = Gravity.CENTER
-                includeFontPadding = true
-            },
-            LinearLayout.LayoutParams(-1, dp(22))
-        )
-
-        root.addView(locationCard, LinearLayout.LayoutParams(-1, dp(174)))
-        addSpace(root, 8)
+        root.addView(locationCard, LinearLayout.LayoutParams(-1, dp(126)))
+        addSpace(root, 6)
 
         // ----------------------------------------------------
-        // المدينة والنقطة الدالة
+        // العنوان
         // ----------------------------------------------------
         val addressCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
+            background = rounded(WHITE, 18)
             elevation = dp(2).toFloat()
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setPadding(dp(11), dp(7), dp(11), dp(7))
         }
 
-        addressCard.addView(
-            text("🏠  عنوان الوصول", 17f, NAVY, true),
-            LinearLayout.LayoutParams(-1, dp(34))
+        val addressHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        addressHeader.addView(realIcon(android.R.drawable.ic_menu_mapmode, 25))
+        addressHeader.addView(
+            text("عنوان الوصول", 16f, NAVY, true).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
+            },
+            LinearLayout.LayoutParams(0, dp(32), 1f)
         )
+        addressCard.addView(addressHeader)
 
         val citySpinner = Spinner(this)
         val anbarCities = arrayOf(
             "اختر المدينة / القضاء",
-            "الرمادي",
-            "الفلوجة",
-            "الكرمة",
-            "الحبانية",
-            "الخالدية",
-            "هيت",
-            "حديثة",
-            "عانة",
-            "راوة",
-            "القائم",
-            "الرطبة",
-            "البغدادي",
-            "عامرية الصمود"
+            "الرمادي", "الفلوجة", "الكرمة", "الحبانية", "الخالدية", "هيت",
+            "حديثة", "عانة", "راوة", "القائم", "الرطبة", "البغدادي", "عامرية الصمود"
         )
         citySpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
             anbarCities
         )
-        addressCard.addView(citySpinner, LinearLayout.LayoutParams(-1, dp(48)))
+        addressCard.addView(citySpinner, LinearLayout.LayoutParams(-1, dp(42)))
 
         val landmarkInput = EditText(this).apply {
             hint = "أقرب نقطة دالة: جامع، مدرسة، مستشفى، شارع..."
-            textSize = 15f
+            textSize = 14f
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(14), 0, dp(14), 0)
+            background = bordered(WHITE, BORDER, 13)
+            setPadding(dp(13), 0, dp(13), 0)
             maxLines = 1
             isSingleLine = true
         }
-        addressCard.addView(landmarkInput, LinearLayout.LayoutParams(-1, dp(50)).apply {
-            topMargin = dp(6)
+        addressCard.addView(landmarkInput, LinearLayout.LayoutParams(-1, dp(45)).apply {
+            topMargin = dp(4)
         })
 
-        root.addView(addressCard, LinearLayout.LayoutParams(-1, dp(146)))
-        addSpace(root, 8)
+        root.addView(addressCard, LinearLayout.LayoutParams(-1, dp(94)))
+        addSpace(root, 6)
 
         // ----------------------------------------------------
         // الملاحظات
@@ -1972,45 +1951,63 @@ class MainActivity : AppCompatActivity() {
         val notesCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
+            background = rounded(WHITE, 18)
             elevation = dp(1).toFloat()
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setPadding(dp(11), dp(7), dp(11), dp(7))
         }
-        notesCard.addView(
-            text("📝  ملاحظات إضافية (اختياري)", 16f, NAVY, true),
-            LinearLayout.LayoutParams(-1, dp(32))
+
+        val notesHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        notesHeader.addView(realIcon(android.R.drawable.ic_menu_edit, 24))
+        notesHeader.addView(
+            text("ملاحظات إضافية", 15f, NAVY, true).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
+            },
+            LinearLayout.LayoutParams(0, dp(30), 1f)
         )
+        notesCard.addView(notesHeader)
 
         val notes = EditText(this).apply {
-            hint = "اكتب أي معلومة تساعد الممرض على فهم الحالة..."
-            textSize = 14f
+            hint = "معلومة تساعد الممرض على فهم الحالة (اختياري)..."
+            textSize = 13f
             gravity = Gravity.TOP or Gravity.RIGHT
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
-            maxLines = 3
-            background = bordered(WHITE, BORDER, 14)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            maxLines = 2
+            background = bordered(WHITE, BORDER, 13)
+            setPadding(dp(11), dp(6), dp(11), dp(6))
         }
-        notesCard.addView(notes, LinearLayout.LayoutParams(-1, dp(66)))
-        root.addView(notesCard, LinearLayout.LayoutParams(-1, dp(108)))
-        addSpace(root, 8)
+        notesCard.addView(notes, LinearLayout.LayoutParams(-1, dp(56)))
+        root.addView(notesCard, LinearLayout.LayoutParams(-1, dp(94)))
+        addSpace(root, 6)
 
         // ----------------------------------------------------
-        // تنبيه طبي + إرسال
+        // التنبيه والإرسال
         // ----------------------------------------------------
-        root.addView(
-            medicalVisualCard(
-                "🛡️",
-                "تنبيه طبي",
-                "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. في الحالات الحرجة اتصل بالإسعاف فوراً."
-            ),
-            LinearLayout.LayoutParams(-1, dp(86))
+        val notice = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(LIGHT_BLUE, 16)
+            setPadding(dp(9), dp(5), dp(9), dp(5))
+        }
+        notice.addView(realIcon(android.R.drawable.ic_dialog_alert, 25))
+        notice.addView(
+            text(
+                "الخدمة التمريضية لا تستبدل الطبيب أو الطوارئ. للحالات الحرجة اتصل بالإسعاف.",
+                10f,
+                NAVY
+            ).apply { gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT },
+            LinearLayout.LayoutParams(0, dp(48), 1f)
         )
-
-        addSpace(root, 8)
+        root.addView(notice, LinearLayout.LayoutParams(-1, dp(58)))
+        addSpace(root, 6)
 
         root.addView(
-            button("📨  إرسال طلب التمريض الآن") {
+            button("إرسال طلب التمريض") {
 
                 if (service.selectedItemPosition == 0 ||
                     serviceItems.isEmpty() ||
@@ -2024,15 +2021,6 @@ class MainActivity : AppCompatActivity() {
                 if (patientName.isEmpty()) {
                     patient.error = "أدخل اسم المريض"
                     patient.requestFocus()
-                    return@button
-                }
-
-                val enteredPhone = normalizeIraqPhone(
-                    patientPhoneInput.text.toString().trim()
-                )
-                if (enteredPhone == null) {
-                    patientPhoneInput.error = "أدخل رقم هاتف عراقي صحيح"
-                    patientPhoneInput.requestFocus()
                     return@button
                 }
 
@@ -2059,7 +2047,8 @@ class MainActivity : AppCompatActivity() {
                     return@button
                 }
 
-                patientPhone = enteredPhone
+                // رقم الهاتف محفوظ داخلياً من حساب المستخدم فقط، ولا يظهر في شاشة الطلب.
+                patientPhone = phoneNumber
                 selectedCity = selectedCityValue
                 landmark = enteredLandmark
 
@@ -2071,19 +2060,30 @@ class MainActivity : AppCompatActivity() {
                     notes.text.toString().trim()
                 )
             },
-            LinearLayout.LayoutParams(-1, dp(58))
+            LinearLayout.LayoutParams(-1, dp(54))
         )
 
-        addSpace(root, 7)
-
+        addSpace(root, 5)
         root.addView(
-            outlineButton("إلغاء") {
-                showHome()
-            },
-            LinearLayout.LayoutParams(-1, dp(48))
+            outlineButton("إلغاء") { showHome() },
+            LinearLayout.LayoutParams(-1, dp(42))
         )
 
         setContentView(scroll(root))
+    }
+
+    private fun realIcon(resId: Int, size: Int = 26): ImageView {
+        return ImageView(this).apply {
+            setImageDrawable(ContextCompat.getDrawable(this@MainActivity, resId))
+            setColorFilter(NAVY)
+            scaleType = ImageView.ScaleType.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            contentDescription = null
+        }.also {
+            it.layoutParams = LinearLayout.LayoutParams(dp(size), dp(size)).apply {
+                marginEnd = dp(6)
+            }
+        }
     }
 
     private fun createBooking(
@@ -2114,10 +2114,9 @@ class MainActivity : AppCompatActivity() {
             .setMessage(
                 "الخدمة: ${service.name_ar}\n\n" +
                     "المريض: $patient\n\n" +
-                    "الهاتف: $phoneForBooking\n\n" +
                     "المدينة: $selectedCity\n\n" +
                     "أقرب نقطة دالة: $landmark\n\n" +
-                    "سيتم إرسال الطلب فوراً إلى الممرضين المتاحين."
+                    "سيتم إرسال الطلب فوراً إلى الممرضين المتاحين.\n\nسيظهر رقم هاتف المريض للممرض المكلّف فقط لتسهيل التواصل."
             )
             .setNegativeButton("تعديل", null)
             .setPositiveButton("إرسال") { _, _ ->
