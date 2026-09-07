@@ -12,6 +12,7 @@ import android.graphics.Path
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -2473,8 +2474,8 @@ class MainActivity : AppCompatActivity() {
         )
 
         root.addView(
-            button("📍 الحصول على موقعي الحالي") {
-                status.text = "جاري تحديد موقعك..."
+            button("📍 تحديد موقعي الآن") {
+                status.text = "جاري التحقق من إعدادات الموقع..."
                 getCurrentLocation(status)
             },
             LinearLayout.LayoutParams(-1, dp(65)).apply {
@@ -2502,6 +2503,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCurrentLocation(statusView: TextView) {
+
+        // إذا كان GPS/خدمة الموقع مغلقة، افتح إعدادات الموقع في الهاتف مباشرة.
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        val locationEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            locationManager.isLocationEnabled
+        } else {
+            @Suppress("DEPRECATION")
+            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        }
+
+        if (!locationEnabled) {
+            statusView.text = "الموقع متوقف. سيتم فتح إعدادات GPS لتشغيله."
+            AlertDialog.Builder(this)
+                .setTitle("تشغيل الموقع GPS")
+                .setMessage("يجب تشغيل خدمة الموقع حتى يستطيع التطبيق تحديد موقع المريض بدقة.")
+                .setPositiveButton("فتح إعدادات GPS") { _, _ ->
+                    try {
+                        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    } catch (_: Exception) {
+                        startActivity(
+                            Intent(Settings.ACTION_SETTINGS)
+                        )
+                    }
+                }
+                .setNegativeButton("إلغاء", null)
+                .show()
+            return
+        }
 
         val fine = ContextCompat.checkSelfPermission(
             this,
