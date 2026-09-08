@@ -281,7 +281,7 @@ class AdminActivity : AppCompatActivity() {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(LIGHT_GRAY)
-            setPadding(dp(16), dp(4), dp(16), dp(4))
+            setPadding(dp(12), dp(2), dp(12), dp(2))
         }
 
         // شريط علوي بسيط: اللغة + سهم الرجوع/الخروج.
@@ -301,7 +301,7 @@ class AdminActivity : AppCompatActivity() {
             background = bordered(WHITE, BORDER, 12)
             setTypeface(null, Typeface.BOLD)
         }
-        header.addView(language, LinearLayout.LayoutParams(dp(112), dp(46)))
+        header.addView(language, LinearLayout.LayoutParams(dp(100), dp(42)))
 
         header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
 
@@ -312,23 +312,23 @@ class AdminActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setOnClickListener { finish() }
         }
-        header.addView(headerArrow, LinearLayout.LayoutParams(dp(52), dp(46)))
+        header.addView(headerArrow, LinearLayout.LayoutParams(dp(46), dp(42)))
 
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(52)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(46)))
 
         // مساحة قصيرة قبل الشعار حتى لا تصبح الشاشة طويلة.
-        addSpace(root, 18)
+        addSpace(root, 10)
 
         root.addView(
             nursingLogo(),
-            LinearLayout.LayoutParams(dp(104), dp(104))
+            LinearLayout.LayoutParams(dp(88), dp(88))
         )
 
         root.addView(
-            text("التمريض المنزلي", 27f, NAVY, true).apply {
+            text("التمريض المنزلي", 24f, NAVY, true).apply {
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(40)).apply {
+            LinearLayout.LayoutParams(-1, dp(34)).apply {
                 topMargin = dp(5)
             }
         )
@@ -340,20 +340,20 @@ class AdminActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(-1, dp(24))
         )
 
-        addSpace(root, 12)
+        addSpace(root, 8)
 
         root.addView(
-            text("دخول الإدارة", 29f, NAVY, true).apply {
+            text("دخول الإدارة", 25f, NAVY, true).apply {
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(43))
+            LinearLayout.LayoutParams(-1, dp(38))
         )
 
         root.addView(
             text("أدخل رقم هاتف حساب الإدارة للمتابعة", 14f, GRAY).apply {
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(21))
         )
 
         addSpace(root, 7)
@@ -365,7 +365,7 @@ class AdminActivity : AppCompatActivity() {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 22)
             elevation = dp(2).toFloat()
-            setPadding(dp(14), dp(8), dp(14), dp(8))
+            setPadding(dp(12), dp(6), dp(12), dp(6))
         }
 
         val phoneLabel = LinearLayout(this).apply {
@@ -384,7 +384,7 @@ class AdminActivity : AppCompatActivity() {
 
         phoneLabel.addView(
             phoneIcon,
-            LinearLayout.LayoutParams(dp(38), dp(38)).apply {
+            LinearLayout.LayoutParams(dp(34), dp(34)).apply {
                 marginStart = dp(8)
             }
         )
@@ -394,7 +394,7 @@ class AdminActivity : AppCompatActivity() {
                 includeFontPadding = false
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(38), 1f)
+            LinearLayout.LayoutParams(0, dp(34), 1f)
         )
 
         loginCard.addView(phoneLabel)
@@ -413,7 +413,7 @@ class AdminActivity : AppCompatActivity() {
 
         loginCard.addView(
             phone,
-            LinearLayout.LayoutParams(-1, dp(52)).apply {
+            LinearLayout.LayoutParams(-1, dp(46)).apply {
                 topMargin = dp(5)
             }
         )
@@ -423,7 +423,7 @@ class AdminActivity : AppCompatActivity() {
                 includeFontPadding = false
                 gravity = Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(-1, dp(16))
+            LinearLayout.LayoutParams(-1, dp(13))
         )
 
         loginCard.addView(
@@ -459,14 +459,14 @@ class AdminActivity : AppCompatActivity() {
                     }
                 }
             },
-            LinearLayout.LayoutParams(-1, dp(47)).apply {
+            LinearLayout.LayoutParams(-1, dp(44)).apply {
                 topMargin = dp(4)
             }
         )
 
         root.addView(
             loginCard,
-            LinearLayout.LayoutParams(-1, dp(170))
+            LinearLayout.LayoutParams(-1, dp(148))
         )
 
         root.addView(
@@ -495,9 +495,9 @@ class AdminActivity : AppCompatActivity() {
                 includeFontPadding = false
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(38), 1f)
+            LinearLayout.LayoutParams(0, dp(34), 1f)
         )
-        root.addView(trust, LinearLayout.LayoutParams(-1, dp(40)).apply { topMargin = dp(4) })
+        root.addView(trust, LinearLayout.LayoutParams(-1, dp(34)).apply { topMargin = dp(4) })
 
         // لا يوجد ScrollView هنا؛ الواجهة مصممة لتظهر كاملة على شاشة الهاتف.
         setContentView(root)
@@ -515,7 +515,7 @@ class AdminActivity : AppCompatActivity() {
             setBackgroundColor(LIGHT_GRAY)
 
             // إنزال الشاشة قليلاً عن شريط الحالة.
-            setPadding(dp(18), dp(14), dp(18), dp(6))
+            setPadding(dp(14), dp(8), dp(14), dp(4))
 
             clipChildren = false
             clipToPadding = false
@@ -544,16 +544,16 @@ class AdminActivity : AppCompatActivity() {
 
         header.addView(
             back,
-            LinearLayout.LayoutParams(dp(42), dp(46))
+            LinearLayout.LayoutParams(dp(40), dp(42))
         )
 
         header.addView(
-            text("تأكيد رقم الهاتف", 20f, NAVY, true).apply {
+            text("تأكيد رقم الهاتف", 19f, NAVY, true).apply {
                 gravity = Gravity.CENTER
                 includeFontPadding = true
                 setPadding(dp(4), dp(2), dp(4), dp(2))
             },
-            LinearLayout.LayoutParams(0, dp(46), 1f)
+            LinearLayout.LayoutParams(0, dp(42), 1f)
         )
 
         val secure = TextView(this).apply {
@@ -572,7 +572,7 @@ class AdminActivity : AppCompatActivity() {
 
         root.addView(
             header,
-            LinearLayout.LayoutParams(-1, dp(50))
+            LinearLayout.LayoutParams(-1, dp(46))
         )
 
         // -----------------------------------------------------
@@ -595,7 +595,7 @@ class AdminActivity : AppCompatActivity() {
 
         securityBox.addView(
             securityIcon,
-            LinearLayout.LayoutParams(dp(72), dp(72)).apply {
+            LinearLayout.LayoutParams(dp(62), dp(62)).apply {
                 topMargin = dp(10)
             }
         )
@@ -613,19 +613,19 @@ class AdminActivity : AppCompatActivity() {
 
         root.addView(
             securityBox,
-            LinearLayout.LayoutParams(-1, dp(108))
+            LinearLayout.LayoutParams(-1, dp(88))
         )
 
         // -----------------------------------------------------
         // العناوين — ارتفاع كافٍ حتى لا تختفي الحروف العربية
         // -----------------------------------------------------
         root.addView(
-            text("أدخل رمز التحقق", 27f, NAVY, true).apply {
+            text("أدخل رمز التحقق", 24f, NAVY, true).apply {
                 gravity = Gravity.CENTER
                 includeFontPadding = true
                 setPadding(dp(6), dp(1), dp(6), dp(1))
             },
-            LinearLayout.LayoutParams(-1, dp(48))
+            LinearLayout.LayoutParams(-1, dp(42))
         )
 
         root.addView(
@@ -634,7 +634,7 @@ class AdminActivity : AppCompatActivity() {
                 includeFontPadding = true
                 setPadding(dp(6), 0, dp(6), 0)
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(21))
         )
 
         root.addView(
@@ -645,7 +645,7 @@ class AdminActivity : AppCompatActivity() {
                 layoutDirection = View.LAYOUT_DIRECTION_LTR
                 textDirection = View.TEXT_DIRECTION_LTR
             },
-            LinearLayout.LayoutParams(-1, dp(30))
+            LinearLayout.LayoutParams(-1, dp(26))
         )
 
         // -----------------------------------------------------
@@ -657,7 +657,7 @@ class AdminActivity : AppCompatActivity() {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 22)
             elevation = dp(2).toFloat()
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setPadding(dp(10), dp(6), dp(10), dp(6))
         }
 
         otpCard.addView(
@@ -666,7 +666,7 @@ class AdminActivity : AppCompatActivity() {
                 includeFontPadding = true
                 setPadding(dp(4), 0, dp(4), 0)
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(21))
         )
 
         val otp = EditText(this).apply {
@@ -686,14 +686,14 @@ class AdminActivity : AppCompatActivity() {
 
         otpCard.addView(
             otp,
-            LinearLayout.LayoutParams(-1, dp(58)).apply {
+            LinearLayout.LayoutParams(-1, dp(52)).apply {
                 topMargin = dp(4)
             }
         )
 
         root.addView(
             otpCard,
-            LinearLayout.LayoutParams(-1, dp(101)).apply {
+            LinearLayout.LayoutParams(-1, dp(88)).apply {
                 topMargin = dp(7)
             }
         )
@@ -737,7 +737,7 @@ class AdminActivity : AppCompatActivity() {
                         }
                     }
             },
-            LinearLayout.LayoutParams(-1, dp(54)).apply {
+            LinearLayout.LayoutParams(-1, dp(44)).apply {
                 topMargin = dp(9)
             }
         )
@@ -762,7 +762,7 @@ class AdminActivity : AppCompatActivity() {
                     }
                 }
             },
-            LinearLayout.LayoutParams(-1, dp(48)).apply {
+            LinearLayout.LayoutParams(-1, dp(42)).apply {
                 topMargin = dp(7)
             }
         )
@@ -788,20 +788,20 @@ class AdminActivity : AppCompatActivity() {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(light)
-            setPadding(dp(14), dp(22), dp(14), dp(30))
+            setPadding(dp(12), dp(10), dp(12), dp(16))
         }
 
-                root.addView(text("لوحة الإدارة", 28f, navy, true))
-        root.addView(text("إدارة واعتماد كوادر التمريض", 16f, gray))
+                root.addView(text("لوحة الإدارة", 24f, navy, true))
+        root.addView(text("إدارة واعتماد كوادر التمريض", 14f, gray))
 
         root.addView(button("تحديث قائمة الممرضين", blue) {
             loadNurses(root)
-        }, LinearLayout.LayoutParams(-1, dp(58)))
+        }, LinearLayout.LayoutParams(-1, dp(50)))
 
         val logout = button("تسجيل الخروج", navy) { signOut() }
         logout.background = bg(white, 15, navy)
         logout.setTextColor(navy)
-        root.addView(logout, LinearLayout.LayoutParams(-1, dp(55)))
+        root.addView(logout, LinearLayout.LayoutParams(-1, dp(48)))
 
         setContentView(ScrollView(this).apply { addView(root) })
         loadNurses(root)
@@ -845,10 +845,10 @@ class AdminActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = bg(white, 20, border)
-            setPadding(dp(15), dp(15), dp(15), dp(15))
+            setPadding(dp(12), dp(10), dp(12), dp(10))
         }
 
-        card.addView(text(nurse.full_name ?: "بدون اسم", 20f, navy, true))
+        card.addView(text(nurse.full_name ?: "بدون اسم", 18f, navy, true))
         card.addView(text("التخصص: ${nurse.specialty ?: "غير محدد"}", 15f, gray))
         card.addView(text("الخبرة: ${nurse.experience_years ?: 0} سنوات", 15f, gray))
         card.addView(text("المحافظة/المدينة: ${nurse.city ?: "غير محدد"}", 15f, gray))
@@ -861,10 +861,10 @@ class AdminActivity : AppCompatActivity() {
             card.addView(text("بانتظار الاعتماد", 17f, Color.rgb(190, 120, 20), true))
             card.addView(button("اعتماد الممرض", green) {
                 confirmApproval(nurse, root)
-            }, LinearLayout.LayoutParams(-1, dp(56)))
+            }, LinearLayout.LayoutParams(-1, dp(50)))
             card.addView(button("رفض الطلب", red) {
                 confirmReject(nurse, root)
-            }, LinearLayout.LayoutParams(-1, dp(52)))
+            }, LinearLayout.LayoutParams(-1, dp(46)))
         }
 
         val lp = LinearLayout.LayoutParams(-1, -2)
