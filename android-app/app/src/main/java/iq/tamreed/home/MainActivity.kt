@@ -657,7 +657,7 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(Color.WHITE)
-            setPadding(dp(12), dp(5), dp(12), dp(4))
+            setPadding(dp(14), dp(3), dp(14), dp(3))
             clipChildren = false
         }
 
@@ -689,7 +689,7 @@ class MainActivity : AppCompatActivity() {
             background = bordered(WHITE, BORDER, 14)
         }
         header.addView(language, LinearLayout.LayoutParams(dp(80), dp(40)))
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(36)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(38)))
 
         addSpace(root, 4)
 
@@ -701,7 +701,7 @@ class MainActivity : AppCompatActivity() {
             clipToOutline = true
             contentDescription = "رعاية تمريضية منزلية"
         }
-        root.addView(heroImage, LinearLayout.LayoutParams(-1, dp(145)))
+        root.addView(heroImage, LinearLayout.LayoutParams(-1, dp(150)))
 
         addSpace(root, 5)
 
@@ -722,7 +722,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(1), dp(1), dp(1), dp(1))
         }
         heroVisual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(68), dp(68)))
-        hero.addView(heroVisual, LinearLayout.LayoutParams(dp(76), dp(86)))
+        hero.addView(heroVisual, LinearLayout.LayoutParams(dp(78), dp(90)))
 
         val heroText = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -753,8 +753,8 @@ class MainActivity : AppCompatActivity() {
             },
             LinearLayout.LayoutParams(-1, dp(22))
         )
-        hero.addView(heroText, LinearLayout.LayoutParams(0, dp(72), 1f))
-        root.addView(hero, LinearLayout.LayoutParams(-1, dp(86)))
+        hero.addView(heroText, LinearLayout.LayoutParams(0, dp(76), 1f))
+        root.addView(hero, LinearLayout.LayoutParams(-1, dp(90)))
 
         addSpace(root, 5)
 
@@ -782,7 +782,7 @@ class MainActivity : AppCompatActivity() {
         trustRow.addView(compactTrust(android.R.drawable.ic_menu_myplaces, "كوادر مؤهلة"), LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginEnd = dp(3) })
         trustRow.addView(compactTrust(android.R.drawable.ic_menu_myplaces, "رعاية منزلية"), LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginStart = dp(3); marginEnd = dp(3) })
         trustRow.addView(compactTrust(android.R.drawable.ic_lock_lock, "آمن وموثوق"), LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginStart = dp(3) })
-        root.addView(trustRow, LinearLayout.LayoutParams(-1, dp(48)))
+        root.addView(trustRow, LinearLayout.LayoutParams(-1, dp(50)))
 
         addSpace(root, 5)
 
@@ -797,11 +797,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         loginCard.addView(
-            text("تسجيل الدخول", 24f, NAVY, true).apply { includeFontPadding = false },
+            text("تسجيل الدخول", 25f, NAVY, true).apply { includeFontPadding = false },
             LinearLayout.LayoutParams(-1, dp(32))
         )
         loginCard.addView(
-            text("أدخل رقم هاتفك للمتابعة", 13f, GRAY).apply { includeFontPadding = false },
+            text("أدخل رقم هاتفك للمتابعة", 14f, GRAY).apply { includeFontPadding = false },
             LinearLayout.LayoutParams(-1, dp(22))
         )
 
@@ -814,7 +814,7 @@ class MainActivity : AppCompatActivity() {
 
         val phone = EditText(this).apply {
             hint = "07701234567"
-            textSize = 18f
+            textSize = 19f
             gravity = Gravity.CENTER_VERTICAL
             inputType = InputType.TYPE_CLASS_PHONE
             layoutDirection = View.LAYOUT_DIRECTION_LTR
@@ -848,19 +848,19 @@ class MainActivity : AppCompatActivity() {
                 phoneNumber = normalized
                 sendOtp()
             },
-            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(7) }
+            LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(7) }
         )
 
         loginCard.addView(
             text("سيصلك رمز تحقق SMS مكوّن من 6 أرقام", 10f, GRAY).apply { includeFontPadding = false },
             LinearLayout.LayoutParams(-1, dp(17)).apply { topMargin = dp(1) }
         )
-        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(188)))
+        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(195)))
 
         addSpace(root, 4)
 
         root.addView(
-            text("أو اختر نوع الدخول", 12f, GRAY, true).apply { includeFontPadding = false },
+            text("أو اختر نوع الدخول", 13f, GRAY, true).apply { includeFontPadding = false },
             LinearLayout.LayoutParams(-1, dp(22))
         )
 
@@ -899,7 +899,7 @@ class MainActivity : AppCompatActivity() {
             compactStaff(android.R.drawable.ic_menu_manage, "دخول الإدارة", "إدارة المنصة", { startActivity(Intent(this, AdminActivity::class.java)) }, Color.rgb(235, 249, 241)),
             LinearLayout.LayoutParams(0, dp(54), 1f).apply { marginStart = dp(3) }
         )
-        root.addView(staffRow, LinearLayout.LayoutParams(-1, dp(46)))
+        root.addView(staffRow, LinearLayout.LayoutParams(-1, dp(48)))
 
         addSpace(root, 4)
 
@@ -924,11 +924,11 @@ class MainActivity : AppCompatActivity() {
         features.addView(feature(android.R.drawable.ic_menu_mylocation, "تغطية الأنبار"), LinearLayout.LayoutParams(0, dp(40), 1f))
         features.addView(feature(android.R.drawable.ic_lock_idle_alarm, "خدمة سريعة"), LinearLayout.LayoutParams(0, dp(40), 1f))
         features.addView(feature(android.R.drawable.ic_menu_help, "دعم ومتابعة"), LinearLayout.LayoutParams(0, dp(40), 1f))
-        root.addView(features, LinearLayout.LayoutParams(-1, dp(48)))
+        root.addView(features, LinearLayout.LayoutParams(-1, dp(50)))
 
         root.addView(
             text("التمريض المنزلي • الأنبار", 11f, GRAY).apply { includeFontPadding = false },
-            LinearLayout.LayoutParams(-1, dp(18))
+            LinearLayout.LayoutParams(-1, dp(16))
         )
 
         // لا يوجد ScrollView هنا: الشاشة كاملة بدون صعود أو نزول.
