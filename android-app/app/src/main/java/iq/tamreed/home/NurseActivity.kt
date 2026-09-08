@@ -536,7 +536,7 @@ class NurseActivity : AppCompatActivity() {
             Button(this).apply {
 
                 text =
-                    "📋  طلبات التمريض"
+                    "طلبات التمريض"
 
                 textSize = 18f
 
@@ -553,12 +553,12 @@ class NurseActivity : AppCompatActivity() {
 
                 setOnClickListener {
 
-                    val intent = Intent(
-                        this@NurseActivity,
-                        NurseRequestsActivity::class.java
+                    startActivity(
+                        Intent(
+                            this@NurseActivity,
+                            NurseRequestsActivity::class.java
+                        )
                     )
-
-                    startActivity(intent)
                 }
             }
 
@@ -584,11 +584,11 @@ class NurseActivity : AppCompatActivity() {
                 text =
                     if (available) {
 
-                        "🔴  إيقاف استقبال الطلبات"
+                        "إيقاف استقبال الطلبات"
 
                     } else {
 
-                        "🟢  تفعيل استقبال الطلبات"
+                        "تفعيل استقبال الطلبات"
                     }
 
 
