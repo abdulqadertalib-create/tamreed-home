@@ -2922,7 +2922,6 @@ class MainActivity : AppCompatActivity() {
 
         addRow(card, "العنوان", booking.address)
         if (!booking.city.isNullOrBlank()) addRow(card, "المدينة", booking.city!!)
-        if (!booking.landmark.isNullOrBlank()) addRow(card, "النقطة الدالة", booking.landmark!!)
 
         if (nurse != null && status != "CANCELLED") {
             addSpace(card, 5)
