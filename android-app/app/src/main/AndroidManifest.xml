@@ -54,6 +54,11 @@
             android:name=".NurseRequestsActivity"
             android:exported="false" />
 
+        <!-- المحادثة بين المريض والممرض -->
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
+
         <!-- التطبيق الرئيسي -->
         <activity
             android:name=".MainActivity"
