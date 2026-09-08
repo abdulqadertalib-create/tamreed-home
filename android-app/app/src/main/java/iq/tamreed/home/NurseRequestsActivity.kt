@@ -962,10 +962,15 @@ class NurseRequestsActivity : AppCompatActivity() {
         )
 
 
+        // اسم المريض محفوظ حالياً داخل بداية حقل الملاحظات بصيغة "المريض: الاسم".
+        // نستخرجه لعرضه في صف مستقل، بدون تغيير قاعدة البيانات.
+        val patientName = extractPatientName(booking.notes)
+        val patientNotes = extractPatientNotes(booking.notes)
+
         addRow(
             card,
-            "رقم المريض",
-            booking.patient_phone ?: "-"
+            "اسم المريض",
+            patientName
         )
 
 
@@ -999,14 +1004,12 @@ class NurseRequestsActivity : AppCompatActivity() {
         )
 
 
-        if (
-            !booking.notes.isNullOrBlank()
-        ) {
+        if (patientNotes.isNotBlank()) {
 
             addRow(
                 card,
                 "الملاحظات",
-                booking.notes ?: "-"
+                patientNotes
             )
         }
 
@@ -1049,6 +1052,27 @@ class NurseRequestsActivity : AppCompatActivity() {
 
                     topMargin =
                         dp(8)
+                }
+            )
+        }
+
+
+        // زر الاتصال بالمريض — بدون عرض رقم الهاتف داخل بطاقة الطلب.
+        if (!booking.patient_phone.isNullOrBlank()) {
+            val callButton = primaryButton(
+                "📞 الاتصال بالمريض",
+                GREEN
+            ) {
+                callPatient(booking.patient_phone)
+            }
+
+            card.addView(
+                callButton,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(50)
+                ).apply {
+                    topMargin = dp(8)
                 }
             )
         }
@@ -1099,28 +1123,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             status != "COMPLETED"
         ) {
 
-            val detailsButton =
-                primaryButton(
-                    "📍 فتح موقع المريض على الخريطة",
-                    NAVY
-                ) {
-
-                    openPatientLocation(
-                        booking.latitude,
-                        booking.longitude
-                    )
-                }
-
-            card.addView(
-                detailsButton,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(50)
-                ).apply {
-                    topMargin = dp(10)
-                }
-            )
-
+            // لا نكرر زر الخريطة هنا؛ زر الخريطة الأساسي موجود أعلاه.
             when (status) {
 
                 "ACCEPTED" -> {
@@ -1196,6 +1199,46 @@ class NurseRequestsActivity : AppCompatActivity() {
 
 
         return card
+    }
+
+
+    // ============================================================
+    // فصل اسم المريض عن الملاحظات
+    // ============================================================
+
+    private fun extractPatientName(notes: String?): String {
+        if (notes.isNullOrBlank()) return "-"
+
+        val firstLine = notes
+            .lineSequence()
+            .firstOrNull()
+            ?.trim()
+            ?: return "-"
+
+        val prefix = "المريض:"
+        return if (firstLine.startsWith(prefix)) {
+            firstLine.removePrefix(prefix).trim().ifBlank { "-" }
+        } else {
+            "-"
+        }
+    }
+
+    private fun extractPatientNotes(notes: String?): String {
+        if (notes.isNullOrBlank()) return ""
+
+        val text = notes.trim()
+        val prefix = "المريض:"
+
+        if (!text.startsWith(prefix)) {
+            return text
+        }
+
+        val lines = text.split("\n", limit = 2)
+        return if (lines.size > 1) {
+            lines[1].trim()
+        } else {
+            ""
+        }
     }
 
 
@@ -1598,6 +1641,37 @@ class NurseRequestsActivity : AppCompatActivity() {
 
             else ->
                 status
+        }
+    }
+
+
+    // ============================================================
+    // الاتصال بالمريض
+    // ============================================================
+
+    private fun callPatient(phone: String?) {
+        if (phone.isNullOrBlank()) {
+            Toast.makeText(
+                this,
+                "رقم هاتف المريض غير متوفر",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val dialIntent = Intent(
+            Intent.ACTION_DIAL,
+            Uri.parse("tel:${Uri.encode(phone)}")
+        )
+
+        try {
+            startActivity(dialIntent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "تعذر فتح تطبيق الاتصال",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
