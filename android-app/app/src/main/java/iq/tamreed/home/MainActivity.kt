@@ -1368,28 +1368,24 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showHome() {
 
-        window.statusBarColor = Color.WHITE
-        window.navigationBarColor = Color.WHITE
+        window.statusBarColor = WHITE
+        window.navigationBarColor = WHITE
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
-        val scrollRoot = ScrollView(this).apply {
-            setBackgroundColor(Color.WHITE)
-            isFillViewport = true
-            clipToPadding = false
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
+        // شاشة رئيسية ثابتة ومضغوطة: بدون تمرير رأسي على الهاتف.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setBackgroundColor(Color.WHITE)
-            setPadding(dp(16), dp(6), dp(16), dp(20))
+            setBackgroundColor(WHITE)
+            setPadding(dp(14), dp(6), dp(14), dp(8))
             clipChildren = false
             clipToPadding = false
         }
 
-        // رأس الصفحة
+        // =====================================================
+        // الشريط العلوي
+        // =====================================================
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -1397,185 +1393,170 @@ class MainActivity : AppCompatActivity() {
         }
 
         val location = TextView(this).apply {
-            text = "⌖  الأنبار - الفلوجة  ›"
+            text = "⌖  الأنبار - الفلوجة"
             textSize = 14f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             background = rounded(LIGHT_BLUE, 18)
+            setPadding(dp(6), 0, dp(6), 0)
         }
-
-        header.addView(location, LinearLayout.LayoutParams(dp(170), dp(44)))
+        header.addView(location, LinearLayout.LayoutParams(dp(175), dp(42)))
         header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
 
         val notification = ImageButton(this).apply {
             setImageDrawable(ContextCompat.getDrawable(this@MainActivity, android.R.drawable.ic_popup_reminder))
             setColorFilter(NAVY)
-            background = bordered(WHITE, BORDER, 16)
+            background = bordered(WHITE, BORDER, 15)
             contentDescription = "الإشعارات"
             setOnClickListener {
                 Toast.makeText(this@MainActivity, "لا توجد إشعارات جديدة", Toast.LENGTH_SHORT).show()
             }
         }
+        header.addView(notification, LinearLayout.LayoutParams(dp(42), dp(42)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(42)))
 
-        header.addView(notification, LinearLayout.LayoutParams(dp(44), dp(44)))
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(46)))
+        addSpace(root, 7)
 
-        addSpace(root, 10)
-
-        // صورة رئيسية احترافية للممرضة والمريضة
+        // =====================================================
+        // الصورة الرئيسية
+        // =====================================================
         val heroImage = ImageView(this).apply {
             setImageResource(R.drawable.nurse_patient_home)
             scaleType = ImageView.ScaleType.CENTER_CROP
-            background = rounded(Color.rgb(239, 248, 252), 28)
+            background = rounded(Color.rgb(239, 248, 252), 24)
             clipToOutline = true
             contentDescription = "رعاية تمريضية منزلية"
         }
+        root.addView(heroImage, LinearLayout.LayoutParams(-1, dp(150)))
 
-        root.addView(
-            heroImage,
-            LinearLayout.LayoutParams(-1, dp(205))
-        )
+        addSpace(root, 7)
 
-        addSpace(root, 8)
-
-        // بطاقة ترحيب مختصرة أسفل الصورة
-        val hero = LinearLayout(this).apply {
+        // =====================================================
+        // بطاقة الترحيب المختصرة
+        // =====================================================
+        val welcome = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(Color.rgb(239, 248, 252), 24)
-            setPadding(dp(8), dp(7), dp(8), dp(7))
+            background = rounded(Color.rgb(239, 248, 252), 22)
+            setPadding(dp(7), dp(5), dp(7), dp(5))
             elevation = dp(1).toFloat()
         }
 
-        val visual = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val logoBox = LinearLayout(this).apply {
             gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 18)
-            setPadding(dp(2), dp(2), dp(2), dp(2))
+            background = rounded(WHITE, 16)
+            setPadding(dp(1), dp(1), dp(1), dp(1))
         }
+        logoBox.addView(nursingLogo(), LinearLayout.LayoutParams(dp(66), dp(66)))
+        welcome.addView(logoBox, LinearLayout.LayoutParams(dp(72), dp(72)))
 
-        visual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(78), dp(78)))
-        hero.addView(visual, LinearLayout.LayoutParams(dp(86), dp(88)))
-
-        val heroInfo = LinearLayout(this).apply {
+        val welcomeInfo = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(10), 0, dp(5), 0)
+            setPadding(dp(10), 0, dp(8), 0)
         }
-
-        heroInfo.addView(
+        welcomeInfo.addView(
             text("رعاية أقرب إليك", 13f, GREEN, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(25))
+            }
         )
-        heroInfo.addView(
-            text("التمريض المنزلي", 22f, NAVY, true).apply {
+        welcomeInfo.addView(
+            text("التمريض المنزلي", 23f, NAVY, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(38))
+            }
         )
-        heroInfo.addView(
-            text("صحة أفضل .. حياة أفضل", 13f, NAVY).apply {
+        welcomeInfo.addView(
+            text("خدمة تمريض موثوقة في الأنبار", 11f, GRAY).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(26))
+            }
         )
-        heroInfo.addView(
-            text("خدمة تمريض منزلية موثوقة في الأنبار", 11f, GRAY).apply {
-                gravity = Gravity.RIGHT
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(38))
-        )
+        welcome.addView(welcomeInfo, LinearLayout.LayoutParams(0, dp(72), 1f))
+        root.addView(welcome, LinearLayout.LayoutParams(-1, dp(82)))
 
-        hero.addView(heroInfo, LinearLayout.LayoutParams(0, dp(118), 1f))
-        root.addView(hero, LinearLayout.LayoutParams(-1, dp(138)))
+        addSpace(root, 8)
 
-        addSpace(root, 12)
-
-        // إجراء رئيسي
+        // =====================================================
+        // زر الطلب الرئيسي
+        // =====================================================
         root.addView(
             button("إنشاء طلب تمريض الآن") {
                 checkLoginBeforeRequest()
             },
-            LinearLayout.LayoutParams(-1, dp(56))
+            LinearLayout.LayoutParams(-1, dp(52))
         )
 
-        addSpace(root, 12)
+        addSpace(root, 8)
 
-        // الإجراءات السريعة
-        val quickTitle = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-        quickTitle.addView(
-            text("خدماتك", 20f, NAVY, true).apply { gravity = Gravity.RIGHT },
-            LinearLayout.LayoutParams(0, dp(32), 1f)
-        )
-        quickTitle.addView(
-            text("عرض الكل", 11f, BLUE, true).apply {
-                setOnClickListener { showServices() }
-            },
-            LinearLayout.LayoutParams(dp(70), dp(32))
-        )
-        root.addView(quickTitle)
-
-        addSpace(root, 5)
-
+        // =====================================================
+        // الوصول السريع
+        // =====================================================
         val quickRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
-        fun homeAction(iconRes: Int, title: String, subtitle: String, action: () -> Unit): LinearLayout {
+        fun compactAction(iconRes: Int, title: String, action: () -> Unit): LinearLayout {
             return LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+                orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
-                background = bordered(WHITE, BORDER, 20)
-                elevation = dp(1).toFloat()
-                setPadding(dp(6), dp(8), dp(6), dp(8))
+                background = rounded(LIGHT_BLUE, 18)
+                setPadding(dp(5), dp(4), dp(5), dp(4))
                 setOnClickListener { action() }
 
-                addView(realIcon(iconRes, 28), LinearLayout.LayoutParams(dp(48), dp(42)))
-                addView(text(title, 14f, NAVY, true))
-                addView(text(subtitle, 10f, GRAY))
+                addView(realIcon(iconRes, 25), LinearLayout.LayoutParams(dp(38), dp(38)))
+                addView(
+                    text(title, 14f, NAVY, true).apply {
+                        gravity = Gravity.CENTER
+                        includeFontPadding = false
+                    },
+                    LinearLayout.LayoutParams(0, dp(42), 1f)
+                )
             }
         }
 
         quickRow.addView(
-            homeAction(android.R.drawable.ic_menu_agenda, "طلباتي", "متابعة الطلبات") { showBookings() },
-            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginEnd = dp(4) }
+            compactAction(android.R.drawable.ic_menu_agenda, "طلباتي") { showBookings() },
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply { marginEnd = dp(3) }
         )
         quickRow.addView(
-            homeAction(android.R.drawable.ic_menu_myplaces, "الخدمات", "اختر خدمة") { showServices() },
-            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            compactAction(android.R.drawable.ic_menu_myplaces, "الخدمات") { showServices() },
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply { marginStart = dp(3); marginEnd = dp(3) }
         )
         quickRow.addView(
-            homeAction(android.R.drawable.ic_menu_send, "المحادثات", "تواصل معنا") { showChats() },
-            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginStart = dp(4) }
+            compactAction(android.R.drawable.ic_menu_send, "المحادثات") { showChats() },
+            LinearLayout.LayoutParams(0, dp(58), 1f).apply { marginStart = dp(3) }
         )
-
         root.addView(quickRow)
 
-        addSpace(root, 14)
+        addSpace(root, 8)
 
-        root.addView(
-            text("الخدمات الأكثر طلباً", 20f, NAVY, true).apply { gravity = Gravity.RIGHT },
-            LinearLayout.LayoutParams(-1, dp(32))
+        // =====================================================
+        // الخدمات الأكثر طلباً
+        // =====================================================
+        val servicesTitle = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        servicesTitle.addView(
+            text("الخدمات الأكثر طلباً", 17f, NAVY, true).apply { gravity = Gravity.RIGHT },
+            LinearLayout.LayoutParams(0, dp(28), 1f)
         )
-
-        addSpace(root, 5)
+        servicesTitle.addView(
+            text("عرض الكل", 11f, BLUE, true).apply {
+                setOnClickListener { showServices() }
+            },
+            LinearLayout.LayoutParams(dp(65), dp(28))
+        )
+        root.addView(servicesTitle)
 
         val serviceRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -1584,86 +1565,70 @@ class MainActivity : AppCompatActivity() {
         }
 
         serviceRow.addView(
-            serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginEnd = dp(4) }
+            serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "منزلي") { checkLoginBeforeRequest() },
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginEnd = dp(3) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginStart = dp(3); marginEnd = dp(3) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginStart = dp(3) }
         )
-
         root.addView(serviceRow)
 
-        addSpace(root, 12)
+        addSpace(root, 7)
 
+        // =====================================================
         // مزايا الخدمة
+        // =====================================================
         val benefits = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(LIGHT_BLUE, 22)
-            setPadding(dp(6), dp(8), dp(6), dp(8))
+            background = rounded(LIGHT_BLUE, 18)
+            setPadding(dp(3), dp(3), dp(3), dp(3))
         }
 
-        fun benefit(iconRes: Int, title: String, subtitle: String): LinearLayout {
+        fun benefit(iconRes: Int, title: String): LinearLayout {
             return LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+                orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
-                addView(realIcon(iconRes, 24), LinearLayout.LayoutParams(dp(40), dp(34)))
-                addView(text(title, 11f, NAVY, true))
-                addView(text(subtitle, 9f, GRAY))
+                addView(realIcon(iconRes, 21), LinearLayout.LayoutParams(dp(30), dp(32)))
+                addView(
+                    text(title, 11f, NAVY, true).apply {
+                        gravity = Gravity.CENTER
+                        includeFontPadding = false
+                    },
+                    LinearLayout.LayoutParams(0, dp(34), 1f)
+                )
             }
         }
 
         benefits.addView(
-            benefit(android.R.drawable.ic_lock_lock, "موثوقة", "رعاية آمنة"),
-            LinearLayout.LayoutParams(0, dp(76), 1f)
+            benefit(android.R.drawable.ic_lock_lock, "آمن وموثوق"),
+            LinearLayout.LayoutParams(0, dp(48), 1f)
         )
         benefits.addView(
-            benefit(android.R.drawable.ic_menu_mylocation, "في منزلك", "وصول للموقع"),
-            LinearLayout.LayoutParams(0, dp(76), 1f)
+            benefit(android.R.drawable.ic_menu_mylocation, "رعاية منزلية"),
+            LinearLayout.LayoutParams(0, dp(48), 1f)
         )
         benefits.addView(
-            benefit(android.R.drawable.ic_lock_idle_alarm, "سريعة", "أقرب وقت"),
-            LinearLayout.LayoutParams(0, dp(76), 1f)
+            benefit(android.R.drawable.ic_lock_idle_alarm, "خدمة سريعة"),
+            LinearLayout.LayoutParams(0, dp(48), 1f)
         )
+        root.addView(benefits, LinearLayout.LayoutParams(-1, dp(54)))
 
-        root.addView(benefits)
+        addSpace(root, 7)
 
-        addSpace(root, 12)
+        // =====================================================
+        // شريط التنقل السفلي
+        // =====================================================
+        root.addView(bottomNavigation("home"), LinearLayout.LayoutParams(-1, dp(64)))
 
-        root.addView(
-            medicalVisualCard(
-                "✓",
-                "رعاية مهنية في منزلك",
-                "كوادر تمريضية معتمدة ومتابعة واضحة لحالة طلبك."
-            ),
-            LinearLayout.LayoutParams(-1, dp(86))
-        )
-
-        addSpace(root, 8)
-
-        root.addView(
-            medicalVisualCard(
-                "⌖",
-                "تغطية في مناطق الأنبار",
-                "حدد المدينة والموقع والنقطة الدالة ليسهل الوصول إليك."
-            ),
-            LinearLayout.LayoutParams(-1, dp(86))
-        )
-
-        addSpace(root, 14)
-
-        // شريط سفلي مبسط
-        root.addView(bottomNavigation("home"))
-
-        scrollRoot.addView(root, FrameLayout.LayoutParams(-1, -2))
-        setContentView(scrollRoot)
+        setContentView(root)
     }
 
     private fun serviceCard(
