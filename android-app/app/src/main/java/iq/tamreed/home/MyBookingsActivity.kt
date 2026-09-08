@@ -137,10 +137,10 @@ class MyBookingsActivity : AppCompatActivity() {
             }
 
             setPadding(
-                dp(8),
-                dp(8),
-                dp(8),
-                dp(8)
+                dp(6),
+                dp(6),
+                dp(6),
+                dp(6)
             )
         }
     }
@@ -288,10 +288,10 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
 
                 setPadding(
-                    dp(14),
-                    dp(10),
-                    dp(14),
-                    dp(30)
+                    dp(12),
+                    dp(8),
+                    dp(12),
+                    dp(16)
                 )
             }
 
@@ -333,10 +333,10 @@ class MyBookingsActivity : AppCompatActivity() {
                     )
 
                 setPadding(
-                    dp(8),
-                    dp(5),
-                    dp(8),
-                    dp(5)
+                    dp(7),
+                    dp(4),
+                    dp(7),
+                    dp(4)
                 )
             }
 
@@ -368,8 +368,8 @@ class MyBookingsActivity : AppCompatActivity() {
         header.addView(
             back,
             LinearLayout.LayoutParams(
-                dp(85),
-                dp(52)
+                dp(78),
+                dp(46)
             )
         )
 
@@ -377,13 +377,13 @@ class MyBookingsActivity : AppCompatActivity() {
         header.addView(
             makeText(
                 "طلباتي",
-                24f,
+                21f,
                 NAVY,
                 true
             ),
             LinearLayout.LayoutParams(
                 0,
-                dp(60),
+                dp(52),
                 1f
             )
         )
@@ -396,8 +396,8 @@ class MyBookingsActivity : AppCompatActivity() {
                 NAVY
             ),
             LinearLayout.LayoutParams(
-                dp(55),
-                dp(55)
+                dp(48),
+                dp(48)
             )
         )
 
@@ -406,9 +406,9 @@ class MyBookingsActivity : AppCompatActivity() {
             header,
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(58)
             ).apply {
-                bottomMargin = dp(12)
+                bottomMargin = dp(9)
             }
         )
 
@@ -438,10 +438,10 @@ class MyBookingsActivity : AppCompatActivity() {
                     )
 
                 setPadding(
-                    dp(12),
-                    dp(8),
-                    dp(12),
-                    dp(8)
+                    dp(10),
+                    dp(6),
+                    dp(10),
+                    dp(6)
                 )
             }
 
@@ -455,7 +455,7 @@ class MyBookingsActivity : AppCompatActivity() {
             ),
             LinearLayout.LayoutParams(
                 0,
-                dp(55),
+                dp(46),
                 1f
             )
         )
@@ -469,8 +469,8 @@ class MyBookingsActivity : AppCompatActivity() {
                 true
             ),
             LinearLayout.LayoutParams(
-                dp(65),
-                dp(55)
+                dp(55),
+                dp(46)
             )
         )
 
@@ -479,9 +479,9 @@ class MyBookingsActivity : AppCompatActivity() {
             summary,
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(58)
             ).apply {
-                bottomMargin = dp(15)
+                bottomMargin = dp(10)
             }
         )
 
@@ -510,10 +510,10 @@ class MyBookingsActivity : AppCompatActivity() {
                         )
 
                     setPadding(
-                        dp(20),
-                        dp(35),
-                        dp(20),
-                        dp(35)
+                        dp(16),
+                        dp(24),
+                        dp(16),
+                        dp(24)
                     )
                 }
 
@@ -550,7 +550,7 @@ class MyBookingsActivity : AppCompatActivity() {
                 empty,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(240)
+                    dp(190)
                 )
             )
 
@@ -605,10 +605,10 @@ class MyBookingsActivity : AppCompatActivity() {
                     )
 
                 setPadding(
-                    dp(15),
-                    dp(15),
-                    dp(15),
-                    dp(15)
+                    dp(12),
+                    dp(11),
+                    dp(12),
+                    dp(11)
                 )
             }
 
@@ -634,13 +634,13 @@ class MyBookingsActivity : AppCompatActivity() {
         cardHeader.addView(
             makeText(
                 "🩺  طلب تمريض منزلي",
-                19f,
+                17f,
                 NAVY,
                 true
             ),
             LinearLayout.LayoutParams(
                 0,
-                dp(55),
+                dp(46),
                 1f
             )
         )
@@ -669,8 +669,8 @@ class MyBookingsActivity : AppCompatActivity() {
         cardHeader.addView(
             statusView,
             LinearLayout.LayoutParams(
-                dp(120),
-                dp(42)
+                dp(108),
+                dp(38)
             )
         )
 
@@ -679,7 +679,7 @@ class MyBookingsActivity : AppCompatActivity() {
             cardHeader,
             LinearLayout.LayoutParams(
                 -1,
-                dp(60)
+                dp(52)
             )
         )
 
@@ -869,7 +869,7 @@ class MyBookingsActivity : AppCompatActivity() {
 
                 setPadding(
                     0,
-                    dp(12),
+                    dp(8),
                     0,
                     0
                 )
@@ -898,7 +898,7 @@ class MyBookingsActivity : AppCompatActivity() {
                 },
                 LinearLayout.LayoutParams(
                     0,
-                    dp(55),
+                    dp(48),
                     1f
                 ).apply {
 
@@ -930,7 +930,7 @@ class MyBookingsActivity : AppCompatActivity() {
                 },
                 LinearLayout.LayoutParams(
                     0,
-                    dp(55),
+                    dp(48),
                     1f
                 ).apply {
 
@@ -947,7 +947,7 @@ class MyBookingsActivity : AppCompatActivity() {
                 actions,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(70)
+                    dp(60)
                 )
             )
         }
@@ -986,7 +986,7 @@ class MyBookingsActivity : AppCompatActivity() {
             ),
             LinearLayout.LayoutParams(
                 dp(105),
-                dp(45)
+                dp(40)
             )
         )
 
@@ -999,7 +999,7 @@ class MyBookingsActivity : AppCompatActivity() {
             ),
             LinearLayout.LayoutParams(
                 0,
-                dp(45),
+                dp(40),
                 1f
             )
         )
