@@ -201,7 +201,7 @@ class MainActivity : AppCompatActivity() {
                 dp(14),
                 dp(10),
                 dp(14),
-                dp(80)
+                dp(16)
             )
         }
     }
@@ -727,7 +727,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             heroImage,
-            LinearLayout.LayoutParams(-1, dp(205))
+            LinearLayout.LayoutParams(-1, dp(170))
         )
 
         addSpace(root, 8)
@@ -910,7 +910,7 @@ class MainActivity : AppCompatActivity() {
 
         loginCard.addView(
             phoneRow,
-            LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(8) }
+            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8) }
         )
 
         loginCard.addView(
@@ -1300,7 +1300,7 @@ class MainActivity : AppCompatActivity() {
                 includeFontPadding = true
                 setPadding(dp(6), 0, dp(6), 0)
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(22))
         )
 
         root.addView(
@@ -1332,7 +1332,7 @@ class MainActivity : AppCompatActivity() {
                 includeFontPadding = true
                 setPadding(dp(4), 0, dp(4), 0)
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(22))
         )
 
         val otp = EditText(this).apply {
@@ -1493,7 +1493,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val location = TextView(this).apply {
-            text = "⌖  الأنبار - الفلوجة  ›"
+            text = "⌖  الفلوجة - الأنبار  ›"
             textSize = 14f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
@@ -1530,7 +1530,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(
             heroImage,
-            LinearLayout.LayoutParams(-1, dp(205))
+            LinearLayout.LayoutParams(-1, dp(170))
         )
 
         addSpace(root, 8)
@@ -1553,8 +1553,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(2), dp(2), dp(2), dp(2))
         }
 
-        visual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(78), dp(78)))
-        hero.addView(visual, LinearLayout.LayoutParams(dp(86), dp(88)))
+        visual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(68), dp(68)))
+        hero.addView(visual, LinearLayout.LayoutParams(dp(76), dp(78)))
 
         val heroInfo = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1568,41 +1568,41 @@ class MainActivity : AppCompatActivity() {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(22))
         )
         heroInfo.addView(
             text("التمريض المنزلي", 25f, NAVY, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(38))
+            LinearLayout.LayoutParams(-1, dp(32))
         )
         heroInfo.addView(
             text("صحة أفضل .. حياة أفضل", 13f, NAVY).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(26))
+            LinearLayout.LayoutParams(-1, dp(22))
         )
         heroInfo.addView(
             text("خدمة تمريض منزلية موثوقة في الأنبار", 11f, GRAY).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(38))
+            LinearLayout.LayoutParams(-1, dp(32))
         )
 
-        hero.addView(heroInfo, LinearLayout.LayoutParams(0, dp(118), 1f))
-        root.addView(hero, LinearLayout.LayoutParams(-1, dp(138)))
+        hero.addView(heroInfo, LinearLayout.LayoutParams(0, dp(94), 1f))
+        root.addView(hero, LinearLayout.LayoutParams(-1, dp(112)))
 
         addSpace(root, 12)
 
         // إجراء رئيسي
         root.addView(
-            button("إنشاء طلب تمريض الآن") {
+            button("طلب ممرض الآن") {
                 checkLoginBeforeRequest()
             },
-            LinearLayout.LayoutParams(-1, dp(56))
+            LinearLayout.LayoutParams(-1, dp(52))
         )
 
         addSpace(root, 12)
@@ -1651,15 +1651,15 @@ class MainActivity : AppCompatActivity() {
 
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_agenda, "طلباتي", "متابعة الطلبات") { showBookings() },
-            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_myplaces, "الخدمات", "اختر خدمة") { showServices() },
-            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_send, "المحادثات", "تواصل معنا") { showChats() },
-            LinearLayout.LayoutParams(0, dp(112), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(quickRow)
@@ -1681,15 +1681,15 @@ class MainActivity : AppCompatActivity() {
 
         serviceRow.addView(
             serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(110), 1f).apply { marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(110), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(110), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(serviceRow)
@@ -1718,15 +1718,15 @@ class MainActivity : AppCompatActivity() {
 
         benefits.addView(
             benefit(android.R.drawable.ic_lock_lock, "موثوقة", "رعاية آمنة"),
-            LinearLayout.LayoutParams(0, dp(76), 1f)
+            LinearLayout.LayoutParams(0, dp(68), 1f)
         )
         benefits.addView(
             benefit(android.R.drawable.ic_menu_mylocation, "في منزلك", "وصول للموقع"),
-            LinearLayout.LayoutParams(0, dp(76), 1f)
+            LinearLayout.LayoutParams(0, dp(68), 1f)
         )
         benefits.addView(
             benefit(android.R.drawable.ic_lock_idle_alarm, "سريعة", "أقرب وقت"),
-            LinearLayout.LayoutParams(0, dp(76), 1f)
+            LinearLayout.LayoutParams(0, dp(68), 1f)
         )
 
         root.addView(benefits)
@@ -1739,7 +1739,7 @@ class MainActivity : AppCompatActivity() {
                 "رعاية مهنية في منزلك",
                 "كوادر تمريضية معتمدة ومتابعة واضحة لحالة طلبك."
             ),
-            LinearLayout.LayoutParams(-1, dp(86))
+            LinearLayout.LayoutParams(-1, dp(72))
         )
 
         addSpace(root, 8)
@@ -1750,7 +1750,7 @@ class MainActivity : AppCompatActivity() {
                 "تغطية في مناطق الأنبار",
                 "حدد المدينة والموقع والنقطة الدالة ليسهل الوصول إليك."
             ),
-            LinearLayout.LayoutParams(-1, dp(86))
+            LinearLayout.LayoutParams(-1, dp(72))
         )
 
         addSpace(root, 14)
@@ -1885,11 +1885,11 @@ class MainActivity : AppCompatActivity() {
         addSpace(root, 3)
         root.addView(
             text("إتمام طلب التمريض", 22f, NAVY, true),
-            LinearLayout.LayoutParams(-1, dp(38))
+            LinearLayout.LayoutParams(-1, dp(32))
         )
         root.addView(
             text("أدخل بيانات المريض وحدد موقع الوصول بدقة", 12f, GRAY),
-            LinearLayout.LayoutParams(-1, dp(25))
+            LinearLayout.LayoutParams(-1, dp(22))
         )
         addSpace(root, 4)
 
@@ -2055,7 +2055,7 @@ class MainActivity : AppCompatActivity() {
         requestLocationStatusView = locationStatus
         locationCard.addView(
             locationStatus,
-            LinearLayout.LayoutParams(-1, dp(38)).apply { topMargin = dp(3) }
+            LinearLayout.LayoutParams(-1, dp(32)).apply { topMargin = dp(3) }
         )
 
         val locationButton = button("تحديد موقعي الآن") {
@@ -2161,7 +2161,7 @@ class MainActivity : AppCompatActivity() {
             background = bordered(WHITE, BORDER, 13)
             setPadding(dp(11), dp(6), dp(11), dp(6))
         }
-        notesCard.addView(notes, LinearLayout.LayoutParams(-1, dp(56)))
+        notesCard.addView(notes, LinearLayout.LayoutParams(-1, dp(52)))
         root.addView(notesCard, LinearLayout.LayoutParams(-1, dp(94)))
         addSpace(root, 6)
 
@@ -2543,7 +2543,7 @@ class MainActivity : AppCompatActivity() {
 
                 container.addView(
                     card,
-                    LinearLayout.LayoutParams(-1, dp(86)).apply {
+                    LinearLayout.LayoutParams(-1, dp(72)).apply {
                         bottomMargin = dp(10)
                     }
                 )
