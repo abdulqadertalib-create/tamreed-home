@@ -627,10 +627,10 @@ class NurseRequestsActivity : AppCompatActivity() {
                 setBackgroundColor(BG)
 
                 setPadding(
-                    dp(14),
-                    dp(14),
-                    dp(14),
-                    dp(30)
+                    dp(12),
+                    dp(8),
+                    dp(12),
+                    dp(16)
                 )
             }
 
@@ -682,13 +682,13 @@ class NurseRequestsActivity : AppCompatActivity() {
         header.addView(
             txt(
                 "طلبات المرضى",
-                25f,
+                22f,
                 NAVY,
                 true
             ),
             LinearLayout.LayoutParams(
                 0,
-                dp(60),
+                dp(52),
                 1f
             )
         )
@@ -716,7 +716,7 @@ class NurseRequestsActivity : AppCompatActivity() {
             header,
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(58)
             )
         )
 
@@ -727,14 +727,14 @@ class NurseRequestsActivity : AppCompatActivity() {
 
         root.addView(
             txt(
-                "عدد الطلبات: ${requests.size}",
-                19f,
+                "طلبات الممرضين: ${requests.size}",
+                17f,
                 NAVY,
                 true
             ),
             LinearLayout.LayoutParams(
                 -1,
-                dp(55)
+                dp(42)
             )
         )
 
@@ -801,7 +801,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 empty,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(230)
+                    dp(190)
                 )
             )
 
@@ -823,7 +823,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 ).apply {
 
                     bottomMargin =
-                        dp(16)
+                        dp(10)
                 }
             )
         }
@@ -870,13 +870,13 @@ class NurseRequestsActivity : AppCompatActivity() {
                     )
 
                 elevation =
-                    dp(2).toFloat()
+                    dp(1).toFloat()
 
                 setPadding(
-                    dp(15),
-                    dp(15),
-                    dp(15),
-                    dp(15)
+                    dp(12),
+                    dp(12),
+                    dp(12),
+                    dp(12)
                 )
             }
 
@@ -884,7 +884,7 @@ class NurseRequestsActivity : AppCompatActivity() {
         card.addView(
             txt(
                 "🩺  طلب تمريض منزلي",
-                21f,
+                19f,
                 NAVY,
                 true
             )
@@ -1044,7 +1044,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 mapButton,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(55)
+                    dp(48)
                 ).apply {
 
                     topMargin =
@@ -1079,7 +1079,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 acceptButton,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(58)
+                    dp(52)
                 ).apply {
 
                     topMargin =
@@ -1115,7 +1115,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 detailsButton,
                 LinearLayout.LayoutParams(
                     -1,
-                    dp(56)
+                    dp(50)
                 ).apply {
                     topMargin = dp(10)
                 }
@@ -1238,7 +1238,7 @@ class NurseRequestsActivity : AppCompatActivity() {
                 true
             ),
             LinearLayout.LayoutParams(
-                dp(125),
+                dp(105),
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         )
