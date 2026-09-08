@@ -30,6 +30,7 @@ import com.google.android.gms.location.LocationServices
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.from
 
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -112,6 +114,12 @@ class MainActivity : AppCompatActivity() {
     private val scope =
         CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    // حفظ جلسة المريض محلياً حتى لا يطلب رقم الهاتف عند كل فتح للتطبيق.
+    // يتم حذف التذكر فقط عند اختيار "تسجيل الخروج" صراحةً.
+    private val patientPrefs by lazy {
+        getSharedPreferences("tamreed_patient_session", MODE_PRIVATE)
+    }
+
     // مهمة تحديث صفحة الطلبات تلقائياً أثناء بقائها مفتوحة.
     private var bookingsRefreshJob: Job? = null
 
@@ -131,19 +139,41 @@ class MainActivity : AppCompatActivity() {
         NotificationHelper.createChannel(this)
         requestNotificationPermissionIfNeeded()
 
-        /*
-         * أول شاشة للمستخدم هي تسجيل الدخول.
-         * إذا كان المستخدم مسجلاً مسبقاً في Supabase
-         * ننتقل مباشرة إلى الرئيسية.
-         */
-        val user = SupabaseManager.client.auth.currentUserOrNull()
+        // ننتظر حتى ينتهي Supabase من استعادة الجلسة المحفوظة.
+        // هذا يمنع ظهور شاشة رقم الهاتف للحظات بعد إغلاق التطبيق وإعادة فتحه.
+        scope.launch {
+            try {
+                val savedPhone = patientPrefs.getString("phone", null)
+                if (!savedPhone.isNullOrBlank()) {
+                    phoneNumber = savedPhone
+                }
 
-        if (user == null) {
-            showPhoneLogin()
-        } else {
-            // تسجيل جهاز المريض في FCM حتى تصله الإشعارات الحقيقية.
-            FcmTokenManager.registerToken("patient")
-            showHome()
+                val status = SupabaseManager
+                    .client
+                    .auth
+                    .sessionStatus
+                    .first { it !is SessionStatus.Initializing }
+
+                if (status is SessionStatus.Authenticated) {
+                    FcmTokenManager.registerToken("patient")
+                    showHome()
+                } else {
+                    // لا نعتبر رقم الهاتف المحفوظ جلسة دخول بحد ذاته.
+                    // يجب وجود جلسة Supabase صحيحة حتى ندخل للرئيسية.
+                    patientPrefs.edit().remove("phone").apply()
+                    phoneNumber = ""
+                    showPhoneLogin()
+                }
+            } catch (_: Exception) {
+                // احتياط في حال تعذر قراءة حالة الجلسة.
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                if (user == null) {
+                    showPhoneLogin()
+                } else {
+                    FcmTokenManager.registerToken("patient")
+                    showHome()
+                }
+            }
         }
     }
 
@@ -924,6 +954,9 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 phoneNumber = normalized
+                patientPrefs.edit()
+                    .putString("phone", normalized)
+                    .apply()
                 sendOtp()
             },
             LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(10) }
@@ -2123,7 +2156,7 @@ class MainActivity : AppCompatActivity() {
             topMargin = dp(4)
         })
 
-        root.addView(addressCard, LinearLayout.LayoutParams(-1, dp(94)))
+        root.addView(addressCard, LinearLayout.LayoutParams(-1, dp(145)))
         addSpace(root, 6)
 
         // ----------------------------------------------------
@@ -3953,6 +3986,10 @@ class MainActivity : AppCompatActivity() {
                             .signOut()
                     } catch (_: Exception) {
                     }
+
+                    patientPrefs.edit()
+                        .remove("phone")
+                        .apply()
 
                     phoneNumber = ""
                     patientPhone = ""
