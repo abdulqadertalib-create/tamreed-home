@@ -693,7 +693,7 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(Color.WHITE)
-            setPadding(dp(14), dp(4), dp(14), dp(18))
+            setPadding(dp(14), dp(8), dp(14), dp(24))
             clipChildren = false
             clipToPadding = false
         }
@@ -709,7 +709,7 @@ class MainActivity : AppCompatActivity() {
         // استبدال "الأنبار - الفلوجة" بالعبارة التعريفية المطلوبة.
         val locationChip = TextView(this).apply {
             text = "تمريض منزلي في محافظة الأنبار"
-            textSize = 13f
+            textSize = 11.5f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
@@ -720,7 +720,7 @@ class MainActivity : AppCompatActivity() {
 
         header.addView(
             locationChip,
-            LinearLayout.LayoutParams(dp(205), dp(42))
+            LinearLayout.LayoutParams(dp(220), dp(46))
         )
 
         header.addView(
@@ -730,7 +730,7 @@ class MainActivity : AppCompatActivity() {
 
         val language = TextView(this).apply {
             text = "English"
-            textSize = 13f
+            textSize = 11.5f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
@@ -738,8 +738,8 @@ class MainActivity : AppCompatActivity() {
             includeFontPadding = true
         }
 
-        header.addView(language, LinearLayout.LayoutParams(dp(82), dp(42)))
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(44)))
+        header.addView(language, LinearLayout.LayoutParams(dp(82), dp(46)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(48)))
 
         // إنزال المحتوى قليلاً عن أعلى الشاشة.
         addSpace(root, 10)
@@ -796,35 +796,35 @@ class MainActivity : AppCompatActivity() {
         }
 
         heroText.addView(
-            text("رعاية أقرب إليك", 15f, GREEN, true).apply {
+            text("رعاية أقرب إليك", 14f, GREEN, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(27))
+            LinearLayout.LayoutParams(-1, dp(38))
         )
 
         heroText.addView(
-            text("التمريض المنزلي", 23f, NAVY, true).apply {
+            text("التمريض المنزلي", 21f, NAVY, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(37))
+            LinearLayout.LayoutParams(-1, dp(44))
         )
 
         heroText.addView(
-            text("رعاية مهنية موثوقة في منزلك", 13f, NAVY).apply {
+            text("رعاية مهنية موثوقة في منزلك", 12f, NAVY).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(27))
+            LinearLayout.LayoutParams(-1, dp(31))
         )
 
         hero.addView(
             heroText,
-            LinearLayout.LayoutParams(0, dp(92), 1f)
+            LinearLayout.LayoutParams(0, dp(100), 1f)
         )
 
-        root.addView(hero, LinearLayout.LayoutParams(-1, dp(104)))
+        root.addView(hero, LinearLayout.LayoutParams(-1, dp(112)))
 
         addSpace(root, 10)
 
@@ -884,19 +884,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         loginCard.addView(
-            text("تسجيل الدخول", 24f, NAVY, true).apply {
+            text("تسجيل الدخول", 22f, NAVY, true).apply {
+                includeFontPadding = true
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(-1, dp(44))
+        )
+
+        loginCard.addView(
+            text("أدخل رقم هاتفك للمتابعة", 12f, GRAY).apply {
                 includeFontPadding = true
                 gravity = Gravity.CENTER
             },
             LinearLayout.LayoutParams(-1, dp(38))
-        )
-
-        loginCard.addView(
-            text("أدخل رقم هاتفك للمتابعة", 13f, GRAY).apply {
-                includeFontPadding = true
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(-1, dp(25))
         )
 
         val phoneRow = LinearLayout(this).apply {
@@ -978,7 +978,7 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(200)))
+        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(210)))
 
         addSpace(root, 8)
 
@@ -1047,11 +1047,11 @@ class MainActivity : AppCompatActivity() {
         addSpace(root, 8)
 
         root.addView(
-            text("🔒  بياناتك محمية وآمنة", 13f, GRAY, true).apply {
+            text("🔒  بياناتك محمية وآمنة", 12f, GRAY, true).apply {
                 includeFontPadding = true
                 gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(30))
+            LinearLayout.LayoutParams(-1, dp(38))
         )
 
         scrollRoot.addView(
@@ -1312,7 +1312,7 @@ class MainActivity : AppCompatActivity() {
                 layoutDirection = View.LAYOUT_DIRECTION_LTR
                 textDirection = View.TEXT_DIRECTION_LTR
             },
-            LinearLayout.LayoutParams(-1, dp(30))
+            LinearLayout.LayoutParams(-1, dp(38))
         )
 
         // -----------------------------------------------------
@@ -1977,7 +1977,7 @@ class MainActivity : AppCompatActivity() {
             android.R.layout.simple_spinner_dropdown_item,
             serviceNames
         )
-        serviceCard.addView(service, LinearLayout.LayoutParams(-1, dp(44)))
+        serviceCard.addView(service, LinearLayout.LayoutParams(-1, dp(48)))
 
         scope.launch {
             try {
