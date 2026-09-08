@@ -2510,7 +2510,6 @@ class MainActivity : AppCompatActivity() {
                         )
                     )
                     scaleType = ImageView.ScaleType.CENTER_CROP
-                    gravity = Gravity.CENTER
                     background = rounded(LIGHT_BLUE, 16)
                     clipToOutline = true
                     contentDescription = service.second
