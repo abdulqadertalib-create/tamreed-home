@@ -791,11 +791,10 @@ class AdminActivity : AppCompatActivity() {
             setPadding(dp(14), dp(22), dp(14), dp(30))
         }
 
-        root.addView(text("🛡️", 52f))
-        root.addView(text("لوحة إدارة الممرضين", 28f, navy, true))
-        root.addView(text("اعتماد الممرضين الجدد", 16f, gray))
+                root.addView(text("لوحة الإدارة", 28f, navy, true))
+        root.addView(text("إدارة واعتماد كوادر التمريض", 16f, gray))
 
-        root.addView(button("🔄 تحديث القائمة", blue) {
+        root.addView(button("تحديث قائمة الممرضين", blue) {
             loadNurses(root)
         }, LinearLayout.LayoutParams(-1, dp(58)))
 
@@ -857,13 +856,13 @@ class AdminActivity : AppCompatActivity() {
         card.addView(text("الهاتف: ${nurse.phone ?: "غير محدد"}", 15f, gray))
 
         if (nurse.is_verified == true) {
-            card.addView(text("✅ معتمد", 17f, green, true))
+            card.addView(text("معتمد", 17f, green, true))
         } else {
-            card.addView(text("⏳ بانتظار الاعتماد", 17f, Color.rgb(190, 120, 20), true))
-            card.addView(button("✅ اعتماد الممرض", green) {
+            card.addView(text("بانتظار الاعتماد", 17f, Color.rgb(190, 120, 20), true))
+            card.addView(button("اعتماد الممرض", green) {
                 confirmApproval(nurse, root)
             }, LinearLayout.LayoutParams(-1, dp(56)))
-            card.addView(button("❌ رفض الطلب", red) {
+            card.addView(button("رفض الطلب", red) {
                 confirmReject(nurse, root)
             }, LinearLayout.LayoutParams(-1, dp(52)))
         }
