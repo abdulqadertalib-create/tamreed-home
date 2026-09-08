@@ -244,10 +244,10 @@ class NurseActivity : AppCompatActivity() {
                 )
 
                 setPadding(
-                    dp(14),
-                    dp(14),
-                    dp(14),
-                    dp(30)
+                    dp(12),
+                    dp(8),
+                    dp(12),
+                    dp(16)
                 )
             }
 
@@ -269,7 +269,7 @@ class NurseActivity : AppCompatActivity() {
         val title =
             makeText(
                 "التمريض المنزلي",
-                28f,
+                24f,
                 NAVY,
                 true
             )
@@ -279,7 +279,7 @@ class NurseActivity : AppCompatActivity() {
             title,
             LinearLayout.LayoutParams(
                 -1,
-                dp(70)
+                dp(56)
             )
         )
 
@@ -302,10 +302,10 @@ class NurseActivity : AppCompatActivity() {
                     )
 
                 setPadding(
-                    dp(18),
-                    dp(18),
-                    dp(18),
-                    dp(18)
+                    dp(12),
+                    dp(12),
+                    dp(12),
+                    dp(12)
                 )
             }
 
@@ -339,11 +339,11 @@ class NurseActivity : AppCompatActivity() {
             welcome,
             LinearLayout.LayoutParams(
                 -1,
-                dp(130)
+                dp(105)
             ).apply {
 
                 bottomMargin =
-                    dp(15)
+                    dp(10)
             }
         )
 
@@ -366,10 +366,10 @@ class NurseActivity : AppCompatActivity() {
                     bordered()
 
                 setPadding(
-                    dp(14),
-                    dp(12),
-                    dp(14),
-                    dp(12)
+                    dp(10),
+                    dp(8),
+                    dp(10),
+                    dp(8)
                 )
             }
 
@@ -413,7 +413,7 @@ class NurseActivity : AppCompatActivity() {
             status,
             LinearLayout.LayoutParams(
                 0,
-                dp(65),
+                dp(52),
                 1f
             )
         )
@@ -423,11 +423,11 @@ class NurseActivity : AppCompatActivity() {
             statusCard,
             LinearLayout.LayoutParams(
                 -1,
-                dp(80)
+                dp(64)
             ).apply {
 
                 bottomMargin =
-                    dp(15)
+                    dp(10)
             }
         )
 
@@ -437,7 +437,7 @@ class NurseActivity : AppCompatActivity() {
         val infoTitle =
             makeText(
                 "بيانات الممرض",
-                21f,
+                19f,
                 NAVY,
                 true
             )
@@ -447,7 +447,7 @@ class NurseActivity : AppCompatActivity() {
             infoTitle,
             LinearLayout.LayoutParams(
                 -1,
-                dp(55)
+                dp(46)
             )
         )
 
@@ -464,10 +464,10 @@ class NurseActivity : AppCompatActivity() {
                     bordered()
 
                 setPadding(
-                    dp(15),
                     dp(12),
-                    dp(15),
-                    dp(12)
+                    dp(9),
+                    dp(12),
+                    dp(9)
                 )
             }
 
@@ -525,7 +525,7 @@ class NurseActivity : AppCompatActivity() {
             ).apply {
 
                 bottomMargin =
-                    dp(20)
+                    dp(12)
             }
         )
 
@@ -567,7 +567,7 @@ class NurseActivity : AppCompatActivity() {
             requestsButton,
             LinearLayout.LayoutParams(
                 -1,
-                dp(62)
+                dp(54)
             ).apply {
 
                 bottomMargin =
@@ -628,7 +628,7 @@ class NurseActivity : AppCompatActivity() {
             availabilityButton,
             LinearLayout.LayoutParams(
                 -1,
-                dp(62)
+                dp(54)
             ).apply {
 
                 bottomMargin =
@@ -729,7 +729,7 @@ class NurseActivity : AppCompatActivity() {
             label,
             LinearLayout.LayoutParams(
                 dp(125),
-                dp(48)
+                dp(40)
             )
         )
 
@@ -903,7 +903,7 @@ class NurseActivity : AppCompatActivity() {
         root.addView(
             makeText(
                 "التمريض المنزلي",
-                28f,
+                24f,
                 NAVY,
                 true
             ),
