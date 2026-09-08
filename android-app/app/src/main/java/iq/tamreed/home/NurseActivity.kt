@@ -39,7 +39,10 @@ data class NurseHomeProfile(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val is_available: Boolean? = false,
-    val is_verified: Boolean? = false
+    val is_verified: Boolean? = false,
+    val subscription_start: String? = null,
+    val subscription_end: String? = null,
+    val subscription_status: String? = "INACTIVE"
 )
 
 
@@ -474,12 +477,19 @@ class NurseActivity : AppCompatActivity() {
             }
 
 
+        val subscriptionActive =
+            profile != null && hasActiveSubscription(profile)
+
         val available =
-            profile?.is_available == true
+            profile?.is_available == true && subscriptionActive
 
 
         val statusText =
-            if (available) {
+            if (!subscriptionActive) {
+
+                "الاشتراك غير فعال — لا يمكن استقبال الطلبات"
+
+            } else if (available) {
 
                 "متاح لاستقبال الطلبات"
 
@@ -876,6 +886,15 @@ class NurseActivity : AppCompatActivity() {
 
         val profile =
             nurse ?: return
+
+        if (!hasActiveSubscription(profile)) {
+            Toast.makeText(
+                this,
+                "الاشتراك غير فعال، لا يمكن استقبال الطلبات",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
 
 
         val id =
