@@ -199,7 +199,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(LIGHT_GRAY)
-            setPadding(dp(14), dp(10), dp(14), dp(30))
+            setPadding(dp(12), dp(8), dp(12), dp(16))
         }
 
     private fun showDashboard() {
@@ -211,7 +211,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(NAVY, 22)
-            setPadding(dp(15), dp(18), dp(15), dp(18))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
         }
 
         header.addView(text("👨‍⚕️", 45f, WHITE))
@@ -226,10 +226,10 @@ class NurseDashboardActivity : AppCompatActivity() {
 
         root.addView(
             header,
-            LinearLayout.LayoutParams(-1, dp(145))
+            LinearLayout.LayoutParams(-1, dp(118))
         )
 
-        addSpace(root, 12)
+        addSpace(root, 8)
 
         val profileText = text(
             "جاري تحميل بيانات الممرض...",
@@ -259,7 +259,7 @@ class NurseDashboardActivity : AppCompatActivity() {
         availabilityButton.isEnabled = false
         profileBox.addView(
             availabilityButton,
-            LinearLayout.LayoutParams(-1, dp(52)).apply {
+            LinearLayout.LayoutParams(-1, dp(48)).apply {
                 topMargin = dp(10)
             }
         )
@@ -269,7 +269,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(-1, -2)
         )
 
-        addSpace(root, 12)
+        addSpace(root, 8)
 
         val actions = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -280,7 +280,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             button("↻ تحديث") {
                 showDashboard()
             },
-            LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+            LinearLayout.LayoutParams(0, dp(50), 1f).apply {
                 marginEnd = dp(5)
             }
         )
@@ -289,13 +289,13 @@ class NurseDashboardActivity : AppCompatActivity() {
             outlineButton("🚪 خروج") {
                 finish()
             },
-            LinearLayout.LayoutParams(0, dp(58), 1f).apply {
+            LinearLayout.LayoutParams(0, dp(50), 1f).apply {
                 marginStart = dp(5)
             }
         )
 
         root.addView(actions)
-        addSpace(root, 14)
+        addSpace(root, 10)
 
         root.addView(
             text(
@@ -323,7 +323,7 @@ class NurseDashboardActivity : AppCompatActivity() {
 
         root.addView(pendingContainer)
 
-        addSpace(root, 18)
+        addSpace(root, 12)
 
         root.addView(
             text(
@@ -600,7 +600,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 18)
             elevation = dp(2).toFloat()
-            setPadding(dp(14), dp(14), dp(14), dp(14))
+            setPadding(dp(12), dp(10), dp(12), dp(10))
         }
 
         card.addView(
@@ -665,7 +665,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                 button("✅ قبول الطلب") {
                     confirmAccept(booking, nurseId)
                 },
-                LinearLayout.LayoutParams(-1, dp(55))
+                LinearLayout.LayoutParams(-1, dp(46))
             )
 
             addSpace(card, 7)
@@ -677,7 +677,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                         "تم إبقاء الطلب متاحاً للممرضين الآخرين.\nيمكنك تجاهله دون تغيير حالة الطلب."
                     )
                 },
-                LinearLayout.LayoutParams(-1, dp(50))
+                LinearLayout.LayoutParams(-1, dp(46))
             )
 
         } else {
@@ -693,7 +693,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                 outlineButton("📞 الاتصال بالمريض") {
                     callPhone(booking.patient_phone)
                 },
-                LinearLayout.LayoutParams(-1, dp(50))
+                LinearLayout.LayoutParams(-1, dp(46))
             )
         }
 
@@ -710,7 +710,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                         booking.longitude
                     )
                 },
-                LinearLayout.LayoutParams(-1, dp(50))
+                LinearLayout.LayoutParams(-1, dp(46))
             )
         }
 
@@ -736,7 +736,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                             "ON_THE_WAY"
                         )
                     },
-                    LinearLayout.LayoutParams(-1, dp(55))
+                    LinearLayout.LayoutParams(-1, dp(46))
                 )
             }
 
@@ -751,7 +751,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                             "ARRIVED"
                         )
                     },
-                    LinearLayout.LayoutParams(-1, dp(55))
+                    LinearLayout.LayoutParams(-1, dp(46))
                 )
             }
 
@@ -766,7 +766,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                             "IN_PROGRESS"
                         )
                     },
-                    LinearLayout.LayoutParams(-1, dp(55))
+                    LinearLayout.LayoutParams(-1, dp(46))
                 )
             }
 
@@ -779,7 +779,7 @@ class NurseDashboardActivity : AppCompatActivity() {
                             nurseId
                         )
                     },
-                    LinearLayout.LayoutParams(-1, dp(55))
+                    LinearLayout.LayoutParams(-1, dp(46))
                 )
             }
 
@@ -1086,7 +1086,7 @@ class NurseDashboardActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             background = rounded(WHITE, 18)
-            setPadding(dp(15), dp(25), dp(15), dp(25))
+            setPadding(dp(12), dp(18), dp(12), dp(18))
         }
 
         box.addView(text(icon, 45f, GRAY))
