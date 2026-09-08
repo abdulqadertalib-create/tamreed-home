@@ -3222,6 +3222,68 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        addSpace(root, 10)
+
+        // دعم الخدمة: اتصال أو واتساب مباشر.
+        val supportCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(LIGHT_BLUE, 18)
+            elevation = dp(1).toFloat()
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+
+        supportCard.addView(
+            text("الدعم الفني", 17f, NAVY, true).apply {
+                gravity = Gravity.RIGHT
+            }
+        )
+
+        supportCard.addView(
+            text(
+                "للاستفسارات والمساعدة يمكنك التواصل مع إدارة الخدمة.",
+                12f,
+                GRAY
+            ).apply {
+                gravity = Gravity.RIGHT
+            }
+        )
+
+        val supportActions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        supportActions.addView(
+            button("واتساب الدعم") {
+                openWhatsAppSupport()
+            },
+            LinearLayout.LayoutParams(0, dp(45), 1f).apply {
+                marginEnd = dp(4)
+            }
+        )
+
+        supportActions.addView(
+            outlineButton("اتصال بالدعم") {
+                callSupport()
+            },
+            LinearLayout.LayoutParams(0, dp(45), 1f).apply {
+                marginStart = dp(4)
+            }
+        )
+
+        supportCard.addView(
+            supportActions,
+            LinearLayout.LayoutParams(-1, dp(48)).apply {
+                topMargin = dp(6)
+            }
+        )
+
+        root.addView(
+            supportCard,
+            LinearLayout.LayoutParams(-1, dp(145))
+        )
+
         addSpace(root, 12)
 
         val loading = text(
@@ -3769,15 +3831,58 @@ class MainActivity : AppCompatActivity() {
 
     private fun contactUs() {
 
-        AlertDialog.Builder(this)
-            .setTitle("☎️ تواصل معنا")
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("تواصل معنا")
             .setMessage(
                 "التمريض المنزلي\n\n" +
-                    "محافظة الأنبار - العراق\n\n" +
-                    "يمكنك التواصل مع إدارة الخدمة للاستفسارات والمساعدة."
+                    "محافظة الأنبار - العراق\n" +
+                    "رقم الدعم: 07810056006\n\n" +
+                    "اختر طريقة التواصل المناسبة."
             )
-            .setPositiveButton("حسناً", null)
-            .show()
+            .setNegativeButton("إلغاء", null)
+            .setNeutralButton("واتساب") { _, _ ->
+                openWhatsAppSupport()
+            }
+            .setPositiveButton("اتصال") { _, _ ->
+                callSupport()
+            }
+            .create()
+
+        dialog.show()
+    }
+
+    private fun callSupport() {
+        try {
+            startActivity(
+                Intent(
+                    Intent.ACTION_DIAL,
+                    Uri.parse("tel:07810056006")
+                )
+            )
+        } catch (_: Exception) {
+            Toast.makeText(
+                this,
+                "تعذر فتح تطبيق الاتصال",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun openWhatsAppSupport() {
+        try {
+            val uri = Uri.parse(
+                "https://wa.me/9647810056006"
+            )
+            startActivity(
+                Intent(Intent.ACTION_VIEW, uri)
+            )
+        } catch (_: Exception) {
+            Toast.makeText(
+                this,
+                "تعذر فتح واتساب",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun showAbout() {
