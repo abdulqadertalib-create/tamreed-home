@@ -159,13 +159,13 @@ class ChatActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 0)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setPadding(dp(6), dp(5), dp(6), dp(5))
             elevation = dp(2).toFloat()
         }
 
         val back = TextView(this).apply {
             text = "‹"
-            textSize = 38f
+            textSize = 34f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             includeFontPadding = true
@@ -174,7 +174,7 @@ class ChatActivity : AppCompatActivity() {
 
         header.addView(
             back,
-            LinearLayout.LayoutParams(dp(48), dp(52))
+            LinearLayout.LayoutParams(dp(44), dp(46))
         )
 
         val identity = LinearLayout(this).apply {
@@ -192,28 +192,28 @@ class ChatActivity : AppCompatActivity() {
                 gravity = Gravity.RIGHT
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(29))
+            LinearLayout.LayoutParams(-1, dp(25))
         )
 
         identity.addView(
             TextView(this).apply {
-                text = "محادثة مرتبطة بالطلب • آمنة"
+                text = "محادثة مرتبطة بطلب التمريض"
                 textSize = 11f
                 setTextColor(GREEN)
                 gravity = Gravity.RIGHT
                 includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(22))
+            LinearLayout.LayoutParams(-1, dp(18))
         )
 
         header.addView(
             identity,
-            LinearLayout.LayoutParams(0, dp(52), 1f)
+            LinearLayout.LayoutParams(0, dp(46), 1f)
         )
 
         val medicalIcon = TextView(this).apply {
             text = "✚"
-            textSize = 25f
+            textSize = 22f
             setTextColor(WHITE)
             gravity = Gravity.CENTER
             background = rounded(NAVY, 50)
@@ -221,14 +221,14 @@ class ChatActivity : AppCompatActivity() {
 
         header.addView(
             medicalIcon,
-            LinearLayout.LayoutParams(dp(48), dp(48))
+            LinearLayout.LayoutParams(dp(44), dp(44))
         )
 
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(68)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(58)))
 
         // معلومات الطلب
         val bookingInfo = TextView(this).apply {
-            text = "رقم الطلب: ${bookingId.take(8)}…"
+            text = "طلب التمريض: ${bookingId.take(8)}…"
             textSize = 11f
             setTextColor(GRAY)
             gravity = Gravity.CENTER
@@ -237,7 +237,7 @@ class ChatActivity : AppCompatActivity() {
             setPadding(dp(8), 0, dp(8), 0)
         }
 
-        root.addView(bookingInfo, LinearLayout.LayoutParams(-1, dp(32)))
+        root.addView(bookingInfo, LinearLayout.LayoutParams(-1, dp(28)))
 
         // منطقة الرسائل
         scrollView = ScrollView(this).apply {
@@ -245,7 +245,7 @@ class ChatActivity : AppCompatActivity() {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(LIGHT_GRAY)
             clipToPadding = false
-            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setPadding(dp(8), dp(6), dp(8), dp(6))
         }
 
         messagesContainer = LinearLayout(this).apply {
@@ -272,7 +272,7 @@ class ChatActivity : AppCompatActivity() {
             visibility = View.GONE
         }
 
-        root.addView(loadingText, LinearLayout.LayoutParams(-1, dp(30)))
+        root.addView(loadingText, LinearLayout.LayoutParams(-1, dp(24)))
 
         // شريط إرسال الرسالة
         val composer = LinearLayout(this).apply {
@@ -280,7 +280,7 @@ class ChatActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 0)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setPadding(dp(6), dp(5), dp(6), dp(5))
             elevation = dp(3).toFloat()
         }
 
@@ -299,7 +299,7 @@ class ChatActivity : AppCompatActivity() {
 
         composer.addView(
             input,
-            LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+            LinearLayout.LayoutParams(0, dp(46), 1f).apply {
                 marginEnd = dp(7)
             }
         )
@@ -316,10 +316,10 @@ class ChatActivity : AppCompatActivity() {
 
         composer.addView(
             sendButton,
-            LinearLayout.LayoutParams(dp(86), dp(52))
+            LinearLayout.LayoutParams(dp(78), dp(46))
         )
 
-        root.addView(composer, LinearLayout.LayoutParams(-1, dp(68)))
+        root.addView(composer, LinearLayout.LayoutParams(-1, dp(58)))
 
         setContentView(root)
     }
@@ -432,7 +432,7 @@ class ChatActivity : AppCompatActivity() {
 
             messagesContainer.addView(
                 empty,
-                LinearLayout.LayoutParams(-1, dp(150))
+                LinearLayout.LayoutParams(-1, dp(125))
             )
             return
         }
@@ -449,7 +449,7 @@ class ChatActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = if (mine) Gravity.START else Gravity.END
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(0, dp(3), 0, dp(3))
+            setPadding(0, dp(2), 0, dp(2))
         }
 
         val bubble = LinearLayout(this).apply {
@@ -460,7 +460,7 @@ class ChatActivity : AppCompatActivity() {
                 if (mine) SENT_BG else RECEIVED_BG,
                 18
             )
-            setPadding(dp(13), dp(8), dp(13), dp(7))
+            setPadding(dp(11), dp(7), dp(11), dp(6))
             if (!mine) {
                 elevation = dp(1).toFloat()
             }
@@ -478,7 +478,7 @@ class ChatActivity : AppCompatActivity() {
         bubble.addView(
             messageText,
             LinearLayout.LayoutParams(
-                dp(230),
+                dp(215),
                 -2
             )
         )
@@ -494,15 +494,15 @@ class ChatActivity : AppCompatActivity() {
         bubble.addView(
             timeText,
             LinearLayout.LayoutParams(
-                dp(230),
-                dp(17)
+                dp(215),
+                dp(15)
             )
         )
 
         row.addView(
             bubble,
             LinearLayout.LayoutParams(
-                dp(250),
+                dp(235),
                 -2
             )
         )
