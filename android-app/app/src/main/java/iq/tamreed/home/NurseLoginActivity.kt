@@ -962,7 +962,7 @@ class NurseLoginActivity : AppCompatActivity() {
     private fun showPendingScreen() {
         val root = rootLayout()
 
-        root.addView(makeText("⏳", 60f, NAVY))
+        root.addView(makeText("⏳", 46f, NAVY))
         root.addView(
             makeText(
                 "الحساب بانتظار الاعتماد",
@@ -978,13 +978,13 @@ class NurseLoginActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             background = rounded(WHITE, 22)
-            setPadding(dp(20), dp(25), dp(20), dp(25))
+            setPadding(dp(14), dp(16), dp(14), dp(16))
         }
 
         card.addView(
             makeText(
                 "تم إنشاء حسابك بنجاح.",
-                20f,
+                18f,
                 NAVY,
                 true
             )
@@ -993,7 +993,7 @@ class NurseLoginActivity : AppCompatActivity() {
         card.addView(
             makeText(
                 "سيتمكن الممرض من استقبال الطلبات بعد اعتماد الحساب من الإدارة.",
-                16f,
+                14f,
                 TEXT,
                 false
             )
