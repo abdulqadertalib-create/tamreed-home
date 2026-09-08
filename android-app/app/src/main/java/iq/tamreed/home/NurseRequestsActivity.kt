@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -50,6 +51,12 @@ data class NurseRecordForRequests(
     val user_id: String? = null
 )
 
+@Serializable
+data class NurseServiceRecord(
+    val id: String? = null,
+    val name_ar: String? = null
+)
+
 class NurseRequestsActivity : AppCompatActivity() {
 
     private val NAVY = Color.rgb(5, 62, 105)
@@ -76,6 +83,8 @@ class NurseRequestsActivity : AppCompatActivity() {
      * ID الخاص بحساب Supabase Auth
      */
     private var currentUserId: String? = null
+
+    private var serviceNames: Map<String, String> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -291,12 +300,25 @@ class NurseRequestsActivity : AppCompatActivity() {
                         .filter { booking ->
 
                             booking.nurse_id.isNullOrBlank() ||
-                            booking.nurse_id == nurseId
+                            booking.nurse_id == nurseId ||
+                            booking.nurse_id == currentUserId
                         }
                         .sortedByDescending {
 
                             it.created_at ?: ""
                         }
+
+                serviceNames = try {
+                    SupabaseManager
+                        .client
+                        .from("services")
+                        .select()
+                        .decodeList<NurseServiceRecord>()
+                        .filter { !it.id.isNullOrBlank() && !it.name_ar.isNullOrBlank() }
+                        .associate { it.id!! to it.name_ar!! }
+                } catch (_: Exception) {
+                    emptyMap()
+                }
 
                 showRequests(
                     visibleBookings
@@ -567,229 +589,202 @@ class NurseRequestsActivity : AppCompatActivity() {
         booking: NurseRequestsBooking
     ): LinearLayout {
 
+        val status = booking.status?.uppercase() ?: "PENDING"
         val accepted =
-            booking.nurse_id == nurseId
+            booking.nurse_id == nurseId ||
+            booking.nurse_id == currentUserId
 
-        val card =
-            LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    bordered(
-                        WHITE,
-                        Color.rgb(215, 225, 232),
-                        20
-                    )
-
-                elevation =
-                    dp(2).toFloat()
-
-                setPadding(
-                    dp(15),
-                    dp(15),
-                    dp(15),
-                    dp(15)
-                )
-            }
-
-        card.addView(
-            txt(
-                "🩺  طلب تمريض منزلي",
-                21f,
-                NAVY,
-                true
-            )
-        )
-
-        card.addView(
-            txt(
-                if (accepted)
-                    "✓ تم قبول الطلب"
-                else
-                    "🟠 طلب جديد بانتظار الممرض",
-
-                15f,
-
-                if (accepted)
-                    GREEN
-                else
-                    ORANGE,
-
-                true
-            )
-        )
-
-        addRow(
-            card,
-            "رقم الطلب",
-            booking.id ?: "-"
-        )
-
-        addRow(
-            card,
-            "رقم المريض",
-            booking.patient_phone ?: "-"
-        )
-
-        addRow(
-            card,
-            "الخدمة",
-            booking.service_id ?: "-"
-        )
-
-        addRow(
-            card,
-            "المدينة",
-            booking.city ?: "الأنبار"
-        )
-
-        addRow(
-            card,
-            "العنوان",
-            booking.address ?: "-"
-        )
-
-        addRow(
-            card,
-            "النقطة الدالة",
-            booking.landmark ?: "-"
-        )
-
-        if (!booking.notes.isNullOrBlank()) {
-
-            addRow(
-                card,
-                "الملاحظات",
-                booking.notes ?: "-"
-            )
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bordered(WHITE, Color.rgb(215, 225, 232), 20)
+            elevation = dp(2).toFloat()
+            setPadding(dp(14), dp(14), dp(14), dp(14))
         }
 
-        if (
-            booking.latitude != null &&
-            booking.longitude != null
-        ) {
+        val title = serviceNames[booking.service_id] ?: "خدمة تمريض منزلي"
+        card.addView(txt(title, 20f, NAVY, true))
 
+        val statusLabel = when {
+            status == "ACCEPTED" && accepted -> "تم قبول الطلب"
+            status == "PENDING" && booking.nurse_id.isNullOrBlank() -> "طلب جديد بانتظار القبول"
+            status == "ON_THE_WAY" && accepted -> "أنت في الطريق إلى المريض"
+            status == "IN_PROGRESS" && accepted -> "الزيارة جارية"
+            status == "COMPLETED" -> "تم إكمال الطلب"
+            status == "CANCELLED" -> "تم إلغاء الطلب"
+            else -> "حالة الطلب: $status"
+        }
+
+        val statusColor = when (status) {
+            "ACCEPTED", "ON_THE_WAY" -> GREEN
+            "IN_PROGRESS", "COMPLETED" -> GREEN
+            "CANCELLED" -> RED
+            else -> ORANGE
+        }
+
+        card.addView(txt(statusLabel, 14f, statusColor, true))
+
+        addRow(card, "رقم الطلب", booking.id ?: "-")
+        addRow(card, "رقم المريض", booking.patient_phone ?: "-")
+        addRow(card, "المدينة", booking.city ?: "الأنبار")
+        addRow(card, "العنوان", booking.address ?: "-")
+
+        if (!booking.notes.isNullOrBlank()) {
+            addRow(card, "الملاحظات", booking.notes ?: "-")
+        }
+
+        if (booking.latitude != null && booking.longitude != null) {
             addRow(
                 card,
                 "موقع المريض",
                 "${booking.latitude}, ${booking.longitude}"
             )
-        }
 
-        addRow(
-            card,
-            "الحالة",
-            booking.status ?: "PENDING"
-        )
-
-        /*
-         * زر قبول الطلب
-         */
-
-        if (
-            !accepted &&
-            booking.nurse_id.isNullOrBlank()
-        ) {
-
-            val accept =
-                Button(this).apply {
-
-                    text =
-                        "✓ قبول طلب المريض"
-
-                    textSize =
-                        17f
-
-                    isAllCaps =
-                        false
-
-                    setTextColor(
-                        WHITE
-                    )
-
-                    background =
-                        rounded(
-                            GREEN,
-                            16
-                        )
-
-                    setOnClickListener {
-                        isEnabled = false
-
-                        acceptBooking(
-                            booking
-                        )
-                    }
+            val mapButton = Button(this).apply {
+                text = "فتح موقع المريض على الخريطة"
+                textSize = 15f
+                isAllCaps = false
+                setTextColor(WHITE)
+                background = rounded(NAVY, 15)
+                setOnClickListener {
+                    openPatientLocation(booking.latitude, booking.longitude)
                 }
+            }
 
             card.addView(
-                accept,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(60)
-                ).apply {
-
-                    topMargin =
-                        dp(12)
+                mapButton,
+                LinearLayout.LayoutParams(-1, dp(50)).apply {
+                    topMargin = dp(7)
                 }
             )
         }
 
-        /*
-         * المحادثة مع المريض:
-         * تظهر فقط بعد أن يصبح هذا الطلب معيناً لهذا الممرض.
-         * patient_id هو معرف حساب المريض في Supabase Auth.
-         */
-        if (
-            accepted &&
-            !booking.id.isNullOrBlank() &&
-            !booking.patient_id.isNullOrBlank()
-        ) {
-
-            val chatButton =
-                Button(this).apply {
-
-                    text =
-                        "المحادثة مع المريض"
-
-                    textSize =
-                        17f
-
-                    isAllCaps =
-                        false
-
-                    setTextColor(
-                        WHITE
-                    )
-
-                    background =
-                        rounded(
-                            NAVY,
-                            16
+        if (!booking.patient_phone.isNullOrBlank() && accepted) {
+            val callButton = Button(this).apply {
+                text = "اتصال بالمريض"
+                textSize = 15f
+                isAllCaps = false
+                setTextColor(NAVY)
+                background = bordered(WHITE, NAVY, 15)
+                setOnClickListener {
+                    try {
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_DIAL,
+                                Uri.parse("tel:${booking.patient_phone}")
+                            )
                         )
-
-                    setOnClickListener {
-                        openPatientChat(booking)
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            this@NurseRequestsActivity,
+                            "تعذر فتح الاتصال",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
+            }
+
+            card.addView(
+                callButton,
+                LinearLayout.LayoutParams(-1, dp(50)).apply {
+                    topMargin = dp(7)
+                }
+            )
+        }
+
+        if (status == "PENDING" && booking.nurse_id.isNullOrBlank()) {
+            val accept = Button(this).apply {
+                text = "قبول طلب المريض"
+                textSize = 16f
+                isAllCaps = false
+                setTextColor(WHITE)
+                background = rounded(GREEN, 15)
+                setOnClickListener {
+                    isEnabled = false
+                    acceptBooking(booking)
+                }
+            }
+
+            card.addView(
+                accept,
+                LinearLayout.LayoutParams(-1, dp(54)).apply {
+                    topMargin = dp(9)
+                }
+            )
+        }
+
+        if (accepted && !booking.id.isNullOrBlank() && !booking.patient_id.isNullOrBlank()) {
+            val chatButton = Button(this).apply {
+                text = "المحادثة مع المريض"
+                textSize = 16f
+                isAllCaps = false
+                setTextColor(WHITE)
+                background = rounded(NAVY, 15)
+                setOnClickListener { openPatientChat(booking) }
+            }
 
             card.addView(
                 chatButton,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(55)
-                ).apply {
-                    topMargin = dp(10)
+                LinearLayout.LayoutParams(-1, dp(54)).apply {
+                    topMargin = dp(8)
                 }
             )
         }
 
         return card
+    }
+
+    private fun addStatusButton(
+        card: LinearLayout,
+        label: String,
+        color: Int,
+        action: () -> Unit
+    ) {
+        val button = Button(this).apply {
+            text = label
+            textSize = 15f
+            isAllCaps = false
+            setTextColor(WHITE)
+            background = rounded(color, 15)
+            setOnClickListener { action() }
+        }
+        card.addView(
+            button,
+            LinearLayout.LayoutParams(-1, dp(52)).apply {
+                topMargin = dp(8)
+            }
+        )
+    }
+
+    private fun openPatientLocation(latitude: Double?, longitude: Double?) {
+        if (latitude == null || longitude == null) {
+            Toast.makeText(this, "موقع المريض غير متوفر", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val uri = Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude")
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذر فتح الخرائط", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openPatientChat(booking: NurseRequestsBooking) {
+        val bookingId = booking.id?.trim().orEmpty()
+        val patientId = booking.patient_id?.trim().orEmpty()
+
+        if (bookingId.isBlank() || patientId.isBlank()) {
+            Toast.makeText(this, "بيانات المحادثة غير مكتملة", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        startActivity(
+            Intent(this, ChatActivity::class.java).apply {
+                putExtra(ChatActivity.EXTRA_BOOKING_ID, bookingId)
+                putExtra(ChatActivity.EXTRA_RECEIVER_ID, patientId)
+                putExtra(ChatActivity.EXTRA_RECEIVER_NAME, "المريض")
+            }
+        )
     }
 
     /*
@@ -843,56 +838,6 @@ class NurseRequestsActivity : AppCompatActivity() {
         )
 
         parent.addView(row)
-    }
-
-    /*
-     * ============================================================
-     * فتح محادثة المريض
-     * ============================================================
-     */
-    private fun openPatientChat(
-        booking: NurseRequestsBooking
-    ) {
-        val bookingId = booking.id
-        val patientId = booking.patient_id
-
-        if (bookingId.isNullOrBlank()) {
-            Toast.makeText(
-                this,
-                "رقم الطلب غير صالح",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        if (patientId.isNullOrBlank()) {
-            Toast.makeText(
-                this,
-                "معرف المريض غير موجود",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        startActivity(
-            Intent(
-                this,
-                ChatActivity::class.java
-            ).apply {
-                putExtra(
-                    ChatActivity.EXTRA_BOOKING_ID,
-                    bookingId
-                )
-                putExtra(
-                    ChatActivity.EXTRA_RECEIVER_ID,
-                    patientId
-                )
-                putExtra(
-                    ChatActivity.EXTRA_RECEIVER_NAME,
-                    "المريض"
-                )
-            }
-        )
     }
 
     /*
