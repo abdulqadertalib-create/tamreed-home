@@ -1468,14 +1468,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         heroInfo.addView(
-            text("رعاية أقرب إليك", 14f, GREEN, true).apply {
+            text("رعاية أقرب إليك", 13f, GREEN, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
             LinearLayout.LayoutParams(-1, dp(25))
         )
         heroInfo.addView(
-            text("التمريض المنزلي", 25f, NAVY, true).apply {
+            text("التمريض المنزلي", 22f, NAVY, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
