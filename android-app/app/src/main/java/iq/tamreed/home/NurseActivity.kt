@@ -226,6 +226,105 @@ class NurseActivity : AppCompatActivity() {
     }
 
 
+    private fun hasActiveSubscription(profile: NurseHomeProfile): Boolean {
+        val status = profile.subscription_status?.uppercase()
+        val end = profile.subscription_end
+
+        if (status != "ACTIVE" || end.isNullOrBlank()) {
+            return false
+        }
+
+        return try {
+            java.time.Instant.parse(end).isAfter(java.time.Instant.now())
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun subscriptionStatusText(profile: NurseHomeProfile): String {
+        val end = profile.subscription_end
+
+        if (hasActiveSubscription(profile)) {
+            return "🟢 الاشتراك فعال"
+        }
+
+        if (!end.isNullOrBlank()) {
+            return "🔴 الاشتراك منتهي"
+        }
+
+        return "🟠 لا يوجد اشتراك فعال"
+    }
+
+    private fun formatSubscriptionEnd(value: String?): String {
+        if (value.isNullOrBlank()) return "غير محدد"
+
+        return try {
+            val dateTime = java.time.OffsetDateTime.parse(value)
+            val d = dateTime.toLocalDate()
+            "${d.dayOfMonth}/${d.monthValue}/${d.year}"
+        } catch (_: Exception) {
+            value
+        }
+    }
+
+    private fun openRequestsIfSubscribed() {
+        val profile = nurse
+
+        if (profile == null) {
+            Toast.makeText(
+                this,
+                "تعذر تحميل بيانات الاشتراك",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        if (!hasActiveSubscription(profile)) {
+            Toast.makeText(
+                this,
+                "لا يمكنك استقبال طلبات المرضى لأن الاشتراك غير فعال",
+                Toast.LENGTH_LONG
+            ).show()
+
+            startActivity(
+                Intent(
+                    this,
+                    NurseSubscriptionActivity::class.java
+                )
+            )
+            return
+        }
+
+        startActivity(
+            Intent(
+                this,
+                NurseRequestsActivity::class.java
+            )
+        )
+    }
+
+    private fun updateAvailabilityIfAllowed() {
+        val profile = nurse ?: return
+
+        if (!hasActiveSubscription(profile)) {
+            Toast.makeText(
+                this,
+                "لا يمكن تفعيل استقبال الطلبات قبل تفعيل الاشتراك",
+                Toast.LENGTH_LONG
+            ).show()
+
+            startActivity(
+                Intent(
+                    this,
+                    NurseSubscriptionActivity::class.java
+                )
+            )
+            return
+        }
+
+        toggleAvailability()
+    }
+
     private fun showHome() {
 
         val profile = nurse
@@ -554,12 +653,7 @@ class NurseActivity : AppCompatActivity() {
 
                 setOnClickListener {
 
-                    val intent = Intent(
-                        this@NurseActivity,
-                        NurseRequestsActivity::class.java
-                    )
-
-                    startActivity(intent)
+                    openRequestsIfSubscribed()
                 }
             }
 
