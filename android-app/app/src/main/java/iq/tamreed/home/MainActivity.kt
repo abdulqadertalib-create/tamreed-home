@@ -818,7 +818,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(0, dp(94), 1f)
         )
         trustRow.addView(
-            trustItem(android.R.drawable.ic_menu_home, "رعاية", "في منزلك"),
+            trustItem(android.R.drawable.ic_menu_myplaces, "رعاية", "في منزلك"),
             LinearLayout.LayoutParams(0, dp(94), 1f)
         )
         trustRow.addView(
@@ -1002,9 +1002,9 @@ class MainActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
             }
-            addView(realIcon(iconRes, 25), LinearLayout.LayoutParams(dp(42), dp(34)))
-            addView(text(title, 11f, NAVY, true))
-            addView(text(subtitle, 9f, GRAY))
+            item.addView(realIcon(iconRes, 25), LinearLayout.LayoutParams(dp(42), dp(34)))
+            item.addView(text(title, 11f, NAVY, true))
+            item.addView(text(subtitle, 9f, GRAY))
             return item
         }
 
