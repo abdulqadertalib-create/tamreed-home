@@ -275,13 +275,14 @@ class AdminActivity : AppCompatActivity() {
         window.navigationBarColor = LIGHT_GRAY
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
-        // واجهة دخول الإدارة الاحترافية — مصممة لتظهر كاملة على شاشة الهاتف.
+        // واجهة لوحة الإدارة — بدون اسم التطبيق داخل شاشة الإدارة.
+        // جميع العناصر لها ارتفاع كافٍ لمنع قص الحروف العربية.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(LIGHT_GRAY)
-            setPadding(dp(14), dp(5), dp(14), dp(8))
+            setPadding(dp(14), dp(4), dp(14), dp(8))
             clipChildren = false
             clipToPadding = false
         }
@@ -309,29 +310,21 @@ class AdminActivity : AppCompatActivity() {
 
         addSpace(root, 4)
 
-        // الشعار الطبي
+        // الشعار
         root.addView(
             nursingLogo(),
-            LinearLayout.LayoutParams(dp(94), dp(94))
+            LinearLayout.LayoutParams(dp(96), dp(96))
         )
 
-        // العنوان — ارتفاع أكبر لمنع قص الحروف العربية
+        // العنوان فقط — حذف "تطبيق التمريض المنزلي"
         root.addView(
-            text("لوحة الإدارة", 29f, NAVY, true).apply {
+            text("لوحة الإدارة", 30f, NAVY, true).apply {
                 includeFontPadding = true
                 gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(50)).apply {
+            LinearLayout.LayoutParams(-1, dp(52)).apply {
                 topMargin = dp(2)
             }
-        )
-
-        root.addView(
-            text("تطبيق التمريض المنزلي", 17f, GRAY).apply {
-                includeFontPadding = true
-                gravity = Gravity.CENTER
-            },
-            LinearLayout.LayoutParams(-1, dp(32))
         )
 
         // شريط الأمان
@@ -352,7 +345,7 @@ class AdminActivity : AppCompatActivity() {
         )
 
         secure.addView(
-            text("دخول آمن لحسابات الإدارة فقط", 15f, NAVY, true).apply {
+            text("دخول آمن لحسابات الإدارة فقط", 16f, NAVY, true).apply {
                 includeFontPadding = true
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
@@ -362,7 +355,7 @@ class AdminActivity : AppCompatActivity() {
         root.addView(
             secure,
             LinearLayout.LayoutParams(-1, dp(54)).apply {
-                topMargin = dp(6)
+                topMargin = dp(7)
             }
         )
 
@@ -376,7 +369,7 @@ class AdminActivity : AppCompatActivity() {
             }
         )
 
-        // بطاقة رقم الهاتف
+        // بطاقة تسجيل الدخول
         val loginCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -401,7 +394,7 @@ class AdminActivity : AppCompatActivity() {
         )
 
         phoneTitle.addView(
-            text("رقم الهاتف", 19f, NAVY, true).apply {
+            text("رقم الهاتف", 20f, NAVY, true).apply {
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
                 includeFontPadding = true
             },
@@ -479,7 +472,6 @@ class AdminActivity : AppCompatActivity() {
 
                         loading.dismiss()
                         showOtp(normalized)
-
                     } catch (e: Exception) {
                         loading.dismiss()
                         showError(
@@ -535,7 +527,6 @@ class AdminActivity : AppCompatActivity() {
             }
         )
 
-        // حماية البيانات
         root.addView(
             text("🔒  بياناتك محمية وآمنة", 14f, GRAY, true).apply {
                 includeFontPadding = true
