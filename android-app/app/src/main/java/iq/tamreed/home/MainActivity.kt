@@ -647,237 +647,174 @@ class MainActivity : AppCompatActivity() {
     private fun showPhoneLogin() {
 
         window.statusBarColor = Color.WHITE
-        window.navigationBarColor = LIGHT_GRAY
+        window.navigationBarColor = WHITE
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
-        /*
-         * واجهة تسجيل الدخول الجديدة:
-         * - متجاوبة مع أحجام الشاشات المختلفة.
-         * - RTL عربي.
-         * - لا نغيّر أي منطق OTP أو Supabase.
-         * - التصميم مبني من عناصر Android حقيقية وليس صورة ثابتة.
-         */
-        val scrollRoot = ScrollView(this).apply {
-            setBackgroundColor(Color.WHITE)
-            isFillViewport = true
-            clipToPadding = false
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
+        // شاشة دخول مدمجة: كل العناصر الأساسية تظهر ضمن شاشة الهاتف
+        // بدون ScrollView أو تمرير عمودي.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(Color.WHITE)
-            setPadding(dp(16), dp(8), dp(16), dp(24))
+            setPadding(dp(12), dp(5), dp(12), dp(4))
             clipChildren = false
-            clipToPadding = false
         }
 
-        // الشريط العلوي
+        // الشريط العلوي — صغير حتى لا يستهلك مساحة الشاشة.
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(4), 0, dp(4), 0)
         }
 
         val locationChip = TextView(this).apply {
             text = "⌖  الأنبار - الفلوجة"
-            textSize = 14f
+            textSize = 12f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            background = rounded(LIGHT_BLUE, 18)
-            setPadding(dp(12), 0, dp(12), 0)
+            background = rounded(LIGHT_BLUE, 16)
+            setPadding(dp(7), 0, dp(7), 0)
         }
-
-        header.addView(
-            locationChip,
-            LinearLayout.LayoutParams(dp(165), dp(42))
-        )
-
-        header.addView(
-            Space(this),
-            LinearLayout.LayoutParams(0, 1, 1f)
-        )
+        header.addView(locationChip, LinearLayout.LayoutParams(dp(145), dp(36)))
+        header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
 
         val language = TextView(this).apply {
             text = "English"
-            textSize = 13f
+            textSize = 11f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            background = bordered(WHITE, BORDER, 16)
+            background = bordered(WHITE, BORDER, 14)
         }
+        header.addView(language, LinearLayout.LayoutParams(dp(72), dp(36)))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(36)))
 
-        header.addView(language, LinearLayout.LayoutParams(dp(82), dp(42)))
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(44)))
+        addSpace(root, 4)
 
-        addSpace(root, 8)
-
-        // الصورة الرئيسية للممرضة والمريضة
+        // صورة الممرضة والمريضة — نسبة عرض/ارتفاع مناسبة للهاتف.
         val heroImage = ImageView(this).apply {
             setImageResource(R.drawable.nurse_patient_home)
             scaleType = ImageView.ScaleType.CENTER_CROP
-            background = rounded(Color.rgb(239, 248, 252), 26)
+            background = rounded(Color.rgb(239, 248, 252), 22)
             clipToOutline = true
-            contentDescription = "التمريض المنزلي"
+            contentDescription = "رعاية تمريضية منزلية"
         }
+        root.addView(heroImage, LinearLayout.LayoutParams(-1, dp(132)))
 
-        root.addView(
-            heroImage,
-            LinearLayout.LayoutParams(-1, dp(205))
-        )
+        addSpace(root, 5)
 
-        addSpace(root, 8)
-
+        // بطاقة تعريف مختصرة.
         val hero = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(Color.rgb(239, 248, 252), 24)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = rounded(Color.rgb(239, 248, 252), 20)
+            setPadding(dp(7), dp(5), dp(7), dp(5))
             elevation = dp(1).toFloat()
         }
 
         val heroVisual = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 20)
-            setPadding(dp(3), dp(3), dp(3), dp(3))
+            background = rounded(WHITE, 16)
+            setPadding(dp(1), dp(1), dp(1), dp(1))
         }
-
-        heroVisual.addView(
-            nursingLogo(),
-            LinearLayout.LayoutParams(dp(82), dp(82))
-        )
-
-        hero.addView(
-            heroVisual,
-            LinearLayout.LayoutParams(dp(92), dp(96))
-        )
+        heroVisual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(58), dp(58)))
+        hero.addView(heroVisual, LinearLayout.LayoutParams(dp(66), dp(68)))
 
         val heroText = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(12), 0, dp(6), 0)
+            setPadding(dp(8), 0, dp(4), 0)
         }
-
         heroText.addView(
-            text("رعاية أقرب إليك", 15f, GREEN, true).apply {
+            text("رعاية أقرب إليك", 12f, GREEN, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(28))
+            LinearLayout.LayoutParams(-1, dp(20))
         )
-
         heroText.addView(
-            text("التمريض المنزلي", 28f, NAVY, true).apply {
+            text("التمريض المنزلي", 22f, NAVY, true).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
             },
-            LinearLayout.LayoutParams(-1, dp(43))
+            LinearLayout.LayoutParams(-1, dp(30))
         )
-
         heroText.addView(
-            text("رعاية مهنية في منزلك\nخدمة موثوقة في الأنبار", 14f, NAVY).apply {
+            text("رعاية مهنية في منزلك • خدمة موثوقة في الأنبار", 10f, NAVY).apply {
                 gravity = Gravity.RIGHT
                 includeFontPadding = false
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
             },
-            LinearLayout.LayoutParams(-1, dp(54))
+            LinearLayout.LayoutParams(-1, dp(20))
         )
+        hero.addView(heroText, LinearLayout.LayoutParams(0, dp(64), 1f))
+        root.addView(hero, LinearLayout.LayoutParams(-1, dp(78)))
 
-        hero.addView(
-            heroText,
-            LinearLayout.LayoutParams(0, dp(142), 1f)
-        )
+        addSpace(root, 5)
 
-        root.addView(hero, LinearLayout.LayoutParams(-1, dp(166)))
-
-        addSpace(root, 14)
-
-        // نقاط الثقة
+        // نقاط الثقة — صف واحد صغير.
         val trustRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
-        fun trustItem(iconRes: Int, title: String, subtitle: String): LinearLayout {
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+        fun compactTrust(iconRes: Int, title: String): LinearLayout {
+            return LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
+                background = rounded(LIGHT_BLUE, 15)
+                setPadding(dp(4), 0, dp(4), 0)
+                addView(realIcon(iconRes, 18), LinearLayout.LayoutParams(dp(27), dp(27)))
+                addView(text(title, 10f, NAVY, true).apply {
+                    includeFontPadding = false
+                }, LinearLayout.LayoutParams(0, dp(30), 1f))
             }
-
-            val iconBox = FrameLayout(this).apply {
-                background = rounded(LIGHT_BLUE, 30)
-            }
-
-            iconBox.addView(
-                realIcon(iconRes, 25),
-                FrameLayout.LayoutParams(dp(52), dp(52), Gravity.CENTER)
-            )
-
-            item.addView(iconBox, LinearLayout.LayoutParams(dp(58), dp(58)))
-            item.addView(text(title, 12f, NAVY, true))
-            item.addView(text(subtitle, 10f, GRAY))
-            return item
         }
 
-        trustRow.addView(
-            trustItem(android.R.drawable.ic_menu_myplaces, "كوادر", "مؤهلة"),
-            LinearLayout.LayoutParams(0, dp(94), 1f)
-        )
-        trustRow.addView(
-            trustItem(android.R.drawable.ic_menu_myplaces, "رعاية", "في منزلك"),
-            LinearLayout.LayoutParams(0, dp(94), 1f)
-        )
-        trustRow.addView(
-            trustItem(android.R.drawable.ic_lock_lock, "آمن", "وموثوق"),
-            LinearLayout.LayoutParams(0, dp(94), 1f)
-        )
+        trustRow.addView(compactTrust(android.R.drawable.ic_menu_myplaces, "كوادر مؤهلة"), LinearLayout.LayoutParams(0, dp(34), 1f).apply { marginEnd = dp(3) })
+        trustRow.addView(compactTrust(android.R.drawable.ic_menu_myplaces, "رعاية منزلية"), LinearLayout.LayoutParams(0, dp(34), 1f).apply { marginStart = dp(3); marginEnd = dp(3) })
+        trustRow.addView(compactTrust(android.R.drawable.ic_lock_lock, "آمن وموثوق"), LinearLayout.LayoutParams(0, dp(34), 1f).apply { marginStart = dp(3) })
+        root.addView(trustRow, LinearLayout.LayoutParams(-1, dp(34)))
 
-        root.addView(trustRow)
-        addSpace(root, 6)
+        addSpace(root, 5)
 
-        // بطاقة تسجيل الدخول
+        // بطاقة تسجيل الدخول — مضغوطة ومناسبة للعرض الكامل.
         val loginCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = bordered(WHITE, BORDER, 26)
-            elevation = dp(3).toFloat()
-            setPadding(dp(14), dp(14), dp(14), dp(14))
+            background = bordered(WHITE, BORDER, 22)
+            elevation = dp(2).toFloat()
+            setPadding(dp(10), dp(6), dp(10), dp(6))
         }
 
         loginCard.addView(
-            text("تسجيل الدخول", 27f, NAVY, true).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(42))
-        )
-
-        loginCard.addView(
-            text("أدخل رقم هاتفك للمتابعة", 14f, GRAY).apply {
-                includeFontPadding = false
-            },
+            text("تسجيل الدخول", 21f, NAVY, true).apply { includeFontPadding = false },
             LinearLayout.LayoutParams(-1, dp(28))
+        )
+        loginCard.addView(
+            text("أدخل رقم هاتفك للمتابعة", 11f, GRAY).apply { includeFontPadding = false },
+            LinearLayout.LayoutParams(-1, dp(20))
         )
 
         val phoneRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_LTR
-            background = bordered(WHITE, BORDER, 16)
+            background = bordered(WHITE, BORDER, 14)
         }
 
         val phone = EditText(this).apply {
             hint = "07701234567"
-            textSize = 17f
+            textSize = 16f
             gravity = Gravity.CENTER_VERTICAL
             inputType = InputType.TYPE_CLASS_PHONE
             layoutDirection = View.LAYOUT_DIRECTION_LTR
@@ -885,180 +822,117 @@ class MainActivity : AppCompatActivity() {
             maxLines = 1
             isSingleLine = true
             background = null
-            setPadding(dp(12), 0, dp(8), 0)
+            setPadding(dp(9), 0, dp(6), 0)
         }
-
-        phoneRow.addView(
-            phone,
-            LinearLayout.LayoutParams(0, dp(54), 1f)
-        )
+        phoneRow.addView(phone, LinearLayout.LayoutParams(0, dp(42), 1f))
 
         val country = TextView(this).apply {
             text = "+964  🇮🇶"
-            textSize = 15f
+            textSize = 13f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             layoutDirection = View.LAYOUT_DIRECTION_LTR
-            setPadding(dp(8), 0, dp(8), 0)
         }
-
-        phoneRow.addView(
-            country,
-            LinearLayout.LayoutParams(dp(92), dp(54))
-        )
-
-        loginCard.addView(
-            phoneRow,
-            LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(8) }
-        )
+        phoneRow.addView(country, LinearLayout.LayoutParams(dp(78), dp(42)))
+        loginCard.addView(phoneRow, LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(4) })
 
         loginCard.addView(
             button("إرسال رمز التحقق") {
                 val input = phone.text.toString().trim()
                 val normalized = normalizeIraqPhone(input)
-
                 if (normalized == null) {
                     phone.error = "أدخل رقم هاتف عراقي صحيح"
                     return@button
                 }
-
                 phoneNumber = normalized
                 sendOtp()
             },
-            LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(10) }
+            LinearLayout.LayoutParams(-1, dp(42)).apply { topMargin = dp(6) }
         )
 
         loginCard.addView(
-            text("سيصلك رمز تحقق SMS مكوّن من 6 أرقام", 10f, GRAY).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(22)).apply { topMargin = dp(3) }
+            text("سيصلك رمز تحقق SMS مكوّن من 6 أرقام", 9f, GRAY).apply { includeFontPadding = false },
+            LinearLayout.LayoutParams(-1, dp(15)).apply { topMargin = dp(1) }
         )
+        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(158)))
 
-        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(218)))
-
-        addSpace(root, 12)
+        addSpace(root, 4)
 
         root.addView(
-            text("أو اختر نوع الدخول", 14f, GRAY, true).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(30))
+            text("أو اختر نوع الدخول", 10f, GRAY, true).apply { includeFontPadding = false },
+            LinearLayout.LayoutParams(-1, dp(20))
         )
 
+        // دخول الممرض والإدارة في صف واحد لتوفير مساحة الشاشة.
         val staffRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
-        fun staffCard(
-            iconRes: Int,
-            title: String,
-            subtitle: String,
-            action: () -> Unit,
-            backgroundColor: Int
-        ): LinearLayout {
+        fun compactStaff(iconRes: Int, title: String, subtitle: String, action: () -> Unit, bgColor: Int): LinearLayout {
             return LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
-                background = rounded(backgroundColor, 22)
-                setPadding(dp(8), dp(9), dp(8), dp(9))
+                background = rounded(bgColor, 17)
+                setPadding(dp(6), dp(3), dp(6), dp(3))
                 setOnClickListener { action() }
-
-                addView(
-                    realIcon(iconRes, 30),
-                    LinearLayout.LayoutParams(dp(56), dp(45))
-                )
-                addView(text(title, 16f, NAVY, true))
-                addView(text(subtitle, 10f, GRAY))
+                addView(realIcon(iconRes, 22), LinearLayout.LayoutParams(dp(34), dp(34)))
+                val info = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+                    layoutDirection = View.LAYOUT_DIRECTION_RTL
+                }
+                info.addView(text(title, 12f, NAVY, true).apply { includeFontPadding = false })
+                info.addView(text(subtitle, 8f, GRAY).apply { includeFontPadding = false; maxLines = 1 })
+                addView(info, LinearLayout.LayoutParams(0, dp(38), 1f))
             }
         }
 
         staffRow.addView(
-            staffCard(
-                android.R.drawable.ic_menu_myplaces,
-                "دخول الممرضين",
-                "للكوادر التمريضية المعتمدة",
-                { startActivity(Intent(this, NurseLoginActivity::class.java)) },
-                Color.rgb(235, 246, 253)
-            ),
-            LinearLayout.LayoutParams(0, dp(124), 1f).apply { marginEnd = dp(5) }
+            compactStaff(android.R.drawable.ic_menu_myplaces, "دخول الممرضين", "للكوادر المعتمدة", { startActivity(Intent(this, NurseLoginActivity::class.java)) }, Color.rgb(235, 246, 253)),
+            LinearLayout.LayoutParams(0, dp(46), 1f).apply { marginEnd = dp(3) }
         )
-
         staffRow.addView(
-            staffCard(
-                android.R.drawable.ic_menu_manage,
-                "دخول الإدارة",
-                "لإدارة المنصة والموافقات",
-                { startActivity(Intent(this, AdminActivity::class.java)) },
-                Color.rgb(235, 249, 241)
-            ),
-            LinearLayout.LayoutParams(0, dp(124), 1f).apply { marginStart = dp(5) }
+            compactStaff(android.R.drawable.ic_menu_manage, "دخول الإدارة", "إدارة المنصة", { startActivity(Intent(this, AdminActivity::class.java)) }, Color.rgb(235, 249, 241)),
+            LinearLayout.LayoutParams(0, dp(46), 1f).apply { marginStart = dp(3) }
         )
+        root.addView(staffRow, LinearLayout.LayoutParams(-1, dp(46)))
 
-        root.addView(staffRow)
+        addSpace(root, 4)
 
-        addSpace(root, 12)
-
+        // شريط خدمات مختصر بدل الكتل الطويلة السابقة.
         val features = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(LIGHT_BLUE, 22)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
+            background = rounded(LIGHT_BLUE, 16)
+            setPadding(dp(4), 0, dp(4), 0)
         }
 
-        fun feature(iconRes: Int, title: String, subtitle: String): LinearLayout {
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+        fun feature(iconRes: Int, title: String): LinearLayout {
+            return LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
+                addView(realIcon(iconRes, 18), LinearLayout.LayoutParams(dp(25), dp(25)))
+                addView(text(title, 9f, NAVY, true).apply { includeFontPadding = false }, LinearLayout.LayoutParams(0, dp(28), 1f))
             }
-            item.addView(realIcon(iconRes, 25), LinearLayout.LayoutParams(dp(42), dp(34)))
-            item.addView(text(title, 11f, NAVY, true))
-            item.addView(text(subtitle, 9f, GRAY))
-            return item
         }
-
-        features.addView(
-            feature(android.R.drawable.ic_menu_mylocation, "تغطية واسعة", "مناطق الأنبار"),
-            LinearLayout.LayoutParams(0, dp(78), 1f)
-        )
-        features.addView(
-            feature(android.R.drawable.ic_lock_idle_alarm, "خدمة سريعة", "أقرب وقت"),
-            LinearLayout.LayoutParams(0, dp(78), 1f)
-        )
-        features.addView(
-            feature(android.R.drawable.ic_menu_help, "دعم ومتابعة", "حتى اكتمال الطلب"),
-            LinearLayout.LayoutParams(0, dp(78), 1f)
-        )
-
-        root.addView(features)
-
-        addSpace(root, 12)
+        features.addView(feature(android.R.drawable.ic_menu_mylocation, "تغطية الأنبار"), LinearLayout.LayoutParams(0, dp(34), 1f))
+        features.addView(feature(android.R.drawable.ic_lock_idle_alarm, "خدمة سريعة"), LinearLayout.LayoutParams(0, dp(34), 1f))
+        features.addView(feature(android.R.drawable.ic_menu_help, "دعم ومتابعة"), LinearLayout.LayoutParams(0, dp(34), 1f))
+        root.addView(features, LinearLayout.LayoutParams(-1, dp(34)))
 
         root.addView(
-            text("التمريض المنزلي", 16f, NAVY, true).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(28))
-        )
-        root.addView(
-            text("معاً .. نحو مجتمع أكثر صحة", 11f, GRAY).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(24))
+            text("التمريض المنزلي • الأنبار", 9f, GRAY).apply { includeFontPadding = false },
+            LinearLayout.LayoutParams(-1, dp(16))
         )
 
-        scrollRoot.addView(
-            root,
-            FrameLayout.LayoutParams(-1, -2)
-        )
-
-        setContentView(scrollRoot)
+        // لا يوجد ScrollView هنا: الشاشة كاملة بدون صعود أو نزول.
+        setContentView(root)
     }
 
     private fun normalizeIraqPhone(
