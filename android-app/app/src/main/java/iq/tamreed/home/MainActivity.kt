@@ -1798,7 +1798,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             addView(
-                ImageView(this).apply {
+                ImageView(this@MainActivity).apply {
                     setImageResource(iconRes)
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     background = rounded(LIGHT_BLUE, 16)
