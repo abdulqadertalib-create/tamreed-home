@@ -67,6 +67,10 @@ class ChatActivity : AppCompatActivity() {
     private var lastRenderedSignature = ""
     private var sending = false
 
+    // رسائل محلية مؤقتة تمنع اختفاء الرسالة من الشاشة إذا تأخر
+    // تحديث Supabase أو تأخر ظهورها في نتيجة SELECT.
+    private val pendingLocalMessages = mutableListOf<ChatMessage>()
+
     private val refreshRunnable = object : Runnable {
         override fun run() {
             if (!isFinishing && !isDestroyed) {
@@ -327,7 +331,7 @@ class ChatActivity : AppCompatActivity() {
 
         scope.launch {
             try {
-                val result = SupabaseManager.client
+                val serverMessages = SupabaseManager.client
                     .from("chat_messages")
                     .select {
                         filter {
@@ -337,8 +341,26 @@ class ChatActivity : AppCompatActivity() {
                     .decodeList<ChatMessage>()
                     .sortedBy { it.created_at ?: "" }
 
+                // إذا وصلت الرسالة إلى الخادم، نحذف النسخة المحلية المؤقتة
+                // المطابقة لها حتى لا تتكرر.
+                if (serverMessages.isNotEmpty()) {
+                    pendingLocalMessages.removeAll { local ->
+                        serverMessages.any { server ->
+                            server.sender_id == local.sender_id &&
+                            server.receiver_id == local.receiver_id &&
+                            server.message == local.message
+                        }
+                    }
+                }
+
+                val result = (serverMessages + pendingLocalMessages)
+                    .distinctBy {
+                        it.id ?: "local:${it.sender_id}:${it.message}:${it.created_at}"
+                    }
+                    .sortedBy { it.created_at ?: "" }
+
                 val signature = result.joinToString("|") {
-                    "${it.id}:${it.message}:${it.created_at}"
+                    "${it.id}:${it.sender_id}:${it.receiver_id}:${it.message}:${it.created_at}"
                 }
 
                 if (signature != lastRenderedSignature) {
@@ -509,6 +531,18 @@ class ChatActivity : AppCompatActivity() {
                             message = message
                         )
                     )
+
+                // عرض الرسالة فوراً وعدم حذفها من الواجهة إذا تأخر SELECT.
+                pendingLocalMessages.add(
+                    ChatMessage(
+                        id = "local-${System.nanoTime()}",
+                        booking_id = bookingId,
+                        sender_id = currentUserId,
+                        receiver_id = receiverId,
+                        message = message,
+                        created_at = ""
+                    )
+                )
 
                 input.setText("")
                 loadMessages(silent = true)
