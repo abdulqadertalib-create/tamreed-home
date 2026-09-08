@@ -716,13 +716,28 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 8)
 
-        // البطل العلوي
+        // الصورة الرئيسية للممرضة والمريضة
+        val heroImage = ImageView(this).apply {
+            setImageResource(R.drawable.nurse_patient_home)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            background = rounded(Color.rgb(239, 248, 252), 26)
+            clipToOutline = true
+            contentDescription = "التمريض المنزلي"
+        }
+
+        root.addView(
+            heroImage,
+            LinearLayout.LayoutParams(-1, dp(205))
+        )
+
+        addSpace(root, 8)
+
         val hero = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(Color.rgb(239, 248, 252), 28)
-            setPadding(dp(10), dp(12), dp(10), dp(12))
+            background = rounded(Color.rgb(239, 248, 252), 24)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
             elevation = dp(1).toFloat()
         }
 
@@ -730,18 +745,18 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 24)
-            setPadding(dp(4), dp(5), dp(4), dp(5))
+            background = rounded(WHITE, 20)
+            setPadding(dp(3), dp(3), dp(3), dp(3))
         }
 
         heroVisual.addView(
             nursingLogo(),
-            LinearLayout.LayoutParams(dp(112), dp(112))
+            LinearLayout.LayoutParams(dp(82), dp(82))
         )
 
         hero.addView(
             heroVisual,
-            LinearLayout.LayoutParams(dp(125), dp(142))
+            LinearLayout.LayoutParams(dp(92), dp(96))
         )
 
         val heroText = LinearLayout(this).apply {
@@ -1504,26 +1519,42 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 10)
 
-        // بطاقة ترحيب رئيسية مستوحاة من التصميم المطلوب
+        // صورة رئيسية احترافية للممرضة والمريضة
+        val heroImage = ImageView(this).apply {
+            setImageResource(R.drawable.nurse_patient_home)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            background = rounded(Color.rgb(239, 248, 252), 28)
+            clipToOutline = true
+            contentDescription = "رعاية تمريضية منزلية"
+        }
+
+        root.addView(
+            heroImage,
+            LinearLayout.LayoutParams(-1, dp(205))
+        )
+
+        addSpace(root, 8)
+
+        // بطاقة ترحيب مختصرة أسفل الصورة
         val hero = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(Color.rgb(239, 248, 252), 28)
-            setPadding(dp(10), dp(10), dp(10), dp(10))
-            elevation = dp(2).toFloat()
+            background = rounded(Color.rgb(239, 248, 252), 24)
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            elevation = dp(1).toFloat()
         }
 
         val visual = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(WHITE, 22)
-            setPadding(dp(3), dp(3), dp(3), dp(3))
+            background = rounded(WHITE, 18)
+            setPadding(dp(2), dp(2), dp(2), dp(2))
         }
 
-        visual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(108), dp(108)))
-        hero.addView(visual, LinearLayout.LayoutParams(dp(118), dp(118)))
+        visual.addView(nursingLogo(), LinearLayout.LayoutParams(dp(78), dp(78)))
+        hero.addView(visual, LinearLayout.LayoutParams(dp(86), dp(88)))
 
         val heroInfo = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
