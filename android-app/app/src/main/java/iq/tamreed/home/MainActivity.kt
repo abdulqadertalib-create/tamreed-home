@@ -799,7 +799,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             val iconBox = FrameLayout(this).apply {
-                gravity = Gravity.CENTER
                 background = rounded(LIGHT_BLUE, 30)
             }
 
@@ -1041,7 +1040,7 @@ class MainActivity : AppCompatActivity() {
 
         scrollRoot.addView(
             root,
-            ScrollView.LayoutParams(-1, -2)
+            FrameLayout.LayoutParams(-1, -2)
         )
 
         setContentView(scrollRoot)
@@ -1728,7 +1727,7 @@ class MainActivity : AppCompatActivity() {
         // شريط سفلي مبسط
         root.addView(bottomNavigation("home"))
 
-        scrollRoot.addView(root, ScrollView.LayoutParams(-1, -2))
+        scrollRoot.addView(root, FrameLayout.LayoutParams(-1, -2))
         setContentView(scrollRoot)
     }
 
