@@ -1680,15 +1680,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         serviceRow.addView(
-            serviceCard("💉", "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
+            serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
             LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginEnd = dp(4) }
         )
         serviceRow.addView(
-            serviceCard("🩹", "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
+            serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
             LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         serviceRow.addView(
-            serviceCard("🩸", "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
+            serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
             LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4) }
         )
 
@@ -1763,7 +1763,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun serviceCard(
-        icon: String,
+        iconRes: Int,
         title: String,
         description: String,
         action: () -> Unit
@@ -1798,7 +1798,14 @@ class MainActivity : AppCompatActivity() {
             }
 
             addView(
-                text(icon, 34f, NAVY)
+                ImageView(this).apply {
+                    setImageResource(iconRes)
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    background = rounded(LIGHT_BLUE, 16)
+                    clipToOutline = true
+                    contentDescription = title
+                },
+                LinearLayout.LayoutParams(dp(70), dp(70))
             )
 
             addView(
@@ -1817,6 +1824,26 @@ class MainActivity : AppCompatActivity() {
                     GRAY
                 )
             )
+        }
+    }
+
+    private fun serviceIconRes(title: String): Int {
+        val t = title.trim()
+        return when {
+            t.contains("كان", true) || t.contains("كانيولا", true) ->
+                R.drawable.service_iv_cannula
+            t.contains("قسط", true) ->
+                R.drawable.service_urinary_catheter
+            t.contains("حقن", true) || t.contains("إبر", true) ->
+                R.drawable.service_injection
+            t.contains("علام", true) || t.contains("حيوي", true) ||
+                t.contains("ضغط", true) || t.contains("سكر", true) ->
+                R.drawable.service_vitals
+            t.contains("ضماد", true) || t.contains("جرح", true) ->
+                R.drawable.service_wound_care
+            t.contains("كبار", true) || t.contains("مسنين", true) ->
+                R.drawable.service_elderly_care
+            else -> android.R.drawable.ic_menu_agenda
         }
     }
 
@@ -2416,14 +2443,14 @@ class MainActivity : AppCompatActivity() {
         addSpace(root, 10)
 
         val services = listOf(
-            Triple("💉", "إعطاء الحقن", "إعطاء الحقن حسب وصف الطبيب"),
-            Triple("🩹", "تغيير الضماد", "العناية بالجروح والضمادات"),
-            Triple("🩸", "قياس السكر", "فحص مستوى سكر الدم"),
-            Triple("🩺", "قياس الضغط", "قياس ومتابعة ضغط الدم"),
-            Triple("💧", "تركيب المحلول", "تركيب المحاليل حسب الحاجة"),
-            Triple("👴", "رعاية كبار السن", "رعاية ومتابعة كبار السن"),
-            Triple("🛏️", "رعاية المرضى", "رعاية المرضى داخل المنزل"),
-            Triple("📋", "متابعة صحية", "متابعة الحالة الصحية")
+            Triple("service_injection", "إعطاء الحقن", "إعطاء الحقن حسب وصف الطبيب"),
+            Triple("service_wound_care", "تغيير الضماد", "العناية بالجروح والضمادات"),
+            Triple("service_vitals", "قياس السكر", "فحص مستوى سكر الدم"),
+            Triple("service_vitals", "قياس الضغط", "قياس ومتابعة ضغط الدم"),
+            Triple("service_iv_cannula", "تركيب المحلول", "تركيب المحاليل حسب الحاجة"),
+            Triple("service_elderly_care", "رعاية كبار السن", "رعاية ومتابعة كبار السن"),
+            Triple("service_urinary_catheter", "وضع القسطرة البولية", "تركيب القسطرة البولية في المنزل"),
+            Triple("service_iv_cannula", "تركيب الكانيولا", "تركيب الكانيولا والعناية بمكانها")
         )
 
         val container = LinearLayout(this).apply {
@@ -2474,9 +2501,19 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                val icon = text(service.first, 34f, NAVY, true).apply {
+                val icon = ImageView(this).apply {
+                    setImageResource(
+                        resources.getIdentifier(
+                            service.first,
+                            "drawable",
+                            packageName
+                        )
+                    )
+                    scaleType = ImageView.ScaleType.CENTER_CROP
                     gravity = Gravity.CENTER
                     background = rounded(LIGHT_BLUE, 16)
+                    clipToOutline = true
+                    contentDescription = service.second
                 }
 
                 card.addView(
