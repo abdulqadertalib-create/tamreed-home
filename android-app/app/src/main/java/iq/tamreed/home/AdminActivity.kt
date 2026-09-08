@@ -298,7 +298,13 @@ class AdminActivity : AppCompatActivity() {
                     .select()
                     .decodeList<AdminSubscriptionRequest>()
 
-                val startIndex = root.indexOfFirst { it.tag == "SUBSCRIPTIONS_HEADER" }
+                var startIndex = -1
+                for (i in 0 until root.childCount) {
+                    if (root.getChildAt(i).tag == "SUBSCRIPTIONS_HEADER") {
+                        startIndex = i
+                        break
+                    }
+                }
                 if (startIndex >= 0) {
                     while (root.childCount > startIndex) root.removeViewAt(startIndex)
                 }
