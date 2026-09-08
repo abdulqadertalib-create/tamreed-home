@@ -29,7 +29,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class NurseHomeProfile(
     val id: String? = null,
-    val user_id: String? = null,
     val full_name: String? = null,
     val phone: String? = null,
     val specialty: String? = null,
@@ -188,7 +187,7 @@ class NurseActivity : AppCompatActivity() {
                             filter {
 
                                 eq(
-                                    "user_id",
+                                    "id",
                                     user.id
                                 )
                             }
@@ -636,6 +635,53 @@ class NurseActivity : AppCompatActivity() {
 
                 bottomMargin =
                     dp(20)
+            }
+        )
+
+
+        // بطاقة الاشتراك
+        val subscriptionCard =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                background = bordered()
+                setPadding(dp(15), dp(12), dp(15), dp(12))
+            }
+
+        subscriptionCard.addView(
+            makeText(
+                "💳  حالة الاشتراك",
+                19f,
+                NAVY,
+                true
+            )
+        )
+
+        subscriptionCard.addView(
+            makeText(
+                subscriptionStatusText(profile ?: NurseHomeProfile()),
+                17f,
+                if (subscriptionActive) GREEN else GRAY,
+                true
+            )
+        )
+
+        subscriptionCard.addView(
+            makeText(
+                "تاريخ انتهاء الاشتراك: ${formatSubscriptionEnd(profile?.subscription_end)}",
+                15f,
+                TEXT,
+                false
+            )
+        )
+
+        root.addView(
+            subscriptionCard,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(125)
+            ).apply {
+                bottomMargin = dp(20)
             }
         )
 
