@@ -275,12 +275,15 @@ class AdminActivity : AppCompatActivity() {
         window.navigationBarColor = LIGHT_GRAY
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
+        // واجهة دخول الإدارة الاحترافية — مصممة لتظهر كاملة على شاشة الهاتف.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(LIGHT_GRAY)
-            setPadding(dp(14), dp(6), dp(14), dp(8))
+            setPadding(dp(14), dp(5), dp(14), dp(8))
+            clipChildren = false
+            clipToPadding = false
         }
 
         // الشريط العلوي
@@ -295,33 +298,40 @@ class AdminActivity : AppCompatActivity() {
             textSize = 18f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
+            includeFontPadding = true
             setTypeface(null, Typeface.BOLD)
             setOnClickListener { finish() }
         }
-        header.addView(back, LinearLayout.LayoutParams(dp(105), dp(46)))
-        header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
-        root.addView(header, LinearLayout.LayoutParams(-1, dp(46)))
 
-        addSpace(root, 8)
+        header.addView(back, LinearLayout.LayoutParams(dp(105), dp(44)))
+        header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
+        root.addView(header, LinearLayout.LayoutParams(-1, dp(44)))
+
+        addSpace(root, 4)
 
         // الشعار الطبي
         root.addView(
             nursingLogo(),
-            LinearLayout.LayoutParams(dp(108), dp(108))
+            LinearLayout.LayoutParams(dp(94), dp(94))
         )
 
+        // العنوان — ارتفاع أكبر لمنع قص الحروف العربية
         root.addView(
-            text("لوحة الإدارة", 30f, NAVY, true).apply {
-                includeFontPadding = false
+            text("لوحة الإدارة", 29f, NAVY, true).apply {
+                includeFontPadding = true
+                gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(4) }
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                topMargin = dp(2)
+            }
         )
 
         root.addView(
             text("تطبيق التمريض المنزلي", 17f, GRAY).apply {
-                includeFontPadding = false
+                includeFontPadding = true
+                gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(30))
+            LinearLayout.LayoutParams(-1, dp(32))
         )
 
         // شريط الأمان
@@ -330,35 +340,49 @@ class AdminActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(LIGHT_BLUE, 20)
-            setPadding(dp(12), 0, dp(12), 0)
+            setPadding(dp(10), 0, dp(10), 0)
         }
+
         secure.addView(
-            text("◈", 24f, NAVY, true).apply { includeFontPadding = false },
-            LinearLayout.LayoutParams(dp(40), dp(42))
+            text("🛡", 21f, NAVY, true).apply {
+                includeFontPadding = true
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(dp(42), dp(44))
         )
+
         secure.addView(
             text("دخول آمن لحسابات الإدارة فقط", 15f, NAVY, true).apply {
-                includeFontPadding = false
+                includeFontPadding = true
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(42), 1f)
+            LinearLayout.LayoutParams(0, dp(44), 1f)
         )
-        root.addView(secure, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8) })
 
         root.addView(
-            text("ادخل رقم هاتفك المسجل كمدير لاستلام رمز التحقق", 14f, GRAY).apply {
-                includeFontPadding = false
-            },
-            LinearLayout.LayoutParams(-1, dp(40)).apply { topMargin = dp(8) }
+            secure,
+            LinearLayout.LayoutParams(-1, dp(54)).apply {
+                topMargin = dp(6)
+            }
         )
 
-        // بطاقة تسجيل الدخول
+        root.addView(
+            text("أدخل رقم هاتفك المسجل كمدير لاستلام رمز التحقق", 14f, GRAY).apply {
+                includeFontPadding = true
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(-1, dp(40)).apply {
+                topMargin = dp(5)
+            }
+        )
+
+        // بطاقة رقم الهاتف
         val loginCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             background = rounded(WHITE, 24)
             elevation = dp(2).toFloat()
-            setPadding(dp(14), dp(12), dp(14), dp(12))
+            setPadding(dp(14), dp(10), dp(14), dp(10))
         }
 
         val phoneTitle = LinearLayout(this).apply {
@@ -366,20 +390,26 @@ class AdminActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
+
         phoneTitle.addView(
-            text("☎", 22f, NAVY, true).apply {
+            text("☎", 21f, NAVY, true).apply {
                 background = rounded(LIGHT_BLUE, 12)
-                includeFontPadding = false
+                includeFontPadding = true
+                gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(dp(44), dp(40))
+            LinearLayout.LayoutParams(dp(42), dp(40))
         )
+
         phoneTitle.addView(
             text("رقم الهاتف", 19f, NAVY, true).apply {
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
-                includeFontPadding = false
+                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginStart = dp(8) }
+            LinearLayout.LayoutParams(0, dp(40), 1f).apply {
+                marginStart = dp(8)
+            }
         )
+
         loginCard.addView(phoneTitle)
 
         val phoneRow = LinearLayout(this).apply {
@@ -394,9 +424,9 @@ class AdminActivity : AppCompatActivity() {
             text("🇮🇶  +964", 16f, TEXT, true).apply {
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_LTR
-                includeFontPadding = false
+                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(dp(112), dp(58))
+            LinearLayout.LayoutParams(dp(112), dp(56))
         )
 
         val phone = EditText(this).apply {
@@ -410,11 +440,21 @@ class AdminActivity : AppCompatActivity() {
             background = null
             setPadding(dp(6), 0, dp(6), 0)
         }
-        phoneRow.addView(phone, LinearLayout.LayoutParams(0, dp(58), 1f))
-        loginCard.addView(phoneRow, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(10) })
+
+        phoneRow.addView(
+            phone,
+            LinearLayout.LayoutParams(0, dp(56), 1f)
+        )
 
         loginCard.addView(
-            button("إرسال رمز التحقق  ◇") {
+            phoneRow,
+            LinearLayout.LayoutParams(-1, dp(58)).apply {
+                topMargin = dp(8)
+            }
+        )
+
+        loginCard.addView(
+            button("إرسال رمز التحقق  ➤") {
                 val input = phone.text.toString().trim()
                 val normalized = normalizePhone(input)
 
@@ -431,12 +471,15 @@ class AdminActivity : AppCompatActivity() {
                         true,
                         false
                     )
+
                     try {
                         SupabaseManager.client.auth.signInWith(OTP) {
                             this.phone = normalized
                         }
+
                         loading.dismiss()
                         showOtp(normalized)
+
                     } catch (e: Exception) {
                         loading.dismiss()
                         showError(
@@ -446,11 +489,17 @@ class AdminActivity : AppCompatActivity() {
                     }
                 }
             },
-            LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(10) }
+            LinearLayout.LayoutParams(-1, dp(54)).apply {
+                topMargin = dp(8)
+            }
         )
 
-        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(188)))
+        root.addView(
+            loginCard,
+            LinearLayout.LayoutParams(-1, dp(186))
+        )
 
+        // معلومات الإدارة
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -458,24 +507,43 @@ class AdminActivity : AppCompatActivity() {
             background = rounded(LIGHT_BLUE, 18)
             setPadding(dp(10), 0, dp(10), 0)
         }
+
         info.addView(
-            text("ⓘ", 24f, NAVY, true).apply { includeFontPadding = false },
-            LinearLayout.LayoutParams(dp(38), dp(52))
+            text("ⓘ", 23f, NAVY, true).apply {
+                includeFontPadding = true
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(dp(40), dp(54))
         )
+
         info.addView(
-            text("هذا القسم مخصص لمدراء النظام فقط\nيجب استخدام رقم هاتف مسجل في النظام", 13f, NAVY).apply {
-                includeFontPadding = false
+            text(
+                "هذا القسم مخصص لمدراء النظام فقط\nيجب استخدام رقم هاتف مسجل في النظام",
+                13f,
+                NAVY
+            ).apply {
+                includeFontPadding = true
                 gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
             },
-            LinearLayout.LayoutParams(0, dp(60), 1f)
+            LinearLayout.LayoutParams(0, dp(62), 1f)
         )
-        root.addView(info, LinearLayout.LayoutParams(-1, dp(70)).apply { topMargin = dp(8) })
 
         root.addView(
-            text("🔒 بياناتك محمية وآمنة", 14f, GRAY, true).apply {
-                includeFontPadding = false
+            info,
+            LinearLayout.LayoutParams(-1, dp(70)).apply {
+                topMargin = dp(7)
+            }
+        )
+
+        // حماية البيانات
+        root.addView(
+            text("🔒  بياناتك محمية وآمنة", 14f, GRAY, true).apply {
+                includeFontPadding = true
+                gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(-1, dp(34)).apply { topMargin = dp(6) }
+            LinearLayout.LayoutParams(-1, dp(34)).apply {
+                topMargin = dp(5)
+            }
         )
 
         setContentView(root)
