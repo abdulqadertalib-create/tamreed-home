@@ -18,7 +18,17 @@ object SupabaseManager {
             supabaseUrl = SUPABASE_URL,
             supabaseKey = SUPABASE_KEY
         ) {
-            install(Auth)
+            install(Auth) {
+                // حفظ جلسة تسجيل الدخول على الجهاز.
+                autoSaveToStorage = true
+
+                // تحميل الجلسة المحفوظة عند تشغيل التطبيق.
+                autoLoadFromStorage = true
+
+                // تجديد جلسة الدخول تلقائيًا عند الحاجة.
+                alwaysAutoRefresh = true
+            }
+
             install(Postgrest)
         }
 }
