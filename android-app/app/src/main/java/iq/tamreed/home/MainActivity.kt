@@ -47,6 +47,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class BookingInsert(
     val patient_id: String,
+    val patient_name: String,
     val service_id: String,
     val address: String,
     val city: String,
@@ -56,6 +57,31 @@ data class BookingInsert(
     val longitude: Double? = null,
     val status: String = "PENDING",
     val notes: String? = null
+)
+
+
+@Serializable
+data class LegacyBookingInsert(
+    val patient_id: String,
+    val service_id: String,
+    val address: String,
+    val city: String,
+    val landmark: String,
+    val patient_phone: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val status: String = "PENDING",
+    val notes: String? = null
+)
+
+
+@Serializable
+data class PatientProfileRecord(
+    val user_id: String,
+    val full_name: String? = null,
+    val phone: String? = null,
+    val city: String? = null,
+    val address: String? = null
 )
 
 
@@ -70,6 +96,7 @@ data class ServiceRecord(
 data class PatientBooking(
     val id: String,
     val patient_id: String,
+    val patient_name: String? = null,
     val nurse_id: String? = null,
     val service_id: String,
     val address: String,
@@ -1410,6 +1437,39 @@ class MainActivity : AppCompatActivity() {
         setContentView(root)
     }
 
+    private fun ensurePatientProfile(userId: String, phone: String) {
+        scope.launch {
+            try {
+                // ملف المريض أصبح اختيارياً للتوافق: إذا كانت قاعدة البيانات
+                // القديمة لا تحتوي جدول patients فلن نمنع تسجيل الدخول.
+                val existing = SupabaseManager.client
+                    .from("patients")
+                    .select { filter { eq("user_id", userId) } }
+                    .decodeList<PatientProfileRecord>()
+
+                if (existing.isEmpty()) {
+                    SupabaseManager.client
+                        .from("patients")
+                        .insert(
+                            PatientProfileRecord(
+                                user_id = userId,
+                                phone = phone
+                            )
+                        )
+                } else if (existing.first().phone.isNullOrBlank() && phone.isNotBlank()) {
+                    SupabaseManager.client
+                        .from("patients")
+                        .update(mapOf("phone" to phone)) {
+                            filter { eq("user_id", userId) }
+                        }
+                }
+            } catch (_: Exception) {
+                // تسجيل الدخول لا يعتمد على جدول patients؛ الطلبات نفسها
+                // تحمل بيانات المريض، وهذا يحافظ على عمل النسخ القديمة.
+            }
+        }
+    }
+
     private fun verifyOtp(code: String) {
 
         val loading =
@@ -1440,7 +1500,10 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // بعد نجاح OTP أصبح لدينا مستخدم موثّق، نسجل جهازه في FCM.
+                // بعد نجاح OTP أصبح لدينا مستخدم موثّق.
+                // ننشئ/نحدّث ملف المريض إن كانت قاعدة البيانات تدعمه،
+                // ثم نسجل جهازه في FCM بدون تعطيل الدخول عند فشل ذلك.
+                ensurePatientProfile(userId = SupabaseManager.client.auth.currentUserOrNull()?.id ?: return@launch, phone = phoneNumber)
                 FcmTokenManager.registerToken("patient")
 
                 showHome()
@@ -2317,6 +2380,7 @@ class MainActivity : AppCompatActivity() {
                         val booking =
                             BookingInsert(
                                 patient_id = user.id,
+                                patient_name = patient,
                                 // مهم: service_id في قاعدة البيانات UUID،
                                 // لذلك نرسل id الحقيقي للخدمة وليس الاسم العربي.
                                 service_id = service.id,
@@ -2338,10 +2402,40 @@ class MainActivity : AppCompatActivity() {
                                         "المريض: $patient\n$notes"
                             )
 
-                        SupabaseManager
-                            .client
-                            .from("bookings")
-                            .insert(booking)
+                        try {
+                            // الإصدار الحديث: يخزن اسم المريض في عمود مستقل.
+                            SupabaseManager
+                                .client
+                                .from("bookings")
+                                .insert(booking)
+                        } catch (firstError: Exception) {
+                            // توافق مع قواعد البيانات القديمة التي لا تحتوي patient_name.
+                            // الاسم يبقى محفوظاً أيضاً في notes، لذلك لا تضيع بيانات المريض.
+                            val legacy = LegacyBookingInsert(
+                                patient_id = booking.patient_id,
+                                service_id = booking.service_id,
+                                address = booking.address,
+                                city = booking.city,
+                                landmark = booking.landmark,
+                                patient_phone = booking.patient_phone,
+                                latitude = booking.latitude,
+                                longitude = booking.longitude,
+                                status = booking.status,
+                                notes = booking.notes
+                            )
+
+                            try {
+                                SupabaseManager
+                                    .client
+                                    .from("bookings")
+                                    .insert(legacy)
+                            } catch (legacyError: Exception) {
+                                throw Exception(
+                                    "تعذر حفظ الطلب. تأكد من صلاحيات جدول bookings وأعمدته.\n" +
+                                        (legacyError.message ?: firstError.message ?: "خطأ غير معروف")
+                                )
+                            }
+                        }
 
                         loading.dismiss()
 
