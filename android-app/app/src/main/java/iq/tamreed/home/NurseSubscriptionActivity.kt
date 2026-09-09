@@ -13,22 +13,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.from
-
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-
 /**
  * شاشة اشتراكات الممرضين.
  *
  * المرحلة الأولى: واجهة اختيار الباقة وشرح الدفع اليدوي.
  * لا يتم حفظ أو معالجة بيانات البطاقة داخل التطبيق.
- * يتم إرسال طلب التفعيل إلى جدول nurse_subscription_requests في Supabase.
+ * سيتم ربط زر طلب التفعيل بجدول الاشتراكات في Supabase في المرحلة التالية.
  */
 class NurseSubscriptionActivity : AppCompatActivity() {
 
@@ -47,30 +37,6 @@ class NurseSubscriptionActivity : AppCompatActivity() {
     private var selectedButton: Button? = null
     private var summaryTextView: TextView? = null
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var requestButton: Button? = null
-
-    @Serializable
-    data class SubscriptionRequestInsert(
-        val nurse_id: String,
-        val plan_name: String,
-        val duration_days: Int,
-        val amount_iqd: Int,
-        val status: String = "PENDING"
-    )
-
-    @Serializable
-    data class SubscriptionRequestStatus(
-        val id: String? = null,
-        val plan_name: String? = null,
-        val duration_days: Int? = null,
-        val amount_iqd: Int? = null,
-        val status: String? = null,
-        val subscription_start: String? = null,
-        val subscription_end: String? = null,
-        val created_at: String? = null
-    )
-
     data class SubscriptionPlan(
         val title: String,
         val duration: String,
@@ -81,12 +47,6 @@ class NurseSubscriptionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showSubscriptions()
-        loadLatestRequest()
-    }
-
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
     }
 
     private fun dp(value: Int): Int =
@@ -271,14 +231,29 @@ class NurseSubscriptionActivity : AppCompatActivity() {
             isAllCaps = false
             setTextColor(WHITE)
             background = rounded(NAVY, 18)
-            setOnClickListener { submitSubscriptionRequest(this) }
+            setOnClickListener {
+                val plan = selectedPlan
+                if (plan == null) {
+                    Toast.makeText(
+                        this@NurseSubscriptionActivity,
+                        "اختر باقة الاشتراك أولاً",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                Toast.makeText(
+                    this@NurseSubscriptionActivity,
+                    "تم اختيار ${plan.title}. سيتم ربط طلب التفعيل بالدفع والإدارة في الخطوة التالية.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
-        this@NurseSubscriptionActivity.requestButton = requestButton
         root.addView(requestButton, LinearLayout.LayoutParams(-1, dp(62)))
 
         root.addView(
             text(
-                "بعد الإرسال يظهر الطلب للإدارة للمراجعة والاعتماد، ثم يتم تحديد بداية ونهاية الاشتراك.",
+                "بعد ربط Supabase سيتم إنشاء طلب دفع للممرض، ثم تعتمد الإدارة العملية وتحدد تاريخ بداية ونهاية الاشتراك.",
                 12f,
                 GRAY
             ).apply {
@@ -354,110 +329,6 @@ class NurseSubscriptionActivity : AppCompatActivity() {
                 bottomMargin = dp(10)
             }
         )
-    }
-
-    private fun submitSubscriptionRequest(button: Button) {
-        val plan = selectedPlan
-        if (plan == null) {
-            Toast.makeText(this, "اختر باقة الاشتراك أولاً", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val user = SupabaseManager.client.auth.currentUserOrNull()
-        if (user == null) {
-            Toast.makeText(this, "يجب تسجيل الدخول كممرض أولاً", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        scope.launch {
-            button.isEnabled = false
-            button.text = "جاري إرسال الطلب..."
-            try {
-                val pending = SupabaseManager.client
-                    .from("nurse_subscription_requests")
-                    .select {
-                        filter {
-                            eq("nurse_id", user.id)
-                            eq("status", "PENDING")
-                        }
-                    }
-                    .decodeList<SubscriptionRequestStatus>()
-
-                if (pending.isNotEmpty()) {
-                    Toast.makeText(
-                        this@NurseSubscriptionActivity,
-                        "لديك طلب اشتراك قيد المراجعة بالفعل",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    loadLatestRequest()
-                    return@launch
-                }
-
-                SupabaseManager.client
-                    .from("nurse_subscription_requests")
-                    .insert(
-                        SubscriptionRequestInsert(
-                            nurse_id = user.id,
-                            plan_name = plan.title,
-                            duration_days = plan.duration.filter { it.isDigit() }.toInt(),
-                            amount_iqd = plan.price.replace(",", "").replace("د.ع", "").trim().toInt(),
-                            status = "PENDING"
-                        )
-                    )
-
-                Toast.makeText(
-                    this@NurseSubscriptionActivity,
-                    "تم إرسال طلب الاشتراك بنجاح ✓\nسيتم مراجعته من الإدارة",
-                    Toast.LENGTH_LONG
-                ).show()
-                loadLatestRequest()
-            } catch (e: Exception) {
-                Toast.makeText(
-                    this@NurseSubscriptionActivity,
-                    "تعذر إرسال الطلب: ${e.message ?: "خطأ غير معروف"}",
-                    Toast.LENGTH_LONG
-                ).show()
-            } finally {
-                button.isEnabled = true
-                button.text = "إرسال طلب تفعيل الاشتراك"
-            }
-        }
-    }
-
-    private fun loadLatestRequest() {
-        val user = SupabaseManager.client.auth.currentUserOrNull() ?: return
-
-        scope.launch {
-            try {
-                val requests = SupabaseManager.client
-                    .from("nurse_subscription_requests")
-                    .select {
-                        filter { eq("nurse_id", user.id) }
-                    }
-                    .decodeList<SubscriptionRequestStatus>()
-
-                val latest = requests.maxByOrNull { it.created_at ?: "" } ?: return@launch
-                val status = latest.status?.uppercase() ?: return@launch
-                val statusText = when (status) {
-                    "PENDING" -> "⏳ طلب الاشتراك قيد المراجعة"
-                    "APPROVED" -> "✅ تم اعتماد الاشتراك"
-                    "REJECTED" -> "❌ تم رفض طلب الاشتراك"
-                    "EXPIRED" -> "⚠️ انتهى الاشتراك"
-                    else -> "حالة الطلب: $status"
-                }
-                summaryTextView?.apply {
-                    text = "$statusText\n${latest.plan_name ?: ""}  •  ${latest.amount_iqd ?: 0} د.ع"
-                    setTextColor(NAVY)
-                    background = when (status) {
-                        "APPROVED" -> rounded(LIGHT_GREEN, 16)
-                        "REJECTED" -> rounded(Color.rgb(252, 238, 238), 16)
-                        else -> rounded(LIGHT_BLUE, 16)
-                    }
-                }
-            } catch (_: Exception) {
-                // لا نوقف الشاشة إذا تعذر جلب حالة الطلب.
-            }
-        }
     }
 
     private fun selectPlan(plan: SubscriptionPlan, button: Button) {
