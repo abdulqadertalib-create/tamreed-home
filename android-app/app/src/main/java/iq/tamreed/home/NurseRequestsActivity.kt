@@ -116,7 +116,7 @@ class NurseRequestsActivity : AppCompatActivity() {
     // ID المستخدم من Supabase Auth
     private var currentUserId: String? = null
 
-    // حالة اشتراك الممرض
+    // حالة اشتراك الممرض الحالية
     private var subscriptionStart: String? = null
     private var subscriptionEnd: String? = null
     private var subscriptionStatus: String? = null
@@ -133,13 +133,18 @@ class NurseRequestsActivity : AppCompatActivity() {
 
     private fun blockIfSubscriptionInactive(): Boolean {
         if (hasActiveSubscription()) return false
+
         Toast.makeText(
             this,
             "الاشتراك غير فعال أو منتهي. لا يمكن استقبال طلبات المرضى.",
             Toast.LENGTH_LONG
         ).show()
+
         startActivity(
-            Intent(this, NurseSubscriptionActivity::class.java)
+            Intent(
+                this,
+                NurseSubscriptionActivity::class.java
+            )
         )
         finish()
         return true
@@ -169,7 +174,7 @@ class NurseRequestsActivity : AppCompatActivity() {
         super.onResume()
 
         if (!nurseId.isNullOrBlank()) {
-            loadRequests()
+            refreshSubscriptionAndRequests()
         }
     }
 
@@ -575,9 +580,48 @@ class NurseRequestsActivity : AppCompatActivity() {
     // تحميل الطلبات
     // ============================================================
 
+    private fun refreshSubscriptionAndRequests() {
+        val userId = currentUserId
+        if (userId.isNullOrBlank()) return
+
+        scope.launch {
+            try {
+                val nurses =
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                            }
+                        }
+                        .decodeList<NurseRecordForRequests>()
+
+                val nurse = nurses.firstOrNull()
+                if (nurse != null) {
+                    nurseId = nurse.id
+                    subscriptionStart = nurse.subscription_start
+                    subscriptionEnd = nurse.subscription_end
+                    subscriptionStatus = nurse.subscription_status
+                }
+
+                loadRequests()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@NurseRequestsActivity,
+                    "تعذر تحديث حالة الاشتراك:\n${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+
     private fun loadRequests() {
 
-        if (blockIfSubscriptionInactive()) return
+        if (blockIfSubscriptionInactive()) {
+            return
+        }
 
         scope.launch {
 
@@ -1385,10 +1429,42 @@ class NurseRequestsActivity : AppCompatActivity() {
             return
         }
 
-        if (blockIfSubscriptionInactive()) return
-
         scope.launch {
             try {
+                // ----------------------------------------------------
+                // 0) التحقق من الاشتراك من قاعدة البيانات مباشرة
+                // ----------------------------------------------------
+                val currentNurse =
+                    SupabaseManager
+                        .client
+                        .from("nurses")
+                        .select {
+                            filter {
+                                eq("id", dbNurseId)
+                            }
+                        }
+                        .decodeList<NurseRecordForRequests>()
+                        .firstOrNull()
+
+                subscriptionStart = currentNurse?.subscription_start
+                subscriptionEnd = currentNurse?.subscription_end
+                subscriptionStatus = currentNurse?.subscription_status
+
+                if (!hasActiveSubscription()) {
+                    Toast.makeText(
+                        this@NurseRequestsActivity,
+                        "الاشتراك غير فعال أو منتهي. لا يمكن قبول الطلب.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    startActivity(
+                        Intent(
+                            this@NurseRequestsActivity,
+                            NurseSubscriptionActivity::class.java
+                        )
+                    )
+                    return@launch
+                }
+
                 // ----------------------------------------------------
                 // 1) التأكد أن nurses.id موجود فعلاً
                 //    لأن bookings.nurse_id مرتبط بـ nurses.id
