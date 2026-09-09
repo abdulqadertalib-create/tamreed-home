@@ -187,7 +187,7 @@ class NurseActivity : AppCompatActivity() {
                             filter {
 
                                 eq(
-                                    "id",
+                                    "user_id",
                                     user.id
                                 )
                             }
