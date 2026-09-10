@@ -1159,6 +1159,29 @@ class NurseRequestsActivity : AppCompatActivity() {
         }
 
 
+        // الملف الشخصي للمريض — متاح للممرض صاحب الطلب.
+        if (
+            isAssignedToThisNurse &&
+            !booking.patient_id.isNullOrBlank()
+        ) {
+            val patientProfileButton = primaryButton(
+                "👤 ملف المريض",
+                BLUE
+            ) {
+                startActivity(Intent(this, ProfileActivity::class.java).apply {
+                    putExtra(ProfileActivity.EXTRA_ROLE, "patient")
+                    putExtra(ProfileActivity.EXTRA_USER_ID, booking.patient_id)
+                    putExtra(ProfileActivity.EXTRA_READ_ONLY, true)
+                })
+            }
+            card.addView(
+                patientProfileButton,
+                LinearLayout.LayoutParams(-1, dp(52)).apply {
+                    topMargin = dp(8)
+                }
+            )
+        }
+
         // ========================================================
         // المحادثة مع المريض
         // تظهر لكل طلب معين لهذا الممرض، حتى بعد تغيّر حالة الزيارة.
