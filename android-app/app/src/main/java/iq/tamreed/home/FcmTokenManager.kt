@@ -38,7 +38,7 @@ object FcmTokenManager {
                     SupabaseManager.client
                         .from("notification_tokens")
                         .upsert(record) {
-                            onConflict = "token"
+                            onConflict = "user_id,token"
                         }
 
                     android.util.Log.d(TAG, "FCM token saved: role=$normalizedRole")
