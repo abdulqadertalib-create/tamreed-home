@@ -10,8 +10,6 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.messaging.FirebaseMessaging
-
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 
@@ -1159,6 +1157,34 @@ class NurseRequestsActivity : AppCompatActivity() {
             )
         }
 
+
+        // ========================================================
+        // المحادثة مع المريض
+        // تظهر لكل طلب معين لهذا الممرض، حتى بعد تغيّر حالة الزيارة.
+        // ========================================================
+        if (
+            isAssignedToThisNurse &&
+            !booking.id.isNullOrBlank() &&
+            !booking.patient_id.isNullOrBlank()
+        ) {
+            val chatButton = primaryButton(
+                "💬 المحادثة مع المريض",
+                NAVY
+            ) {
+                startActivity(Intent(this, ChatActivity::class.java).apply {
+                    putExtra(ChatActivity.EXTRA_BOOKING_ID, booking.id)
+                    putExtra(ChatActivity.EXTRA_RECEIVER_ID, booking.patient_id)
+                    putExtra(ChatActivity.EXTRA_RECEIVER_NAME, "المريض")
+                })
+            }
+
+            card.addView(
+                chatButton,
+                LinearLayout.LayoutParams(-1, dp(52)).apply {
+                    topMargin = dp(8)
+                }
+            )
+        }
 
         // ========================================================
         // زر القبول
