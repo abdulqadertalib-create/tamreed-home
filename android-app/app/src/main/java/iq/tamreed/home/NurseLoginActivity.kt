@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.providers.builtin.Phone
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.postgrest.from
 
@@ -79,6 +80,7 @@ class NurseLoginActivity : AppCompatActivity() {
     }
 
     private var phoneNumber = ""
+    private var passwordResetFlow = false
 
     // بيانات تسجيل الممرض الجديد
     private var isNewNurseRegistration = false
@@ -274,9 +276,55 @@ class NurseLoginActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(-1, dp(54))
         )
 
+        val password = EditText(this).apply {
+            hint = "كلمة المرور"
+            textSize = 17f
+            gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            maxLines = 1
+            isSingleLine = true
+            background = bordered(WHITE, BORDER, 15)
+            setPadding(dp(12), dp(5), dp(12), dp(5))
+        }
+        loginCard.addView(password, LinearLayout.LayoutParams(-1, dp(52)).apply {
+            topMargin = dp(8)
+        })
+
+        loginCard.addView(
+            primaryButton("🔐 دخول بكلمة المرور") {
+                val normalized = normalizeIraqPhone(phone.text.toString())
+                val pass = password.text.toString()
+                if (normalized == null) {
+                    phone.error = "رقم الهاتف العراقي غير صحيح"
+                    return@primaryButton
+                }
+                if (pass.length < 6) {
+                    password.error = "كلمة المرور 6 أحرف/أرقام على الأقل"
+                    return@primaryButton
+                }
+                signInNurseWithPassword(normalized, pass)
+            },
+            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8) }
+        )
+
+        loginCard.addView(
+            outlineButton("نسيت كلمة المرور") {
+                val normalized = normalizeIraqPhone(phone.text.toString())
+                if (normalized == null) {
+                    phone.error = "أدخل رقم الهاتف أولاً"
+                    return@outlineButton
+                }
+                phoneNumber = normalized
+                passwordResetFlow = true
+                sendOtp()
+            },
+            LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) }
+        )
+
         loginCard.addView(
             makeText(
-                "سيتم إرسال رمز تحقق SMS إلى رقمك",
+                "يمكنك أيضاً استخدام رمز SMS",
                 13f,
                 GRAY
             )
@@ -498,18 +546,9 @@ class NurseLoginActivity : AppCompatActivity() {
 
                 loading.dismiss()
 
-                if (isNewNurseRegistration) {
-                    createNurseAccount(
-                        pendingFullName,
-                        pendingSpecialty,
-                        pendingExperienceYears,
-                        pendingCity,
-                        pendingAddress
-                    )
-                } else {
-                    // دخول ممرض موجود: افحص الحساب والاعتماد.
-                    checkNurseAndContinue()
-                }
+                // بعد التحقق بالـSMS نطلب إنشاء كلمة المرور مرة واحدة.
+                // في حالة التسجيل الجديد سيتم إنشاء سجل الممرض بعد حفظ كلمة المرور.
+                showSetPasswordScreen()
 
             } catch (e: Exception) {
                 loading.dismiss()
@@ -520,6 +559,118 @@ class NurseLoginActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun signInNurseWithPassword(phone: String, password: String) {
+        scope.launch {
+            val loading = ProgressDialog.show(
+                this@NurseLoginActivity, null, "جاري تسجيل الدخول...", true, false
+            )
+            try {
+                SupabaseManager.client.auth.signInWith(Phone) {
+                    this.phone = phone
+                    this.password = password
+                }
+                loading.dismiss()
+                phoneNumber = phone
+                passwordResetFlow = false
+                sessionPrefs.edit()
+                    .putString("role", "nurse")
+                    .putBoolean("password_configured", true)
+                    .apply()
+                FcmTokenManager.registerToken("nurse")
+                checkNurseAndContinue()
+            } catch (e: Exception) {
+                loading.dismiss()
+                showError(
+                    "تعذر تسجيل الدخول",
+                    "رقم الهاتف أو كلمة المرور غير صحيحة. استخدم «نسيت كلمة المرور» إذا لزم."
+                )
+            }
+        }
+    }
+
+    private fun showSetPasswordScreen() {
+        val root = rootLayout()
+        root.addView(makeText("🔐", 48f, NAVY))
+        root.addView(makeText("إنشاء كلمة المرور", 27f, NAVY, true))
+        root.addView(
+            makeText(
+                if (passwordResetFlow)
+                    "أنشئ كلمة مرور جديدة لحساب الممرض"
+                else
+                    "تم التحقق من رقم الهاتف. أنشئ كلمة مرور للدخول لاحقاً.",
+                15f, GRAY
+            )
+        )
+        root.addView(makeText(phoneNumber, 16f, NAVY, true))
+
+        val pass = field("كلمة المرور الجديدة").apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        root.addView(pass, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(16) })
+
+        val confirm = field("تأكيد كلمة المرور").apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        root.addView(confirm, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(10) })
+
+        root.addView(
+            primaryButton("💾 حفظ كلمة المرور") {
+                val a = pass.text.toString()
+                val b = confirm.text.toString()
+                if (a.length < 6) {
+                    pass.error = "استخدم 6 أحرف/أرقام على الأقل"
+                    return@primaryButton
+                }
+                if (a != b) {
+                    confirm.error = "كلمتا المرور غير متطابقتين"
+                    return@primaryButton
+                }
+
+                scope.launch {
+                    val loading = ProgressDialog.show(
+                        this@NurseLoginActivity, null, "جاري حفظ كلمة المرور...", true, false
+                    )
+                    try {
+                        SupabaseManager.client.auth.updateUser { password = a }
+                        loading.dismiss()
+                        passwordResetFlow = false
+                        sessionPrefs.edit()
+                            .putString("role", "nurse")
+                            .putBoolean("password_configured", true)
+                            .apply()
+                        FcmTokenManager.registerToken("nurse")
+
+                        if (isNewNurseRegistration) {
+                            createNurseAccount(
+                                pendingFullName,
+                                pendingSpecialty,
+                                pendingExperienceYears,
+                                pendingCity,
+                                pendingAddress
+                            )
+                        } else {
+                            checkNurseAndContinue()
+                        }
+                    } catch (e: Exception) {
+                        loading.dismiss()
+                        showError("تعذر حفظ كلمة المرور", e.message ?: "حاول مرة أخرى.")
+                    }
+                }
+            },
+            LinearLayout.LayoutParams(-1, dp(58)).apply { topMargin = dp(16) }
+        )
+
+        root.addView(
+            outlineButton("نسيت كلمة المرور؟ أرسل رمزاً جديداً") {
+                passwordResetFlow = true
+                sendOtp()
+            },
+            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(10) }
+        )
+
+        setContentView(scroll(root))
     }
 
     // ========================================================
@@ -553,6 +704,11 @@ class NurseLoginActivity : AppCompatActivity() {
                 }
 
                 val nurse = nurses.first()
+
+                if (!sessionPrefs.getBoolean("password_configured", false)) {
+                    showSetPasswordScreen()
+                    return@launch
+                }
 
                 if (nurse.is_verified == true) {
                     openNurseHome()
@@ -1047,7 +1203,7 @@ class NurseLoginActivity : AppCompatActivity() {
             }
 
             phoneNumber = ""
-            sessionPrefs.edit().remove("role").apply()
+            sessionPrefs.edit().remove("role").remove("password_configured").apply()
             showPhoneScreen()
         }
     }
