@@ -26,6 +26,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import org.json.JSONObject
 
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
@@ -121,6 +130,12 @@ data class PatientNurseBrief(
 
 class MainActivity : AppCompatActivity() {
 
+    private val pushHttpClient by lazy { HttpClient(Android) }
+    private val supabaseFunctionsUrl =
+        "https://pmjmfeymnahpockjjafn.supabase.co/functions/v1/notify-new-booking"
+    private val SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_HtMExFgxiFq_hN2I9V76w_0YFG6L0j"
+
     private val NOTIFICATION_PERMISSION_REQUEST_CODE = 3102
     private var patientNotificationInitialized = false
     private val knownBookingStatuses = mutableMapOf<String, String>()
@@ -182,8 +197,7 @@ class MainActivity : AppCompatActivity() {
                     .first { it !is SessionStatus.Initializing }
 
                 if (status is SessionStatus.Authenticated) {
-                    FcmTokenManager.registerToken("patient")
-                    showHome()
+                    routeAuthenticatedUser()
                 } else {
                     // لا نعتبر رقم الهاتف المحفوظ جلسة دخول بحد ذاته.
                     // يجب وجود جلسة Supabase صحيحة حتى ندخل للرئيسية.
@@ -197,10 +211,88 @@ class MainActivity : AppCompatActivity() {
                 if (user == null) {
                     showPhoneLogin()
                 } else {
-                    FcmTokenManager.registerToken("patient")
-                    showHome()
+                    routeAuthenticatedUser()
                 }
             }
+        }
+    }
+
+    /**
+     * يحدد نوع الحساب بعد استعادة جلسة Supabase.
+     * نستخدم الدور المحفوظ أولاً، ثم نتحقق من جداول nurses/admin_users
+     * كحل احتياطي حتى يستمر الدخول حتى بعد إعادة تشغيل التطبيق.
+     */
+    private fun routeAuthenticatedUser() {
+        scope.launch {
+            val user = SupabaseManager.client.auth.currentUserOrNull()
+            if (user == null) {
+                showPhoneLogin()
+                return@launch
+            }
+
+            val savedRole = getSharedPreferences("tamreed_session", MODE_PRIVATE)
+                .getString("role", null)
+                ?.lowercase()
+
+            when (savedRole) {
+                "nurse" -> {
+                    FcmTokenManager.registerToken("nurse")
+                    startActivity(Intent(this@MainActivity, NurseLoginActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    })
+                    finish()
+                    return@launch
+                }
+                "admin" -> {
+                    startActivity(Intent(this@MainActivity, AdminActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    })
+                    finish()
+                    return@launch
+                }
+            }
+
+            try {
+                val admin = SupabaseManager.client.from("admin_users").select {
+                    filter { eq("user_id", user.id) }
+                }.decodeList<AdminRecord>()
+
+                if (admin.isNotEmpty()) {
+                    getSharedPreferences("tamreed_session", MODE_PRIVATE)
+                        .edit().putString("role", "admin").apply()
+                    startActivity(Intent(this@MainActivity, AdminActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    })
+                    finish()
+                    return@launch
+                }
+            } catch (_: Exception) {
+                // إذا تعذر الاستعلام، ننتقل لفحص الممرض/المريض.
+            }
+
+            try {
+                val nurse = SupabaseManager.client.from("nurses").select {
+                    filter { eq("user_id", user.id) }
+                }.decodeList<NurseLoginRecord>()
+
+                if (nurse.isNotEmpty()) {
+                    getSharedPreferences("tamreed_session", MODE_PRIVATE)
+                        .edit().putString("role", "nurse").apply()
+                    FcmTokenManager.registerToken("nurse")
+                    startActivity(Intent(this@MainActivity, NurseActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    })
+                    finish()
+                    return@launch
+                }
+            } catch (_: Exception) {
+                // يبقى الحساب كمريض عند عدم وجود سجل موظف.
+            }
+
+            getSharedPreferences("tamreed_session", MODE_PRIVATE)
+                .edit().putString("role", "patient").apply()
+            FcmTokenManager.registerToken("patient")
+            showHome()
         }
     }
 
@@ -2437,6 +2529,31 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
 
+                        // إرسال إشعار Push للممرضين المعتمدين والمتاحين والمشتركين.
+                        // فشل الإشعار لا يمنع حفظ الطلب.
+                        val bookingCityForPush = selectedCity
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val accessToken = SupabaseManager.client.auth.currentSessionOrNull()?.accessToken
+                                if (!accessToken.isNullOrBlank()) {
+                                    pushHttpClient.post(supabaseFunctionsUrl) {
+                                        header(HttpHeaders.Authorization, "Bearer $accessToken")
+                                        header("apikey", SUPABASE_PUBLISHABLE_KEY)
+                                        contentType(ContentType.Application.Json)
+                                        setBody(
+                                            JSONObject()
+                                                .put("patient_id", user.id)
+                                                .put("city", bookingCityForPush)
+                                                .put("booking_id", JSONObject.NULL)
+                                                .toString()
+                                        )
+                                    }
+                                }
+                            } catch (pushError: Exception) {
+                                android.util.Log.e("TamreedPush", "Failed to notify nurses", pushError)
+                            }
+                        }
+
                         loading.dismiss()
 
                         selectedLatitude = null
@@ -4052,6 +4169,8 @@ class MainActivity : AppCompatActivity() {
                     patientPrefs.edit()
                         .remove("phone")
                         .apply()
+                    getSharedPreferences("tamreed_session", MODE_PRIVATE)
+                        .edit().remove("role").apply()
 
                     phoneNumber = ""
                     patientPhone = ""
