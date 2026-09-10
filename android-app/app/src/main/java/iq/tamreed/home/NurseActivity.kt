@@ -35,6 +35,8 @@ data class NurseHomeProfile(
     val experience_years: Int? = null,
     val city: String? = null,
     val address: String? = null,
+    val bio: String? = null,
+    val avatar_url: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
     val is_available: Boolean? = false,
@@ -805,6 +807,33 @@ class NurseActivity : AppCompatActivity() {
             }
         )
 
+
+        // الملف الشخصي
+        val profileButton =
+            Button(this).apply {
+                text = "👤  ملفي الشخصي"
+                textSize = 17f
+                isAllCaps = false
+                setTextColor(WHITE)
+                background = rounded(BLUE_COLOR, 18)
+                setOnClickListener {
+                    val userId = SupabaseManager.client.auth.currentUserOrNull()?.id
+                    if (!userId.isNullOrBlank()) {
+                        startActivity(Intent(this@NurseActivity, ProfileActivity::class.java).apply {
+                            putExtra(ProfileActivity.EXTRA_ROLE, "nurse")
+                            putExtra(ProfileActivity.EXTRA_USER_ID, userId)
+                            putExtra(ProfileActivity.EXTRA_READ_ONLY, false)
+                        })
+                    }
+                }
+            }
+
+        root.addView(
+            profileButton,
+            LinearLayout.LayoutParams(-1, dp(62)).apply {
+                bottomMargin = dp(12)
+            }
+        )
 
         // زر الاشتراكات
         val subscriptionButton =
