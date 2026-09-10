@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity() {
 
     private val pushHttpClient by lazy { HttpClient(Android) }
     private val supabaseFunctionsUrl =
-        "https://pmjmfeymnahpockjjafn.supabase.co/functions/v1/notify-new-booking"
+        "https://pmjmfeymnahpockjjafn.supabase.co/functions/v1/notify-nurse-booking"
     private val SUPABASE_PUBLISHABLE_KEY =
         "sb_publishable_HtMExFgxiFq_hN2I9V76w_0YFG6L0j"
 
