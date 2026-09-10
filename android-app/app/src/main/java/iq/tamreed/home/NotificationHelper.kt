@@ -1,82 +1,39 @@
-package iq.tamreed.home
+-- إشعارات الطلبات للممرضين
+-- شغّل هذا الملف مرة واحدة في Supabase SQL Editor.
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
+create table if not exists public.notification_tokens (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade,
+    token text not null unique,
+    role text not null check (role in ('patient','nurse','admin')),
+    updated_at timestamptz not null default now()
+);
 
-/**
- * المرحلة 13 - ❶
- * تنبيهات محلية فورية عند اكتشاف طلب جديد أو تغيّر حالة الطلب.
- * لا تعتمد على Firebase، وتعمل عندما تكون شاشة التطبيق مفتوحة وتقوم بالمزامنة.
- */
-object NotificationHelper {
+alter table public.notification_tokens enable row level security;
 
-    private const val CHANNEL_ID = "tamreed_orders"
-    private const val CHANNEL_NAME = "طلبات التمريض"
-    private const val CHANNEL_DESCRIPTION = "تنبيهات الطلبات الجديدة وتغيّر حالتها"
+drop policy if exists "notification tokens own select" on public.notification_tokens;
+create policy "notification tokens own select"
+on public.notification_tokens for select
+to authenticated
+using (auth.uid() = user_id);
 
-    fun createChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = CHANNEL_DESCRIPTION
-                enableVibration(true)
-            }
+drop policy if exists "notification tokens own insert" on public.notification_tokens;
+create policy "notification tokens own insert"
+on public.notification_tokens for insert
+to authenticated
+with check (auth.uid() = user_id);
 
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
-        }
-    }
+drop policy if exists "notification tokens own update" on public.notification_tokens;
+create policy "notification tokens own update"
+on public.notification_tokens for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 
-    fun hasPermission(context: Context): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-    }
+grant select, insert, update on public.notification_tokens to authenticated;
 
-    @SuppressLint("MissingPermission")
-    fun show(
-        context: Context,
-        title: String,
-        message: String,
-        notificationId: Int,
-        targetActivity: Class<*>
-    ) {
-        createChannel(context)
+create index if not exists notification_tokens_user_role_idx
+on public.notification_tokens(user_id, role);
 
-        if (!hasPermission(context)) return
-
-        val intent = Intent(context, targetActivity).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            notificationId,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        NotificationManagerCompat.from(context).notify(notificationId, notification)
-    }
-}
+create index if not exists nurses_push_eligible_idx
+on public.nurses(is_verified, is_available, subscription_status, subscription_end);
