@@ -39,6 +39,7 @@ import org.json.JSONObject
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.providers.builtin.Phone
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.from
 
@@ -124,7 +125,13 @@ data class PatientNurseBrief(
     val id: String,
     val user_id: String? = null,
     val full_name: String? = null,
-    val phone: String? = null
+    val phone: String? = null,
+    val specialty: String? = null,
+    val experience_years: Int? = null,
+    val city: String? = null,
+    val address: String? = null,
+    val bio: String? = null,
+    val avatar_url: String? = null
 )
 
 
@@ -166,6 +173,7 @@ class MainActivity : AppCompatActivity() {
     private var bookingsRefreshJob: Job? = null
 
     private var phoneNumber = ""
+    private var passwordResetFlow = false
     private var patientPhone = ""
     private var selectedCity = ""
     private var landmark = ""
@@ -292,7 +300,12 @@ class MainActivity : AppCompatActivity() {
             getSharedPreferences("tamreed_session", MODE_PRIVATE)
                 .edit().putString("role", "patient").apply()
             FcmTokenManager.registerToken("patient")
-            showHome()
+            if (!patientPrefs.getBoolean("password_configured", false)) {
+                phoneNumber = user.phone ?: patientPrefs.getString("phone", "") ?: ""
+                showSetPasswordScreen()
+            } else {
+                showHome()
+            }
         }
     }
 
@@ -1066,6 +1079,60 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
+        val password = EditText(this).apply {
+            hint = "كلمة المرور"
+            textSize = 17f
+            gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            maxLines = 1
+            isSingleLine = true
+            background = bordered(WHITE, BORDER, 16)
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+
+        loginCard.addView(
+            password,
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                topMargin = dp(7)
+            }
+        )
+
+        loginCard.addView(
+            button("🔐 دخول بكلمة المرور") {
+                val normalized = normalizeIraqPhone(phone.text.toString())
+                val pass = password.text.toString()
+                if (normalized == null) {
+                    phone.error = "أدخل رقم هاتف عراقي صحيح"
+                    return@button
+                }
+                if (pass.length < 6) {
+                    password.error = "كلمة المرور 6 أحرف/أرقام على الأقل"
+                    return@button
+                }
+                signInPatientWithPassword(normalized, pass)
+            },
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                topMargin = dp(7)
+            }
+        )
+
+        loginCard.addView(
+            outlineButton("نسيت كلمة المرور") {
+                val normalized = normalizeIraqPhone(phone.text.toString())
+                if (normalized == null) {
+                    phone.error = "أدخل رقم الهاتف أولاً"
+                    return@outlineButton
+                }
+                passwordResetFlow = true
+                phoneNumber = normalized
+                sendOtp()
+            },
+            LinearLayout.LayoutParams(-1, dp(46)).apply {
+                topMargin = dp(5)
+            }
+        )
+
         loginCard.addView(
             button("إرسال رمز التحقق") {
                 val input = phone.text.toString().trim()
@@ -1097,7 +1164,7 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(210)))
+        root.addView(loginCard, LinearLayout.LayoutParams(-1, dp(365)))
 
         addSpace(root, 8)
 
@@ -1588,17 +1655,18 @@ class MainActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this@MainActivity,
-                    "تم تسجيل الدخول بنجاح",
+                    "تم التحقق من رقم الهاتف",
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // بعد نجاح OTP أصبح لدينا مستخدم موثّق.
-                // ننشئ/نحدّث ملف المريض إن كانت قاعدة البيانات تدعمه،
-                // ثم نسجل جهازه في FCM بدون تعطيل الدخول عند فشل ذلك.
-                ensurePatientProfile(userId = SupabaseManager.client.auth.currentUserOrNull()?.id ?: return@launch, phone = phoneNumber)
+                val userId = SupabaseManager.client.auth.currentUserOrNull()?.id
+                    ?: return@launch
+                ensurePatientProfile(userId = userId, phone = phoneNumber)
                 FcmTokenManager.registerToken("patient")
 
-                showHome()
+                // بعد أول OTP نطلب إنشاء كلمة مرور حتى يصبح الدخول لاحقاً
+                // برقم الهاتف + كلمة المرور، مع بقاء خيار نسيت كلمة المرور.
+                showSetPasswordScreen()
 
             } catch (e: Exception) {
 
@@ -1611,6 +1679,131 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun signInPatientWithPassword(phone: String, password: String) {
+        scope.launch {
+            val loading = ProgressDialog.show(this@MainActivity, null, "جاري تسجيل الدخول...", true, false)
+            try {
+                SupabaseManager.client.auth.signInWith(Phone) {
+                    this.phone = phone
+                    this.password = password
+                }
+                loading.dismiss()
+                passwordResetFlow = false
+                patientPrefs.edit()
+                    .putString("phone", phone)
+                    .putBoolean("password_configured", true)
+                    .apply()
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                if (user != null) {
+                    ensurePatientProfile(user.id, phone)
+                }
+                FcmTokenManager.registerToken("patient")
+                showHome()
+            } catch (e: Exception) {
+                loading.dismiss()
+                showError(
+                    "تعذر تسجيل الدخول",
+                    "رقم الهاتف أو كلمة المرور غير صحيحة. إذا نسيت كلمة المرور استخدم «نسيت كلمة المرور»."
+                )
+            }
+        }
+    }
+
+    private fun showSetPasswordScreen() {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(LIGHT_GRAY)
+            setPadding(dp(18), dp(24), dp(18), dp(24))
+        }
+
+        root.addView(text("🔐", 50f, NAVY))
+        root.addView(text("إنشاء كلمة المرور", 27f, NAVY, true))
+        root.addView(
+            text(
+                if (passwordResetFlow)
+                    "أنشئ كلمة مرور جديدة لحسابك"
+                else
+                    "تم التحقق من رقم هاتفك. أنشئ كلمة مرور للدخول لاحقاً.",
+                15f, GRAY
+            )
+        )
+        root.addView(text(phoneNumber, 16f, NAVY, true))
+
+        val pass = EditText(this).apply {
+            hint = "كلمة المرور الجديدة"
+            textSize = 17f
+            gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            background = bordered(WHITE, BORDER, 16)
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+        root.addView(pass, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(16) })
+
+        val confirm = EditText(this).apply {
+            hint = "تأكيد كلمة المرور"
+            textSize = 17f
+            gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            background = bordered(WHITE, BORDER, 16)
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+        root.addView(confirm, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(10) })
+
+        root.addView(
+            button("💾 حفظ كلمة المرور") {
+                val a = pass.text.toString()
+                val b = confirm.text.toString()
+                if (a.length < 6) {
+                    pass.error = "استخدم 6 أحرف/أرقام على الأقل"
+                    return@button
+                }
+                if (a != b) {
+                    confirm.error = "كلمتا المرور غير متطابقتين"
+                    return@button
+                }
+                scope.launch {
+                    val loading = ProgressDialog.show(
+                        this@MainActivity, null, "جاري حفظ كلمة المرور...", true, false
+                    )
+                    try {
+                        SupabaseManager.client.auth.updateUser { password = a }
+                        loading.dismiss()
+                        passwordResetFlow = false
+                        patientPrefs.edit()
+                            .putString("phone", phoneNumber)
+                            .putBoolean("password_configured", true)
+                            .apply()
+                        Toast.makeText(
+                            this@MainActivity,
+                            "تم حفظ كلمة المرور. يمكنك استخدامها في الدخول القادم.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        showHome()
+                    } catch (e: Exception) {
+                        loading.dismiss()
+                        showError("تعذر حفظ كلمة المرور", e.message ?: "حاول مرة أخرى.")
+                    }
+                }
+            },
+            LinearLayout.LayoutParams(-1, dp(58)).apply { topMargin = dp(16) }
+        )
+
+        root.addView(
+            outlineButton("نسيت كلمة المرور؟ أرسل رمزاً جديداً") {
+                passwordResetFlow = true
+                sendOtp()
+            },
+            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(10) }
+        )
+
+        setContentView(ScrollView(this).apply {
+            isFillViewport = true
+            addView(root)
+        })
     }
 
     /*
@@ -3337,6 +3530,21 @@ class MainActivity : AppCompatActivity() {
                     true
                 )
             )
+            if (!nurse.user_id.isNullOrBlank()) {
+                card.addView(
+                    outlineButton("👤 ملف الممرض") {
+                        startActivity(Intent(this, ProfileActivity::class.java).apply {
+                            putExtra(ProfileActivity.EXTRA_ROLE, "nurse")
+                            putExtra(ProfileActivity.EXTRA_USER_ID, nurse.user_id)
+                            putExtra(ProfileActivity.EXTRA_READ_ONLY, true)
+                        })
+                    },
+                    LinearLayout.LayoutParams(-1, dp(48)).apply {
+                        topMargin = dp(7)
+                    }
+                )
+            }
+
             if (status in listOf("ACCEPTED", "ON_THE_WAY", "IN_PROGRESS")) {
 
                 if (!nurse.phone.isNullOrBlank()) {
@@ -3972,7 +4180,14 @@ class MainActivity : AppCompatActivity() {
                 "👤",
                 "حسابي"
             ) {
-                showAccount()
+                val userId = SupabaseManager.client.auth.currentUserOrNull()?.id
+                if (!userId.isNullOrBlank()) {
+                    startActivity(Intent(this, ProfileActivity::class.java).apply {
+                        putExtra(ProfileActivity.EXTRA_ROLE, "patient")
+                        putExtra(ProfileActivity.EXTRA_USER_ID, userId)
+                        putExtra(ProfileActivity.EXTRA_READ_ONLY, false)
+                    })
+                }
             }
         )
 
@@ -4168,6 +4383,7 @@ class MainActivity : AppCompatActivity() {
 
                     patientPrefs.edit()
                         .remove("phone")
+                        .remove("password_configured")
                         .apply()
                     getSharedPreferences("tamreed_session", MODE_PRIVATE)
                         .edit().remove("role").apply()
