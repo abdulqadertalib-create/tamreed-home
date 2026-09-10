@@ -47,6 +47,10 @@ data class NurseHomeProfile(
 
 class NurseActivity : AppCompatActivity() {
 
+    private val sessionPrefs by lazy {
+        getSharedPreferences("tamreed_session", MODE_PRIVATE)
+    }
+
     private val NAVY = Color.rgb(5, 62, 105)
     private val LIGHT_BLUE = Color.rgb(235, 245, 251)
     private val TEXT = Color.rgb(45, 45, 45)
@@ -174,6 +178,8 @@ class NurseActivity : AppCompatActivity() {
             return
         }
 
+        // تسجيل جهاز الممرض في FCM عند فتح لوحة الممرض.
+        FcmTokenManager.registerToken("nurse")
 
         scope.launch {
 
@@ -1037,6 +1043,7 @@ class NurseActivity : AppCompatActivity() {
             }
 
 
+            sessionPrefs.edit().remove("role").apply()
             goToLogin()
         }
     }
