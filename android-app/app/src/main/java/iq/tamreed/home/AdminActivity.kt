@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import java.time.Instant
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -36,6 +37,18 @@ data class AdminNurseRecord(
     val address: String? = null,
     val is_available: Boolean? = false,
     val is_verified: Boolean? = false
+)
+
+
+@Serializable
+data class AdminSubscriptionRequest(
+    val id: String? = null,
+    val nurse_id: String? = null,
+    val plan_name: String? = null,
+    val duration_days: Int? = null,
+    val amount_iqd: Int? = null,
+    val status: String? = null,
+    val created_at: String? = null
 )
 
 class AdminActivity : AppCompatActivity() {
@@ -230,11 +243,11 @@ class AdminActivity : AppCompatActivity() {
         }
 
         root.addView(text("🛡️", 52f))
-        root.addView(text("لوحة إدارة الممرضين", 28f, navy, true))
-        root.addView(text("اعتماد الممرضين الجدد", 16f, gray))
+        root.addView(text("لوحة الإدارة", 28f, navy, true))
+        root.addView(text("إدارة الممرضين وطلبات الاشتراك", 16f, gray))
 
-        root.addView(button("🔄 تحديث القائمة", blue) {
-            loadNurses(root)
+        root.addView(button("🔄 تحديث جميع الطلبات", blue) {
+            loadDashboardData(root)
         }, LinearLayout.LayoutParams(-1, dp(58)))
 
         val logout = button("تسجيل الخروج", navy) { signOut() }
@@ -243,38 +256,60 @@ class AdminActivity : AppCompatActivity() {
         root.addView(logout, LinearLayout.LayoutParams(-1, dp(55)))
 
         setContentView(ScrollView(this).apply { addView(root) })
-        loadNurses(root)
+        loadDashboardData(root)
     }
 
-    private fun loadNurses(root: LinearLayout) {
+    private fun loadDashboardData(root: LinearLayout) {
         scope.launch {
             try {
+                while (root.childCount > 5) root.removeViewAt(5)
+
                 val nurses = SupabaseManager.client
                     .from("nurses")
                     .select()
                     .decodeList<AdminNurseRecord>()
 
-                while (root.childCount > 4) root.removeViewAt(4)
+                val requests = SupabaseManager.client
+                    .from("nurse_subscription_requests")
+                    .select()
+                    .decodeList<AdminSubscriptionRequest>()
+                    .sortedByDescending { it.created_at ?: "" }
 
-                val pending = nurses.count { it.is_verified != true }
-                val approved = nurses.count { it.is_verified == true }
-
+                root.addView(text("👨‍⚕️ الممرضون", 22f, navy, true))
                 root.addView(text(
-                    "بانتظار الاعتماد: $pending    |    معتمد: $approved",
-                    17f, navy, true
+                    "بانتظار الاعتماد: ${nurses.count { it.is_verified != true }}    |    معتمد: ${nurses.count { it.is_verified == true }}",
+                    16f, navy, true
                 ))
 
                 if (nurses.isEmpty()) {
-                    root.addView(text("لا توجد حسابات ممرضين حاليًا.", 17f, gray))
-                    return@launch
+                    root.addView(text("لا توجد حسابات ممرضين حاليًا.", 16f, gray))
+                } else {
+                    nurses.sortedBy { it.is_verified == true }
+                        .forEach { nurse -> addNurseCard(root, nurse) }
                 }
 
-                nurses.sortedBy { it.is_verified == true }
-                    .forEach { nurse -> addNurseCard(root, nurse) }
+                root.addView(text("💳 طلبات اشتراك الممرضين", 22f, navy, true).apply {
+                    setPadding(dp(8), dp(20), dp(8), dp(8))
+                })
 
+                val pendingRequests = requests.count { it.status.equals("PENDING", true) }
+                root.addView(text("طلبات بانتظار المراجعة: $pendingRequests", 16f, navy, true))
+
+                if (requests.isEmpty()) {
+                    root.addView(text("لا توجد طلبات اشتراك.", 16f, gray))
+                } else {
+                    val nursesByUserId = nurses.mapNotNull { n ->
+                        n.user_id?.let { it to n }
+                    }.toMap()
+                    requests.forEach { request ->
+                        addSubscriptionRequestCard(root, request, nursesByUserId[request.nurse_id])
+                    }
+                }
             } catch (e: Exception) {
-                showError("تعذر تحميل الممرضين",
-                    e.message ?: "تحقق من صلاحيات الإدارة في Supabase.")
+                showError(
+                    "تعذر تحميل لوحة الإدارة",
+                    e.message ?: "تحقق من صلاحيات الإدارة ووجود جدول nurse_subscription_requests."
+                )
             }
         }
     }
@@ -309,6 +344,160 @@ class AdminActivity : AppCompatActivity() {
         val lp = LinearLayout.LayoutParams(-1, -2)
         lp.setMargins(0, dp(10), 0, 0)
         root.addView(card, lp)
+    }
+
+    private fun addSubscriptionRequestCard(
+        root: LinearLayout,
+        request: AdminSubscriptionRequest,
+        nurse: AdminNurseRecord?
+    ) {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bg(white, 20, border)
+            setPadding(dp(15), dp(15), dp(15), dp(15))
+        }
+
+        val nurseName = nurse?.full_name ?: "ممرض غير معروف"
+        val nursePhone = nurse?.phone ?: "غير محدد"
+        val status = request.status ?: "PENDING"
+        val statusText = when (status.uppercase()) {
+            "APPROVED" -> "✅ معتمد"
+            "REJECTED" -> "❌ مرفوض"
+            "EXPIRED" -> "⌛ منتهي"
+            else -> "⏳ بانتظار المراجعة"
+        }
+
+        card.addView(text("${request.plan_name ?: "اشتراك"}", 20f, navy, true))
+        card.addView(text("👤 اسم الممرض: $nurseName", 16f, gray, true))
+        card.addView(text("📱 رقم الهاتف: $nursePhone", 16f, gray, true))
+        card.addView(text("المدة: ${request.duration_days ?: 0} يومًا", 15f, gray))
+        card.addView(text("المبلغ: ${(request.amount_iqd ?: 0)} د.ع", 15f, gray))
+        card.addView(text(statusText, 16f, if (status.equals("APPROVED", true)) green else gray, true))
+
+        if (status.equals("PENDING", true)) {
+            card.addView(button("✅ اعتماد الاشتراك", green) {
+                confirmSubscriptionApproval(request, nurse, root)
+            }, LinearLayout.LayoutParams(-1, dp(56)))
+            card.addView(button("❌ رفض طلب الاشتراك", red) {
+                confirmSubscriptionReject(request, root)
+            }, LinearLayout.LayoutParams(-1, dp(52)))
+        }
+
+        val lp = LinearLayout.LayoutParams(-1, -2)
+        lp.setMargins(0, dp(8), 0, 0)
+        root.addView(card, lp)
+    }
+
+    private fun confirmSubscriptionApproval(
+        request: AdminSubscriptionRequest,
+        nurse: AdminNurseRecord?,
+        root: LinearLayout
+    ) {
+        if (request.id.isNullOrBlank() || request.nurse_id.isNullOrBlank()) {
+            showError("طلب غير صالح", "لا يمكن تحديد الممرض لهذا الطلب.")
+            return
+        }
+        if (nurse?.user_id.isNullOrBlank() || nurse.id.isNullOrBlank()) {
+            showError("بيانات الممرض ناقصة", "لم يتم العثور على ملف الممرض المرتبط بهذا الطلب.")
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("اعتماد الاشتراك")
+            .setMessage(
+                "الممرض: ${nurse.full_name ?: "غير معروف"}\n" +
+                    "الهاتف: ${nurse.phone ?: "غير محدد"}\n" +
+                    "الباقة: ${request.plan_name ?: "غير محددة"}\n" +
+                    "المدة: ${request.duration_days ?: 0} يومًا\n\n" +
+                    "هل تريد اعتماد الاشتراك؟"
+            )
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("اعتماد") { _, _ ->
+                approveSubscription(request, nurse, root)
+            }
+            .show()
+    }
+
+    private fun approveSubscription(
+        request: AdminSubscriptionRequest,
+        nurse: AdminNurseRecord,
+        root: LinearLayout
+    ) {
+        val requestId = request.id ?: return
+        val userId = request.nurse_id ?: return
+        val duration = request.duration_days ?: return
+        val start = Instant.now()
+        val end = start.plusSeconds(duration.toLong() * 24L * 60L * 60L)
+
+        scope.launch {
+            val loading = ProgressDialog.show(this@AdminActivity, null, "جاري اعتماد الاشتراك...", true, false)
+            try {
+                SupabaseManager.client.from("nurses").update({
+                    set("subscription_start", start.toString())
+                    set("subscription_end", end.toString())
+                    set("subscription_status", "ACTIVE")
+                }) {
+                    filter { eq("user_id", userId) }
+                }
+
+                SupabaseManager.client.from("nurse_subscription_requests").update({
+                    set("status", "APPROVED")
+                    set("reviewed_at", start.toString())
+                }) {
+                    filter { eq("id", requestId) }
+                }
+
+                loading.dismiss()
+                Toast.makeText(
+                    this@AdminActivity,
+                    "تم اعتماد اشتراك ${nurse.full_name ?: "الممرض"}",
+                    Toast.LENGTH_LONG
+                ).show()
+                loadDashboardData(root)
+            } catch (e: Exception) {
+                loading.dismiss()
+                showError("تعذر اعتماد الاشتراك", e.message ?: "حاول مرة أخرى.")
+            }
+        }
+    }
+
+    private fun confirmSubscriptionReject(
+        request: AdminSubscriptionRequest,
+        root: LinearLayout
+    ) {
+        AlertDialog.Builder(this)
+            .setTitle("رفض طلب الاشتراك")
+            .setMessage("هل تريد رفض طلب الاشتراك هذا؟")
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("رفض") { _, _ ->
+                rejectSubscription(request, root)
+            }
+            .show()
+    }
+
+    private fun rejectSubscription(
+        request: AdminSubscriptionRequest,
+        root: LinearLayout
+    ) {
+        val id = request.id ?: return
+        scope.launch {
+            val loading = ProgressDialog.show(this@AdminActivity, null, "جاري رفض الطلب...", true, false)
+            try {
+                SupabaseManager.client.from("nurse_subscription_requests").update({
+                    set("status", "REJECTED")
+                    set("reviewed_at", Instant.now().toString())
+                }) {
+                    filter { eq("id", id) }
+                }
+                loading.dismiss()
+                Toast.makeText(this@AdminActivity, "تم رفض طلب الاشتراك", Toast.LENGTH_LONG).show()
+                loadDashboardData(root)
+            } catch (e: Exception) {
+                loading.dismiss()
+                showError("تعذر رفض الطلب", e.message ?: "حاول مرة أخرى.")
+            }
+        }
     }
 
     private fun confirmApproval(nurse: AdminNurseRecord, root: LinearLayout) {
@@ -358,7 +547,7 @@ class AdminActivity : AppCompatActivity() {
                     Toast.LENGTH_LONG
                 ).show()
 
-                loadNurses(root)
+                loadDashboardData(root)
             } catch (e: Exception) {
                 loading.dismiss()
                 showError("تعذر حفظ القرار",
