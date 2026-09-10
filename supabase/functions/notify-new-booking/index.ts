@@ -8,9 +8,22 @@ const corsHeaders = {
 };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-const serviceRoleKey =
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+// Supabase 2026: prefer the project secret key exposed through
+// SUPABASE_SECRET_KEYS, while keeping compatibility with older names.
+let serviceRoleKey = "";
+const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS") || "";
+if (secretKeysRaw) {
+  try {
+    const secretKeys = JSON.parse(secretKeysRaw);
+    serviceRoleKey = String(secretKeys?.default || "");
+  } catch (_error) {
+    console.error("Invalid SUPABASE_SECRET_KEYS JSON");
+  }
+}
+serviceRoleKey =
+  serviceRoleKey ||
   Deno.env.get("SUPABASE_SECRET_KEY") ||
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
 
 const firebaseJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON") || "";
