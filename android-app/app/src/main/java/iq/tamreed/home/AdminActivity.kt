@@ -1,5 +1,6 @@
 package iq.tamreed.home
 
+import android.content.Intent
 import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.graphics.Color
@@ -39,6 +40,17 @@ data class AdminNurseRecord(
     val is_verified: Boolean? = false
 )
 
+
+@Serializable
+data class AdminPatientRecord(
+    val user_id: String? = null,
+    val full_name: String? = null,
+    val phone: String? = null,
+    val city: String? = null,
+    val address: String? = null,
+    val bio: String? = null,
+    val avatar_url: String? = null
+)
 
 @Serializable
 data class AdminSubscriptionRequest(
@@ -275,6 +287,16 @@ class AdminActivity : AppCompatActivity() {
                     .decodeList<AdminSubscriptionRequest>()
                     .sortedByDescending { it.created_at ?: "" }
 
+                val patients = try {
+                    SupabaseManager.client
+                        .from("patients")
+                        .select()
+                        .decodeList<AdminPatientRecord>()
+                        .sortedBy { it.full_name ?: "" }
+                } catch (_: Exception) {
+                    emptyList()
+                }
+
                 root.addView(text("👨‍⚕️ الممرضون", 22f, navy, true))
                 root.addView(text(
                     "بانتظار الاعتماد: ${nurses.count { it.is_verified != true }}    |    معتمد: ${nurses.count { it.is_verified == true }}",
@@ -286,6 +308,19 @@ class AdminActivity : AppCompatActivity() {
                 } else {
                     nurses.sortedBy { it.is_verified == true }
                         .forEach { nurse -> addNurseCard(root, nurse) }
+                }
+
+                root.addView(text("👥 المرضى المسجلون", 22f, navy, true).apply {
+                    setPadding(dp(8), dp(20), dp(8), dp(8))
+                })
+                root.addView(text("إجمالي المرضى: ${patients.size}", 16f, navy, true))
+
+                if (patients.isEmpty()) {
+                    root.addView(text("لا توجد حسابات مرضى مسجلة حاليًا.", 16f, gray))
+                } else {
+                    patients.forEach { patient ->
+                        addPatientCard(root, patient)
+                    }
                 }
 
                 root.addView(text("💳 طلبات اشتراك الممرضين", 22f, navy, true).apply {
@@ -344,6 +379,39 @@ class AdminActivity : AppCompatActivity() {
         val lp = LinearLayout.LayoutParams(-1, -2)
         lp.setMargins(0, dp(10), 0, 0)
         root.addView(card, lp)
+    }
+
+    private fun addPatientCard(root: LinearLayout, patient: AdminPatientRecord) {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bg(white, 20, border)
+            setPadding(dp(15), dp(15), dp(15), dp(15))
+        }
+
+        card.addView(text("👤 ${patient.full_name ?: "بدون اسم"}", 19f, navy, true))
+        card.addView(text("📱 الهاتف: ${patient.phone ?: "غير محدد"}", 15f, gray))
+        card.addView(text("📍 المدينة: ${patient.city ?: "غير محددة"}", 15f, gray))
+        card.addView(text("🏠 العنوان: ${patient.address ?: "غير محدد"}", 15f, gray))
+        if (!patient.bio.isNullOrBlank()) {
+            card.addView(text("نبذة: ${patient.bio}", 14f, gray))
+        }
+
+        if (!patient.user_id.isNullOrBlank()) {
+            card.addView(button("👤 فتح الملف الشخصي", blue) {
+                startActivity(Intent(this, ProfileActivity::class.java).apply {
+                    putExtra(ProfileActivity.EXTRA_ROLE, "patient")
+                    putExtra(ProfileActivity.EXTRA_USER_ID, patient.user_id)
+                    putExtra(ProfileActivity.EXTRA_READ_ONLY, true)
+                })
+            }, LinearLayout.LayoutParams(-1, dp(52)).apply {
+                topMargin = dp(8)
+            })
+        }
+
+        root.addView(card, LinearLayout.LayoutParams(-1, -2).apply {
+            setMargins(0, dp(8), 0, 0)
+        })
     }
 
     private fun addSubscriptionRequestCard(
