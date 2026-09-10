@@ -265,7 +265,25 @@ class AdminActivity : AppCompatActivity() {
                     .select()
                     .decodeList<AdminNurseRecord>()
 
-                while (root.childCount > 6) root.removeViewAt(6)
+                var nurseStart = -1
+                for (i in 0 until root.childCount) {
+                    if (root.getChildAt(i).tag == "NURSES_SECTION") {
+                        nurseStart = i
+                        break
+                    }
+                }
+                if (nurseStart >= 0) {
+                    while (root.childCount > nurseStart) {
+                        val child = root.getChildAt(nurseStart)
+                        if (child.tag == "SUBSCRIPTIONS_HEADER") break
+                        root.removeViewAt(nurseStart)
+                    }
+                }
+
+                val nurseHeader = text("👩‍⚕️ قائمة الممرضين", 20f, navy, true).apply {
+                    tag = "NURSES_SECTION"
+                }
+                root.addView(nurseHeader, 6, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(14) })
 
                 val pending = nurses.count { it.is_verified != true }
                 val approved = nurses.count { it.is_verified == true }
@@ -273,15 +291,19 @@ class AdminActivity : AppCompatActivity() {
                 root.addView(text(
                     "بانتظار الاعتماد: $pending    |    معتمد: $approved",
                     17f, navy, true
-                ))
+                ), 7)
 
                 if (nurses.isEmpty()) {
                     root.addView(text("لا توجد حسابات ممرضين حاليًا.", 17f, gray))
                     return@launch
                 }
 
-                nurses.sortedBy { it.is_verified == true }
-                    .forEach { nurse -> addNurseCard(root, nurse) }
+                val subscriptionIndex = (0 until root.childCount).firstOrNull {
+                    root.getChildAt(it).tag == "SUBSCRIPTIONS_HEADER"
+                } ?: root.childCount
+                nurses.sortedBy { it.is_verified == true }.forEachIndexed { index, nurse ->
+                    addNurseCardAt(root, nurse, subscriptionIndex + index)
+                }
 
             } catch (e: Exception) {
                 showError("تعذر تحميل الممرضين",
@@ -391,7 +413,7 @@ class AdminActivity : AppCompatActivity() {
                     set("subscription_start", now.toString())
                     set("subscription_end", end.toString())
                     set("subscription_status", "ACTIVE")
-                }) { filter { eq("id", nurseId) } }
+                }) { filter { eq("user_id", nurseId) } }
                 loading.dismiss()
                 Toast.makeText(this@AdminActivity, "تم تفعيل الاشتراك بنجاح ✓", Toast.LENGTH_LONG).show()
                 loadSubscriptionRequests(root)
@@ -422,6 +444,10 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun addNurseCard(root: LinearLayout, nurse: AdminNurseRecord) {
+        addNurseCardAt(root, nurse, root.childCount)
+    }
+
+    private fun addNurseCardAt(root: LinearLayout, nurse: AdminNurseRecord, index: Int) {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -450,7 +476,7 @@ class AdminActivity : AppCompatActivity() {
 
         val lp = LinearLayout.LayoutParams(-1, -2)
         lp.setMargins(0, dp(10), 0, 0)
-        root.addView(card, lp)
+        root.addView(card, index.coerceIn(0, root.childCount), lp)
     }
 
     private fun confirmApproval(nurse: AdminNurseRecord, root: LinearLayout) {
