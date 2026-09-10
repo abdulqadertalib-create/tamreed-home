@@ -1,15 +1,27 @@
--- إشعارات الطلبات للممرضين
+-- إعداد إشعارات الطلبات للممرضين
 -- شغّل هذا الملف مرة واحدة في Supabase SQL Editor.
 
 create table if not exists public.notification_tokens (
     id uuid primary key default gen_random_uuid(),
     user_id uuid not null references auth.users(id) on delete cascade,
-    token text not null unique,
+    token text not null,
     role text not null check (role in ('patient','nurse','admin')),
     updated_at timestamptz not null default now()
 );
 
 alter table public.notification_tokens enable row level security;
+
+-- نستخدم (user_id, token) كمفتاح فريد لأن نفس جهاز الهاتف قد ينتقل بين حساب مريض وممرض.
+drop index if exists public.notification_tokens_token_unique;
+alter table public.notification_tokens drop constraint if exists notification_tokens_token_key;
+create unique index if not exists notification_tokens_user_token_unique
+    on public.notification_tokens(user_id, token);
+
+create index if not exists notification_tokens_user_role_idx
+    on public.notification_tokens(user_id, role);
+
+create index if not exists nurses_push_eligible_idx
+    on public.nurses(is_verified, is_available, subscription_status, subscription_end);
 
 drop policy if exists "notification tokens own select" on public.notification_tokens;
 create policy "notification tokens own select"
@@ -31,12 +43,3 @@ using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
 grant select, insert, update on public.notification_tokens to authenticated;
-
-create unique index if not exists notification_tokens_token_unique
-on public.notification_tokens(token);
-
-create index if not exists notification_tokens_user_role_idx
-on public.notification_tokens(user_id, role);
-
-create index if not exists nurses_push_eligible_idx
-on public.nurses(is_verified, is_available, subscription_status, subscription_end);
