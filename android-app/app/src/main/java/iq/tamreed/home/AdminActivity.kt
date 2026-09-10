@@ -39,6 +39,9 @@ data class AdminNurseRecord(
 )
 
 class AdminActivity : AppCompatActivity() {
+    private val sessionPrefs by lazy {
+        getSharedPreferences("tamreed_session", MODE_PRIVATE)
+    }
     private val navy = Color.rgb(5, 62, 105)
     private val blue = Color.rgb(31, 115, 176)
     private val green = Color.rgb(35, 145, 85)
@@ -102,7 +105,12 @@ class AdminActivity : AppCompatActivity() {
                     filter { eq("user_id", user.id) }
                 }.decodeList<AdminRecord>()
 
-                if (admins.isEmpty()) showNotAdmin() else showDashboard()
+                if (admins.isEmpty()) {
+                    showNotAdmin()
+                } else {
+                    sessionPrefs.edit().putString("role", "admin").apply()
+                    showDashboard()
+                }
             } catch (e: Exception) {
                 showError("تعذر التحقق من صلاحيات الإدارة",
                     e.message ?: "تأكد من تنفيذ SQL الخاص بالإدارة.")
@@ -374,6 +382,7 @@ class AdminActivity : AppCompatActivity() {
             try {
                 SupabaseManager.client.auth.signOut()
             } catch (_: Exception) {}
+            sessionPrefs.edit().remove("role").apply()
             showLogin()
         }
     }
