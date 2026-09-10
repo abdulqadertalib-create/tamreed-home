@@ -74,6 +74,10 @@ class NurseLoginActivity : AppCompatActivity() {
     private val scope =
         CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    private val sessionPrefs by lazy {
+        getSharedPreferences("tamreed_session", MODE_PRIVATE)
+    }
+
     private var phoneNumber = ""
 
     // بيانات تسجيل الممرض الجديد
@@ -1023,6 +1027,8 @@ class NurseLoginActivity : AppCompatActivity() {
     }
 
     private fun openNurseHome() {
+        sessionPrefs.edit().putString("role", "nurse").apply()
+        FcmTokenManager.registerToken("nurse")
         val intent = Intent(this, NurseActivity::class.java)
 
         intent.flags =
@@ -1041,6 +1047,7 @@ class NurseLoginActivity : AppCompatActivity() {
             }
 
             phoneNumber = ""
+            sessionPrefs.edit().remove("role").apply()
             showPhoneScreen()
         }
     }
