@@ -66,6 +66,11 @@
             android:name=".ChatActivity"
             android:exported="false" />
 
+        <!-- الملف الشخصي للمريض والممرض -->
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false" />
+
         <!-- التطبيق الرئيسي -->
         <activity
             android:name=".MainActivity"
