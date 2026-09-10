@@ -9,152 +9,59 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 object FcmTokenManager {
-
     private const val TAG = "FcmTokenManager"
 
-    /**
-     * تسجيل FCM Token للمستخدم الحالي.
-     *
-     * role:
-     * patient = مريض
-     * nurse   = ممرض
-     */
     fun registerToken(role: String) {
-
-        FirebaseMessaging.getInstance()
-            .token
-            .addOnCompleteListener { task ->
-
-                if (!task.isSuccessful) {
-                    android.util.Log.e(
-                        TAG,
-                        "Failed to get FCM token",
-                        task.exception
-                    )
-                    return@addOnCompleteListener
-                }
-
-                val token = task.result
-
-                if (token.isNullOrBlank()) {
-                    android.util.Log.e(
-                        TAG,
-                        "FCM token is empty"
-                    )
-                    return@addOnCompleteListener
-                }
-
-                CoroutineScope(Dispatchers.IO).launch {
-
-                    try {
-
-                        val user =
-                            SupabaseManager
-                                .client
-                                .auth
-                                .currentUserOrNull()
-
-                        if (user == null) {
-
-                            android.util.Log.w(
-                                TAG,
-                                "No authenticated user"
-                            )
-
-                            return@launch
-                        }
-
-                        val record =
-                            NotificationTokenRecord(
-                                user_id = user.id,
-                                token = token,
-                                role = role
-                            )
-
-                        SupabaseManager
-                            .client
-                            .from("notification_tokens")
-                            .upsert(
-                                record
-                            )
-
-                        android.util.Log.d(
-                            TAG,
-                            "FCM token saved successfully"
-                        )
-
-                    } catch (e: Exception) {
-
-                        android.util.Log.e(
-                            TAG,
-                            "Error saving FCM token",
-                            e
-                        )
-                    }
-                }
-            }
+        saveToken(role)
     }
 
-    /**
-     * تحديث الـ Token عند تغيّره.
-     */
-    fun updateToken(
-        token: String,
-        role: String
-    ) {
+    fun updateToken(token: String, role: String) {
+        if (token.isBlank()) return
+        saveToken(role, token)
+    }
 
-        if (token.isBlank()) {
-            return
+    private fun saveToken(role: String, knownToken: String? = null) {
+        val normalizedRole = role.lowercase().let {
+            if (it == "nurse" || it == "admin" || it == "patient") it else "patient"
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
-
-            try {
-
-                val user =
-                    SupabaseManager
-                        .client
-                        .auth
-                        .currentUserOrNull()
-
-                if (user == null) {
-                    return@launch
-                }
-
-                val record =
-                    NotificationTokenRecord(
+        val save: (String) -> Unit = { token ->
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val user = SupabaseManager.client.auth.currentUserOrNull() ?: return@launch
+                    val record = NotificationTokenRecord(
                         user_id = user.id,
                         token = token,
-                        role = role
+                        role = normalizedRole
                     )
 
-                SupabaseManager
-                    .client
-                    .from("notification_tokens")
-                    .upsert(
-                        record
-                    )
+                    SupabaseManager.client
+                        .from("notification_tokens")
+                        .upsert(record) {
+                            onConflict = "token"
+                        }
 
-                android.util.Log.d(
-                    TAG,
-                    "FCM token updated successfully"
-                )
+                    android.util.Log.d(TAG, "FCM token saved: role=$normalizedRole")
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Error saving FCM token", e)
+                }
+            }
+        }
 
-            } catch (e: Exception) {
-
-                android.util.Log.e(
-                    TAG,
-                    "Error updating FCM token",
-                    e
-                )
+        if (!knownToken.isNullOrBlank()) {
+            save(knownToken)
+        } else {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful && !task.result.isNullOrBlank()) {
+                    save(task.result)
+                } else {
+                    android.util.Log.e(TAG, "Failed to get FCM token", task.exception)
+                }
             }
         }
     }
 }
 
-/**
- * البيانات التي يتم حفظها في Supabase.
- */
 @Serializable
 data class NotificationTokenRecord(
     val user_id: String,
