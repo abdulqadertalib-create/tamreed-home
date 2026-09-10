@@ -34,13 +34,10 @@ class TamreedFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-
-        // سيتم ربط هذا الـ token بحساب المريض/الممرض
-        // في Supabase في المرحلة التالية.
-        android.util.Log.d(
-            "TamreedFCM",
-            "FCM token updated: $token"
-        )
+        val prefs = getSharedPreferences("tamreed_session", MODE_PRIVATE)
+        val role = prefs.getString("role", "patient") ?: "patient"
+        FcmTokenManager.updateToken(token, role)
+        android.util.Log.d("TamreedFCM", "FCM token updated for role=$role")
     }
 
     override fun onMessageReceived(
