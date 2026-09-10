@@ -32,6 +32,9 @@ with check (auth.uid() = user_id);
 
 grant select, insert, update on public.notification_tokens to authenticated;
 
+create unique index if not exists notification_tokens_token_unique
+on public.notification_tokens(token);
+
 create index if not exists notification_tokens_user_role_idx
 on public.notification_tokens(user_id, role);
 
