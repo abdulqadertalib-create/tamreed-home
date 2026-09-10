@@ -12,15 +12,33 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 /**
  * شاشة اشتراكات الممرضين.
  *
- * المرحلة الأولى: واجهة اختيار الباقة وشرح الدفع اليدوي.
+ * يرسل طلب الاشتراك مباشرة إلى جدول nurse_subscription_requests في Supabase.
  * لا يتم حفظ أو معالجة بيانات البطاقة داخل التطبيق.
- * سيتم ربط زر طلب التفعيل بجدول الاشتراكات في Supabase في المرحلة التالية.
  */
 class NurseSubscriptionActivity : AppCompatActivity() {
+
+    @Serializable
+    data class SubscriptionRequestInsert(
+        val nurse_id: String,
+        val plan_name: String,
+        val duration_days: Int,
+        val amount_iqd: Int,
+        val status: String = "PENDING"
+    )
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val NAVY = Color.rgb(5, 62, 105)
     private val BLUE = Color.rgb(31, 115, 176)
@@ -47,6 +65,11 @@ class NurseSubscriptionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showSubscriptions()
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
     private fun dp(value: Int): Int =
@@ -145,25 +168,25 @@ class NurseSubscriptionActivity : AppCompatActivity() {
             SubscriptionPlan(
                 "الباقة الشهرية",
                 "30 يومًا",
-                "10,000 د.ع",
+                "5,000 د.ع",
                 "اشتراك شهري مناسب للبدء"
             ),
             SubscriptionPlan(
                 "باقة 3 أشهر",
                 "90 يومًا",
-                "25,000 د.ع",
+                "12,000 د.ع",
                 "توفير مقارنة بالدفع الشهري"
             ),
             SubscriptionPlan(
                 "باقة 6 أشهر",
                 "180 يومًا",
-                "45,000 د.ع",
+                "20,000 د.ع",
                 "خيار مناسب للاستمرار"
             ),
             SubscriptionPlan(
                 "الباقة السنوية",
                 "365 يومًا",
-                "80,000 د.ع",
+                "35,000 د.ع",
                 "أفضل خيار للاشتراك الطويل"
             )
         )
@@ -242,18 +265,14 @@ class NurseSubscriptionActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                Toast.makeText(
-                    this@NurseSubscriptionActivity,
-                    "تم اختيار ${plan.title}. سيتم ربط طلب التفعيل بالدفع والإدارة في الخطوة التالية.",
-                    Toast.LENGTH_LONG
-                ).show()
+                sendSubscriptionRequest(plan)
             }
         }
         root.addView(requestButton, LinearLayout.LayoutParams(-1, dp(62)))
 
         root.addView(
             text(
-                "بعد ربط Supabase سيتم إنشاء طلب دفع للممرض، ثم تعتمد الإدارة العملية وتحدد تاريخ بداية ونهاية الاشتراك.",
+                "بعد إرسال الطلب ستظهر بيانات الممرض والباقة في لوحة الإدارة، ويمكن للإدارة اعتماد الطلب أو رفضه.",
                 12f,
                 GRAY
             ).apply {
@@ -265,6 +284,57 @@ class NurseSubscriptionActivity : AppCompatActivity() {
         scroll.addView(root)
         setContentView(scroll)
 
+    }
+
+    private fun sendSubscriptionRequest(plan: SubscriptionPlan) {
+        val user = SupabaseManager.client.auth.currentUserOrNull()
+        if (user == null) {
+            Toast.makeText(this, "يجب تسجيل الدخول كممرض أولاً", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val amount = plan.price.replace(",", "").replace(" د.ع", "").trim().toIntOrNull()
+        val duration = when (plan.duration) {
+            "30 يومًا" -> 30
+            "90 يومًا" -> 90
+            "180 يومًا" -> 180
+            "365 يومًا" -> 365
+            else -> 0
+        }
+
+        if (amount == null || duration <= 0) {
+            Toast.makeText(this, "بيانات الباقة غير صحيحة", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        scope.launch {
+            try {
+                SupabaseManager.client.from("nurse_subscription_requests").insert(
+                    SubscriptionRequestInsert(
+                        nurse_id = user.id,
+                        plan_name = plan.title,
+                        duration_days = duration,
+                        amount_iqd = amount,
+                        status = "PENDING"
+                    )
+                )
+
+                Toast.makeText(
+                    this@NurseSubscriptionActivity,
+                    "تم إرسال طلب الاشتراك بنجاح. ستراجعه الإدارة.",
+                    Toast.LENGTH_LONG
+                ).show()
+                summaryTextView?.text = "✅ تم إرسال ${plan.title} — بانتظار موافقة الإدارة"
+                summaryTextView?.setTextColor(GREEN)
+                summaryTextView?.background = rounded(LIGHT_GREEN, 16)
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@NurseSubscriptionActivity,
+                    "تعذر إرسال طلب الاشتراك: ${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private fun addPlanCard(parent: LinearLayout, plan: SubscriptionPlan) {
