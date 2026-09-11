@@ -348,45 +348,571 @@ class NurseActivity : AppCompatActivity() {
     }
 
     private fun showHome() {
-        val profile=nurse
-        window.statusBarColor=WHITE;window.navigationBarColor=LIGHT_GRAY;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundColor(LIGHT_GRAY);setPadding(dp(16),dp(10),dp(16),dp(26))}
-        val scroll=ScrollView(this).apply{isFillViewport=true;addView(root)}
-        val header=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundDrawable(rounded(WHITE,18));setPadding(dp(10),dp(8),dp(10),dp(8))}
-        header.addView(makeText("مرحباً بك 👨‍⚕️",17f,NAVY,true),LinearLayout.LayoutParams(0,dp(48),1f))
-        header.addView(makeText(profile?.full_name?:"الممرض",19f,NAVY,true),LinearLayout.LayoutParams(dp(150),dp(48)))
-        root.addView(header,LinearLayout.LayoutParams(-1,dp(64)))
-        val status=profile!=null&&hasActiveSubscription(profile)&&profile.is_available==true
-        val statusCard=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundDrawable(if(status) rounded(Color.rgb(232,248,239),20) else rounded(WHITE,20));setPadding(dp(14),dp(10),dp(14),dp(10))}
-        statusCard.addView(makeText(if(status)"🟢 متاح لاستقبال الطلبات" else "⚪ غير متاح حالياً",16f,if(status)GREEN else GRAY,true),LinearLayout.LayoutParams(0,dp(58),1f))
-        statusCard.addView(makeText("حالة الحساب",12f,GRAY,true),LinearLayout.LayoutParams(dp(90),dp(40)))
-        root.addView(statusCard,LinearLayout.LayoutParams(-1,dp(78)).apply{topMargin=dp(10)})
-        val action=Button(this).apply{text="🔔  عرض الطلبات الجديدة";textSize=17f;isAllCaps=false;setTextColor(WHITE);gravity=Gravity.CENTER;setBackgroundDrawable(rounded(GREEN,18));setOnClickListener{openRequestsIfSubscribed()}}
-        root.addView(action,LinearLayout.LayoutParams(-1,dp(58)).apply{topMargin=dp(12)})
-        val info=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundDrawable(rounded(WHITE,22));setPadding(dp(14),dp(12),dp(14),dp(12))}
-        info.addView(makeText("بياناتي المهنية",20f,NAVY,true),LinearLayout.LayoutParams(-1,dp(38)))
-        addInfoRow(info,"الاسم",profile?.full_name?:"-");addInfoRow(info,"التخصص",profile?.specialty?:"-");addInfoRow(info,"الخبرة","${profile?.experience_years?:0} سنوات");addInfoRow(info,"المدينة",profile?.city?:"الأنبار")
-        root.addView(info,LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(12)})
-        val sub=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundDrawable(rounded(WHITE,22));setPadding(dp(14),dp(12),dp(14),dp(12))}
-        sub.addView(makeText("💳 الاشتراك",19f,NAVY,true));sub.addView(makeText(subscriptionStatusText(profile?:NurseHomeProfile()),15f,if(profile!=null&&hasActiveSubscription(profile))GREEN else GRAY,true));sub.addView(makeText("ينتهي: ${formatSubscriptionEnd(profile?.subscription_end)}",13f,GRAY))
-        root.addView(sub,LinearLayout.LayoutParams(-1,dp(100)).apply{topMargin=dp(12)})
-        fun addBtn(title:String,color:Int,action:()->Unit){root.addView(Button(this).apply{text=title;textSize=16f;isAllCaps=false;setTextColor(WHITE);gravity=Gravity.CENTER;setBackgroundDrawable(rounded(color,17));setOnClickListener{action()}},LinearLayout.LayoutParams(-1,dp(54)).apply{topMargin=dp(9)})}
-        val availabilityTitle = if (status) {
-            "🔴  إيقاف استقبال الطلبات"
-        } else {
-            "🟢  تفعيل استقبال الطلبات"
-        }
-        val availabilityColor = if (status) NAVY else GREEN
-        addBtn(availabilityTitle, availabilityColor) {
-            toggleAvailability()
-        }
-        addBtn("👤  ملفي الشخصي",BLUE_COLOR){val id=SupabaseManager.client.auth.currentUserOrNull()?.id;if(!id.isNullOrBlank())startActivity(Intent(this,ProfileActivity::class.java).apply{putExtra(ProfileActivity.EXTRA_ROLE,"nurse");putExtra(ProfileActivity.EXTRA_USER_ID,id);putExtra(ProfileActivity.EXTRA_READ_ONLY,false)})}
-        addBtn("💳  الاشتراكات والباقات",BLUE_COLOR){startActivity(Intent(this,NurseSubscriptionActivity::class.java))}
-        root.addView(outlineButtonLocal("تسجيل الخروج"){logout()},LinearLayout.LayoutParams(-1,dp(52)).apply{topMargin=dp(9)})
+
+        val profile = nurse
+
+
+        val root =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+
+                setBackgroundColor(
+                    LIGHT_GRAY
+                )
+
+                setPadding(
+                    dp(14),
+                    dp(14),
+                    dp(14),
+                    dp(30)
+                )
+            }
+
+
+        val scroll =
+            ScrollView(this).apply {
+
+                isFillViewport = true
+
+                addView(root)
+            }
+
+
         setContentView(scroll)
+
+
+        // العنوان
+
+        val title =
+            makeText(
+                "التمريض المنزلي",
+                28f,
+                NAVY,
+                true
+            )
+
+
+        root.addView(
+            title,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(70)
+            )
+        )
+
+
+        // بطاقة الترحيب
+
+        val welcome =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                gravity =
+                    Gravity.CENTER
+
+                background =
+                    rounded(
+                        LIGHT_BLUE,
+                        22
+                    )
+
+                setPadding(
+                    dp(18),
+                    dp(18),
+                    dp(18),
+                    dp(18)
+                )
+            }
+
+
+        val name =
+            profile?.full_name
+                ?: "الممرض"
+
+
+        welcome.addView(
+            makeText(
+                "مرحباً بك 👨‍⚕️",
+                20f,
+                NAVY,
+                true
+            )
+        )
+
+
+        welcome.addView(
+            makeText(
+                name,
+                24f,
+                NAVY,
+                true
+            )
+        )
+
+
+        root.addView(
+            welcome,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(130)
+            ).apply {
+
+                bottomMargin =
+                    dp(15)
+            }
+        )
+
+
+        // حالة الممرض
+
+        val statusCard =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.HORIZONTAL
+
+                gravity =
+                    Gravity.CENTER_VERTICAL
+
+                layoutDirection =
+                    View.LAYOUT_DIRECTION_RTL
+
+                background =
+                    bordered()
+
+                setPadding(
+                    dp(14),
+                    dp(12),
+                    dp(14),
+                    dp(12)
+                )
+            }
+
+
+        val subscriptionActive =
+            profile != null && hasActiveSubscription(profile)
+
+        val available =
+            profile?.is_available == true && subscriptionActive
+
+
+        val statusText =
+            if (!subscriptionActive) {
+
+                "الاشتراك غير فعال — لا يمكن استقبال الطلبات"
+
+            } else if (available) {
+
+                "متاح لاستقبال الطلبات"
+
+            } else {
+
+                "غير متاح حالياً"
+            }
+
+
+        val status =
+            makeText(
+                if (available) {
+
+                    "🟢  $statusText"
+
+                } else {
+
+                    "🔴  $statusText"
+                },
+                18f,
+                if (available) {
+                    GREEN
+                } else {
+                    GRAY
+                },
+                true
+            )
+
+
+        statusCard.addView(
+            status,
+            LinearLayout.LayoutParams(
+                0,
+                dp(65),
+                1f
+            )
+        )
+
+
+        root.addView(
+            statusCard,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(80)
+            ).apply {
+
+                bottomMargin =
+                    dp(15)
+            }
+        )
+
+
+        // عنوان البيانات
+
+        val infoTitle =
+            makeText(
+                "بيانات الممرض",
+                21f,
+                NAVY,
+                true
+            )
+
+
+        root.addView(
+            infoTitle,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(55)
+            )
+        )
+
+
+        // بطاقة البيانات
+
+        val info =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                background =
+                    bordered()
+
+                setPadding(
+                    dp(15),
+                    dp(12),
+                    dp(15),
+                    dp(12)
+                )
+            }
+
+
+        addInfoRow(
+            info,
+            "الاسم",
+            profile?.full_name ?: "-"
+        )
+
+
+        addInfoRow(
+            info,
+            "رقم الهاتف",
+            profile?.phone ?: "-"
+        )
+
+
+        addInfoRow(
+            info,
+            "التخصص",
+            profile?.specialty ?: "-"
+        )
+
+
+        addInfoRow(
+            info,
+            "سنوات الخبرة",
+            profile?.experience_years
+                ?.toString()
+                ?: "-"
+        )
+
+
+        addInfoRow(
+            info,
+            "المحافظة",
+            profile?.city
+                ?: "الأنبار"
+        )
+
+
+        addInfoRow(
+            info,
+            "العنوان",
+            profile?.address ?: "-"
+        )
+
+
+        root.addView(
+            info,
+            LinearLayout.LayoutParams(
+                -1,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+
+                bottomMargin =
+                    dp(20)
+            }
+        )
+
+
+        // بطاقة الاشتراك
+        val subscriptionCard =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                background = bordered()
+                setPadding(dp(15), dp(12), dp(15), dp(12))
+            }
+
+        subscriptionCard.addView(
+            makeText(
+                "💳  حالة الاشتراك",
+                19f,
+                NAVY,
+                true
+            )
+        )
+
+        subscriptionCard.addView(
+            makeText(
+                subscriptionStatusText(profile ?: NurseHomeProfile()),
+                17f,
+                if (subscriptionActive) GREEN else GRAY,
+                true
+            )
+        )
+
+        subscriptionCard.addView(
+            makeText(
+                "تاريخ انتهاء الاشتراك: ${formatSubscriptionEnd(profile?.subscription_end)}",
+                15f,
+                TEXT,
+                false
+            )
+        )
+
+        root.addView(
+            subscriptionCard,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(125)
+            ).apply {
+                bottomMargin = dp(20)
+            }
+        )
+
+
+        // زر الطلبات
+
+        val requestsButton =
+            Button(this).apply {
+
+                text =
+                    "📋  طلبات التمريض"
+
+                textSize = 18f
+
+                isAllCaps = false
+
+                setTextColor(WHITE)
+
+                background =
+                    rounded(
+                        NAVY,
+                        18
+                    )
+
+
+                setOnClickListener {
+
+                    openRequestsIfSubscribed()
+                }
+            }
+
+
+        root.addView(
+            requestsButton,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            ).apply {
+
+                bottomMargin =
+                    dp(12)
+            }
+        )
+
+
+        // زر تغيير حالة الممرض
+
+        val availabilityButton =
+            Button(this).apply {
+
+                text =
+                    if (available) {
+
+                        "🔴  إيقاف استقبال الطلبات"
+
+                    } else {
+
+                        "🟢  تفعيل استقبال الطلبات"
+                    }
+
+
+                textSize = 17f
+
+                isAllCaps = false
+
+
+                setTextColor(
+                    if (available) {
+
+                        NAVY
+
+                    } else {
+
+                        GREEN
+                    }
+                )
+
+
+                background =
+                    bordered(
+                        WHITE,
+                        NAVY,
+                        18
+                    )
+
+
+                setOnClickListener {
+
+                    toggleAvailability()
+                }
+            }
+
+
+        root.addView(
+            availabilityButton,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            ).apply {
+
+                bottomMargin =
+                    dp(12)
+            }
+        )
+
+
+        // الملف الشخصي
+        val profileButton =
+            Button(this).apply {
+                text = "👤  ملفي الشخصي"
+                textSize = 17f
+                isAllCaps = false
+                setTextColor(WHITE)
+                background = rounded(BLUE_COLOR, 18)
+                setOnClickListener {
+                    val userId = SupabaseManager.client.auth.currentUserOrNull()?.id
+                    if (!userId.isNullOrBlank()) {
+                        startActivity(Intent(this@NurseActivity, ProfileActivity::class.java).apply {
+                            putExtra(ProfileActivity.EXTRA_ROLE, "nurse")
+                            putExtra(ProfileActivity.EXTRA_USER_ID, userId)
+                            putExtra(ProfileActivity.EXTRA_READ_ONLY, false)
+                        })
+                    }
+                }
+            }
+
+        root.addView(
+            profileButton,
+            LinearLayout.LayoutParams(-1, dp(62)).apply {
+                bottomMargin = dp(12)
+            }
+        )
+
+        // زر الاشتراكات
+        val subscriptionButton =
+            Button(this).apply {
+                text = "💳  الاشتراكات والباقات"
+                textSize = 17f
+                isAllCaps = false
+                setTextColor(WHITE)
+                background = rounded(BLUE_COLOR, 18)
+                setOnClickListener {
+                    startActivity(
+                        Intent(
+                            this@NurseActivity,
+                            NurseSubscriptionActivity::class.java
+                        )
+                    )
+                }
+            }
+
+        root.addView(
+            subscriptionButton,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            ).apply {
+                bottomMargin = dp(12)
+            }
+        )
+
+
+        // زر تسجيل الخروج
+
+        val logoutButton =
+            Button(this).apply {
+
+                text =
+                    "تسجيل الخروج"
+
+                textSize = 17f
+
+                isAllCaps = false
+
+                setTextColor(
+                    Color.rgb(
+                        170,
+                        45,
+                        45
+                    )
+                )
+
+
+                background =
+                    bordered(
+                        WHITE,
+                        Color.rgb(
+                            200,
+                            100,
+                            100
+                        ),
+                        18
+                    )
+
+
+                setOnClickListener {
+
+                    logout()
+                }
+            }
+
+
+        root.addView(
+            logoutButton,
+            LinearLayout.LayoutParams(
+                -1,
+                dp(62)
+            )
+        )
     }
 
-    private fun outlineButtonLocal(title:String,action:()->Unit)=Button(this).apply{text=title;textSize=16f;isAllCaps=false;setTextColor(NAVY);gravity=Gravity.CENTER;background=bordered(WHITE,NAVY,17);setOnClickListener{action()}}
 
     private fun addInfoRow(
         parent: LinearLayout,
