@@ -39,6 +39,38 @@ data class ProfileRecord(
     val experience_years: Int? = null
 )
 
+@Serializable
+data class PatientProfileUpdate(
+    val full_name: String,
+    val city: String,
+    val address: String,
+    val bio: String,
+    val avatar_url: String?
+)
+
+@Serializable
+data class NurseProfileUpdate(
+    val full_name: String,
+    val city: String,
+    val address: String,
+    val bio: String,
+    val avatar_url: String?,
+    val specialty: String,
+    val experience_years: Int
+)
+
+@Serializable
+data class AvatarUrlUpdate(
+    val avatar_url: String
+)
+
+@Serializable
+data class NewProfileRecord(
+    val user_id: String,
+    val phone: String? = null,
+    val full_name: String? = null
+)
+
 class ProfileActivity : AppCompatActivity() {
 
     companion object {
@@ -153,13 +185,15 @@ class ProfileActivity : AppCompatActivity() {
     private suspend fun createEmptyPatientIfNeeded() {
         val user = SupabaseManager.client.auth.currentUserOrNull() ?: return
         val table = if (role == "nurse") "nurses" else "patients"
-        val values = mutableMapOf<String, Any?>(
-            "user_id" to user.id,
-            "phone" to user.phone
+        val values = NewProfileRecord(
+            user_id = user.id,
+            phone = user.phone,
+            full_name = if (role == "nurse") {
+                user.userMetadata?.get("full_name")?.toString() ?: ""
+            } else {
+                null
+            }
         )
-        if (role == "nurse") {
-            values["full_name"] = user.userMetadata?.get("full_name")?.toString() ?: ""
-        }
         SupabaseManager.client.from(table).insert(values)
     }
 
@@ -326,7 +360,7 @@ class ProfileActivity : AppCompatActivity() {
 
     private suspend fun saveAvatarUrlOnly(url: String) {
         SupabaseManager.client.from(if (role == "nurse") "nurses" else "patients").update(
-            mapOf("avatar_url" to url)
+            AvatarUrlUpdate(avatar_url = url)
         ) {
             filter { eq("user_id", targetUserId) }
         }
@@ -345,16 +379,28 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
 
-        val values = mutableMapOf<String, Any?>(
-            "full_name" to name,
-            "city" to cityField?.text?.toString()?.trim().orEmpty(),
-            "address" to addressField?.text?.toString()?.trim().orEmpty(),
-            "bio" to bioField?.text?.toString()?.trim().orEmpty(),
-            "avatar_url" to avatarUrl
-        )
-        if (role == "nurse") {
-            values["specialty"] = specialtyField?.text?.toString()?.trim().orEmpty()
-            values["experience_years"] = experienceField?.text?.toString()?.toIntOrNull() ?: 0
+        val city = cityField?.text?.toString()?.trim().orEmpty()
+        val address = addressField?.text?.toString()?.trim().orEmpty()
+        val bio = bioField?.text?.toString()?.trim().orEmpty()
+
+        val values = if (role == "nurse") {
+            NurseProfileUpdate(
+                full_name = name,
+                city = city,
+                address = address,
+                bio = bio,
+                avatar_url = avatarUrl,
+                specialty = specialtyField?.text?.toString()?.trim().orEmpty(),
+                experience_years = experienceField?.text?.toString()?.toIntOrNull() ?: 0
+            )
+        } else {
+            PatientProfileUpdate(
+                full_name = name,
+                city = city,
+                address = address,
+                bio = bio,
+                avatar_url = avatarUrl
+            )
         }
 
         scope.launch {
