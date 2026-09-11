@@ -39,6 +39,7 @@ data class ProfileRecord(
     val experience_years: Int? = null
 )
 
+
 @Serializable
 data class PatientProfileUpdate(
     val full_name: String,
@@ -65,10 +66,9 @@ data class AvatarUrlUpdate(
 )
 
 @Serializable
-data class NewProfileRecord(
+data class NewPatientProfile(
     val user_id: String,
-    val phone: String? = null,
-    val full_name: String? = null
+    val phone: String? = null
 )
 
 class ProfileActivity : AppCompatActivity() {
@@ -183,18 +183,11 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private suspend fun createEmptyPatientIfNeeded() {
+        if (role != "patient") return
         val user = SupabaseManager.client.auth.currentUserOrNull() ?: return
-        val table = if (role == "nurse") "nurses" else "patients"
-        val values = NewProfileRecord(
-            user_id = user.id,
-            phone = user.phone,
-            full_name = if (role == "nurse") {
-                user.userMetadata?.get("full_name")?.toString() ?: ""
-            } else {
-                null
-            }
+        SupabaseManager.client.from("patients").insert(
+            NewPatientProfile(user_id = user.id, phone = user.phone)
         )
-        SupabaseManager.client.from(table).insert(values)
     }
 
     private fun renderProfile(profile: ProfileRecord) {
@@ -254,7 +247,6 @@ class ProfileActivity : AppCompatActivity() {
 
         card.addView(text("المعلومات الشخصية", 19f, navy, true))
         nameField = field("الاسم الكامل", profile.full_name ?: "")
-        nameField?.isEnabled = !readOnly
         card.addView(nameField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
         card.addView(text("رقم الهاتف: ${profile.phone ?: "غير محدد"}", 15f, gray).apply {
@@ -262,16 +254,13 @@ class ProfileActivity : AppCompatActivity() {
         }, LinearLayout.LayoutParams(-1, dp(42)))
 
         cityField = field("المدينة / القضاء", profile.city ?: "")
-        cityField?.isEnabled = !readOnly
         card.addView(cityField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
         addressField = field("العنوان / المنطقة", profile.address ?: "")
-        addressField?.isEnabled = !readOnly
         card.addView(addressField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
         if (role == "nurse") {
             specialtyField = field("التخصص", profile.specialty ?: "")
-            specialtyField?.isEnabled = !readOnly
             card.addView(specialtyField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
             experienceField = field(
@@ -279,12 +268,10 @@ class ProfileActivity : AppCompatActivity() {
                 profile.experience_years?.toString() ?: "",
             )
             experienceField?.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            experienceField?.isEnabled = !readOnly
             card.addView(experienceField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
         }
 
         bioField = field("نبذة عنك / معلومات إضافية", profile.bio ?: "", true)
-        bioField?.isEnabled = !readOnly
         card.addView(bioField, LinearLayout.LayoutParams(-1, dp(110)).apply { topMargin = dp(8) })
 
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
@@ -383,31 +370,35 @@ class ProfileActivity : AppCompatActivity() {
         val address = addressField?.text?.toString()?.trim().orEmpty()
         val bio = bioField?.text?.toString()?.trim().orEmpty()
 
-        val values = if (role == "nurse") {
-            NurseProfileUpdate(
-                full_name = name,
-                city = city,
-                address = address,
-                bio = bio,
-                avatar_url = avatarUrl,
-                specialty = specialtyField?.text?.toString()?.trim().orEmpty(),
-                experience_years = experienceField?.text?.toString()?.toIntOrNull() ?: 0
-            )
-        } else {
-            PatientProfileUpdate(
-                full_name = name,
-                city = city,
-                address = address,
-                bio = bio,
-                avatar_url = avatarUrl
-            )
-        }
+        val patientValues = PatientProfileUpdate(
+            full_name = name,
+            city = city,
+            address = address,
+            bio = bio,
+            avatar_url = avatarUrl
+        )
+
+        val nurseValues = NurseProfileUpdate(
+            full_name = name,
+            city = city,
+            address = address,
+            bio = bio,
+            avatar_url = avatarUrl,
+            specialty = specialtyField?.text?.toString()?.trim().orEmpty(),
+            experience_years = experienceField?.text?.toString()?.toIntOrNull() ?: 0
+        )
 
         scope.launch {
             val loading = ProgressDialog.show(this@ProfileActivity, null, "جاري حفظ الملف...", true, false)
             try {
-                SupabaseManager.client.from(if (role == "nurse") "nurses" else "patients").update(values) {
-                    filter { eq("user_id", targetUserId) }
+                if (role == "nurse") {
+                    SupabaseManager.client.from("nurses").update(nurseValues) {
+                        filter { eq("user_id", targetUserId) }
+                    }
+                } else {
+                    SupabaseManager.client.from("patients").update(patientValues) {
+                        filter { eq("user_id", targetUserId) }
+                    }
                 }
                 loading.dismiss()
                 Toast.makeText(this@ProfileActivity, "تم حفظ الملف الشخصي", Toast.LENGTH_LONG).show()
