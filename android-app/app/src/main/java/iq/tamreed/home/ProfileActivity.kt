@@ -151,11 +151,16 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private suspend fun createEmptyPatientIfNeeded() {
-        if (role != "patient") return
         val user = SupabaseManager.client.auth.currentUserOrNull() ?: return
-        SupabaseManager.client.from("patients").insert(
-            mapOf("user_id" to user.id, "phone" to user.phone)
+        val table = if (role == "nurse") "nurses" else "patients"
+        val values = mutableMapOf<String, Any?>(
+            "user_id" to user.id,
+            "phone" to user.phone
         )
+        if (role == "nurse") {
+            values["full_name"] = user.userMetadata?.get("full_name")?.toString() ?: ""
+        }
+        SupabaseManager.client.from(table).insert(values)
     }
 
     private fun renderProfile(profile: ProfileRecord) {
@@ -215,6 +220,7 @@ class ProfileActivity : AppCompatActivity() {
 
         card.addView(text("المعلومات الشخصية", 19f, navy, true))
         nameField = field("الاسم الكامل", profile.full_name ?: "")
+        nameField?.isEnabled = !readOnly
         card.addView(nameField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
         card.addView(text("رقم الهاتف: ${profile.phone ?: "غير محدد"}", 15f, gray).apply {
@@ -222,13 +228,16 @@ class ProfileActivity : AppCompatActivity() {
         }, LinearLayout.LayoutParams(-1, dp(42)))
 
         cityField = field("المدينة / القضاء", profile.city ?: "")
+        cityField?.isEnabled = !readOnly
         card.addView(cityField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
         addressField = field("العنوان / المنطقة", profile.address ?: "")
+        addressField?.isEnabled = !readOnly
         card.addView(addressField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
         if (role == "nurse") {
             specialtyField = field("التخصص", profile.specialty ?: "")
+            specialtyField?.isEnabled = !readOnly
             card.addView(specialtyField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
 
             experienceField = field(
@@ -236,10 +245,12 @@ class ProfileActivity : AppCompatActivity() {
                 profile.experience_years?.toString() ?: "",
             )
             experienceField?.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            experienceField?.isEnabled = !readOnly
             card.addView(experienceField, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(8) })
         }
 
         bioField = field("نبذة عنك / معلومات إضافية", profile.bio ?: "", true)
+        bioField?.isEnabled = !readOnly
         card.addView(bioField, LinearLayout.LayoutParams(-1, dp(110)).apply { topMargin = dp(8) })
 
         root.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
