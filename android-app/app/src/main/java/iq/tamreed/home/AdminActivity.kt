@@ -14,6 +14,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.providers.builtin.Phone
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.CoroutineScope
@@ -67,6 +68,8 @@ class AdminActivity : AppCompatActivity() {
     private val sessionPrefs by lazy {
         getSharedPreferences("tamreed_session", MODE_PRIVATE)
     }
+    private var adminPhone = ""
+    private var passwordResetFlow = false
     private val navy = Color.rgb(5, 62, 105)
     private val blue = Color.rgb(31, 115, 176)
     private val green = Color.rgb(35, 145, 85)
@@ -119,78 +122,151 @@ class AdminActivity : AppCompatActivity() {
 
     private fun checkAdmin() {
         val user = SupabaseManager.client.auth.currentUserOrNull()
-        if (user == null) {
-            showLogin()
-            return
-        }
-
+        if (user == null) { showLogin(); return }
         scope.launch {
             try {
                 val admins = SupabaseManager.client.from("admin_users").select {
                     filter { eq("user_id", user.id) }
                 }.decodeList<AdminRecord>()
-
                 if (admins.isEmpty()) {
                     showNotAdmin()
+                } else if (!sessionPrefs.getBoolean("admin_password_configured", false)) {
+                    adminPhone = user.phone ?: adminPhone
+                    passwordResetFlow = false
+                    showSetPasswordScreen()
                 } else {
                     sessionPrefs.edit().putString("role", "admin").apply()
                     showDashboard()
                 }
             } catch (e: Exception) {
-                showError("تعذر التحقق من صلاحيات الإدارة",
-                    e.message ?: "تأكد من تنفيذ SQL الخاص بالإدارة.")
+                showError("تعذر التحقق من صلاحيات الإدارة", e.message ?: "تأكد من إعداد الإدارة في Supabase.")
             }
         }
     }
 
     private fun showLogin() {
+        window.statusBarColor = Color.WHITE
+        window.navigationBarColor = light
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(light)
-            setPadding(dp(20), dp(30), dp(20), dp(30))
+            setPadding(dp(18), dp(22), dp(18), dp(18))
         }
-
-        root.addView(text("🛡️", 55f))
-        root.addView(text("دخول الإدارة", 28f, navy, true))
-        root.addView(text("أدخل رقم هاتف حساب المدير", 16f, gray))
-
+        root.addView(text("🛡️", 52f, navy, true))
+        root.addView(text("دخول الإدارة", 29f, navy, true), LinearLayout.LayoutParams(-1, dp(48)))
+        root.addView(text("الهاتف + كلمة المرور", 15f, gray), LinearLayout.LayoutParams(-1, dp(30)))
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(white, 22)
+            elevation = dp(2).toFloat()
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+        }
+        card.addView(text("📱 رقم الهاتف", 17f, navy, true), LinearLayout.LayoutParams(-1, dp(38)))
         val phone = EditText(this).apply {
-            hint = "07810000000"
-            textSize = 18f
-            gravity = Gravity.CENTER
-            inputType = android.text.InputType.TYPE_CLASS_PHONE
-            layoutDirection = View.LAYOUT_DIRECTION_LTR
-            background = bg(white, 15, border)
+            hint = "07701234567"; textSize = 18f; gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_PHONE; layoutDirection = View.LAYOUT_DIRECTION_LTR
+            maxLines = 1; isSingleLine = true; background = bordered(white, border, 15)
         }
-
-        root.addView(phone, LinearLayout.LayoutParams(-1, dp(62)))
-
-        root.addView(button("إرسال رمز التحقق", navy) {
+        card.addView(phone, LinearLayout.LayoutParams(-1, dp(52)))
+        card.addView(text("🔐 كلمة المرور", 17f, navy, true), LinearLayout.LayoutParams(-1, dp(38)).apply { topMargin = dp(7) })
+        val password = EditText(this).apply {
+            hint = "كلمة المرور"; textSize = 17f; gravity = Gravity.CENTER
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            maxLines = 1; isSingleLine = true; background = bordered(white, border, 15)
+        }
+        card.addView(password, LinearLayout.LayoutParams(-1, dp(52)))
+        card.addView(button("🔐 دخول بكلمة المرور", green) {
+            val p = normalizePhone(phone.text.toString()); val pass = password.text.toString()
+            if (p == null) { phone.error = "رقم الهاتف العراقي غير صحيح"; return@button }
+            if (pass.length < 6) { password.error = "كلمة المرور 6 أحرف/أرقام على الأقل"; return@button }
+            signInAdminWithPassword(p, pass)
+        }, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8) })
+        card.addView(outlineButton("نسيت كلمة المرور") {
             val p = normalizePhone(phone.text.toString())
-            if (p == null) {
-                phone.error = "رقم الهاتف العراقي غير صحيح"
-                return@button
-            }
-
-            scope.launch {
-                val loading = ProgressDialog.show(
-                    this@AdminActivity, null, "جاري إرسال الرمز...", true, false
-                )
-                try {
-                    SupabaseManager.client.auth.signInWith(OTP) { this.phone = p }
-                    loading.dismiss()
-                    showOtp(p)
-                } catch (e: Exception) {
-                    loading.dismiss()
-                    showError("تعذر إرسال الرمز", e.message ?: "حاول مرة أخرى.")
-                }
-            }
-        }, LinearLayout.LayoutParams(-1, dp(60)))
-
-        root.addView(text("هذه الشاشة مخصصة للمشرف فقط.", 14f, gray))
+            if (p == null) { phone.error = "أدخل رقم الهاتف أولاً"; return@outlineButton }
+            adminPhone = p; passwordResetFlow = true; sendAdminOtp(p)
+        }, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) })
+        card.addView(text("أول دخول؟ استخدم OTP لإنشاء كلمة المرور", 12f, gray), LinearLayout.LayoutParams(-1, dp(28)).apply { topMargin = dp(3) })
+        card.addView(button("📩 دخول برمز التحقق", navy) {
+            val p = normalizePhone(phone.text.toString())
+            if (p == null) { phone.error = "رقم الهاتف العراقي غير صحيح"; return@button }
+            adminPhone = p; passwordResetFlow = false; sendAdminOtp(p)
+        }, LinearLayout.LayoutParams(-1, dp(52)))
+        root.addView(card, LinearLayout.LayoutParams(-1, dp(360)))
+        root.addView(text("حسابات الإدارة المصرح لها فقط", 12f, gray), LinearLayout.LayoutParams(-1, dp(30)).apply { topMargin = dp(8) })
         setContentView(root)
+    }
+
+    private fun sendAdminOtp(phone: String) {
+        scope.launch {
+            val loading = ProgressDialog.show(this@AdminActivity, null, "جاري إرسال رمز التحقق...", true, false)
+            try {
+                SupabaseManager.client.auth.signInWith(OTP) { this.phone = phone }
+                loading.dismiss(); showOtp(phone)
+            } catch (e: Exception) {
+                loading.dismiss(); showError("تعذر إرسال الرمز", e.message ?: "تأكد من إعداد Phone Auth في Supabase.")
+            }
+        }
+    }
+
+    private fun signInAdminWithPassword(phone: String, password: String) {
+        scope.launch {
+            val loading = ProgressDialog.show(this@AdminActivity, null, "جاري تسجيل الدخول...", true, false)
+            try {
+                SupabaseManager.client.auth.signInWith(Phone) { this.phone = phone; this.password = password }
+                val user = SupabaseManager.client.auth.currentUserOrNull() ?: throw IllegalStateException("تعذر إنشاء جلسة الدخول")
+                val admins = SupabaseManager.client.from("admin_users").select { filter { eq("user_id", user.id) } }.decodeList<AdminRecord>()
+                if (admins.isEmpty()) { SupabaseManager.client.auth.signOut(); loading.dismiss(); showNotAdmin(); return@launch }
+                adminPhone = phone
+                sessionPrefs.edit().putString("role", "admin").putBoolean("admin_password_configured", true).apply()
+                loading.dismiss(); showDashboard()
+            } catch (e: Exception) {
+                loading.dismiss(); showError("تعذر تسجيل الدخول", "رقم الهاتف أو كلمة المرور غير صحيحة. استخدم «نسيت كلمة المرور» إذا لزم.")
+            }
+        }
+    }
+
+    private fun showSetPasswordScreen() {
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL; layoutDirection = View.LAYOUT_DIRECTION_RTL; setBackgroundColor(light); setPadding(dp(20), dp(28), dp(20), dp(20)) }
+        root.addView(text("🔐", 50f, navy, true))
+        root.addView(text(if (passwordResetFlow) "تغيير كلمة المرور" else "إنشاء كلمة المرور", 27f, navy, true))
+        root.addView(text(if (passwordResetFlow) "أنشئ كلمة مرور جديدة لحساب الإدارة" else "تم التحقق من رقم الهاتف. أنشئ كلمة مرور للدخول لاحقاً.", 15f, gray))
+        root.addView(text(adminPhone, 16f, navy, true), LinearLayout.LayoutParams(-1, dp(35)))
+        val pass = EditText(this).apply { hint = "كلمة المرور الجديدة"; textSize = 17f; gravity = Gravity.CENTER; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD; background = bordered(white, border, 15) }
+        val confirm = EditText(this).apply { hint = "تأكيد كلمة المرور"; textSize = 17f; gravity = Gravity.CENTER; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD; background = bordered(white, border, 15) }
+        root.addView(pass, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(14) })
+        root.addView(confirm, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(10) })
+        root.addView(button("💾 حفظ كلمة المرور", green) {
+            val a = pass.text.toString(); val b = confirm.text.toString()
+            if (a.length < 6) { pass.error = "استخدم 6 أحرف/أرقام على الأقل"; return@button }
+            if (a != b) { confirm.error = "كلمتا المرور غير متطابقتين"; return@button }
+            saveAdminPassword(a)
+        }, LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(12) })
+        root.addView(outlineButton("‹ العودة") { showLogin() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        setContentView(root)
+    }
+
+    private fun saveAdminPassword(password: String) {
+        scope.launch {
+            val loading = ProgressDialog.show(this@AdminActivity, null, "جاري حفظ كلمة المرور...", true, false)
+            try {
+                val user = SupabaseManager.client.auth.currentUserOrNull() ?: throw IllegalStateException("انتهت جلسة التحقق")
+                val admins = SupabaseManager.client.from("admin_users").select { filter { eq("user_id", user.id) } }.decodeList<AdminRecord>()
+                if (admins.isEmpty()) { SupabaseManager.client.auth.signOut(); loading.dismiss(); showNotAdmin(); return@launch }
+                SupabaseManager.client.auth.updateUser { this.password = password }
+                sessionPrefs.edit().putString("role", "admin").putBoolean("admin_password_configured", true).apply()
+                passwordResetFlow = false; loading.dismiss()
+                Toast.makeText(this@AdminActivity, "تم حفظ كلمة المرور بنجاح", Toast.LENGTH_LONG).show(); showDashboard()
+            } catch (e: Exception) {
+                loading.dismiss()
+                val msg = if (e.message?.contains("same_password", true) == true) "كلمة المرور الجديدة يجب أن تكون مختلفة عن السابقة." else (e.message ?: "حاول مرة أخرى.")
+                showError("تعذر حفظ كلمة المرور", msg)
+            }
+        }
     }
 
     private fun showOtp(phone: String) {
@@ -639,7 +715,9 @@ class AdminActivity : AppCompatActivity() {
             try {
                 SupabaseManager.client.auth.signOut()
             } catch (_: Exception) {}
-            sessionPrefs.edit().remove("role").apply()
+            sessionPrefs.edit().remove("role").remove("admin_password_configured").apply()
+            adminPhone = ""
+            passwordResetFlow = false
             showLogin()
         }
     }
