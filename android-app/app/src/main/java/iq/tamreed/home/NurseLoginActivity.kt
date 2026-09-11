@@ -164,10 +164,12 @@ class NurseLoginActivity : AppCompatActivity() {
     ): Button =
         Button(this).apply {
             text = title
-            textSize = 17f
+            textSize = 16f
             isAllCaps = false
             setTextColor(WHITE)
             gravity = Gravity.CENTER
+            minLines = 1
+            includeFontPadding = true
             background = rounded(NAVY, 16)
             setOnClickListener { action() }
         }
@@ -178,10 +180,12 @@ class NurseLoginActivity : AppCompatActivity() {
     ): Button =
         Button(this).apply {
             text = title
-            textSize = 16f
+            textSize = 15f
             isAllCaps = false
             setTextColor(NAVY)
             gravity = Gravity.CENTER
+            minLines = 1
+            includeFontPadding = true
             background = bordered(WHITE, NAVY, 16)
             setOnClickListener { action() }
         }
@@ -227,177 +231,35 @@ class NurseLoginActivity : AppCompatActivity() {
 
     private fun showPhoneScreen() {
         isNewNurseRegistration = false
-
-        val root = rootLayout()
-
-        root.addView(makeText("✚", 46f, NAVY))
-        root.addView(makeText("التمريض المنزلي", 26f, NAVY, true))
-        root.addView(
-            makeText(
-                "دخول الممرضين وإدارة الطلبات",
-                16f,
-                GRAY
-            )
-        )
-
-        addSpace(root, 10)
-
-        val loginCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            background = rounded(WHITE, 22)
-            setPadding(dp(14), dp(14), dp(14), dp(14))
-        }
-
-        loginCard.addView(makeText("📱", 32f, NAVY))
-        loginCard.addView(
-            makeText(
-                "تسجيل دخول الممرض",
-                18f,
-                NAVY,
-                true
-            )
-        )
-
-        addSpace(loginCard, 8)
-
-        val phone = EditText(this).apply {
-            hint = "07810056006"
-            textSize = 19f
-            gravity = Gravity.CENTER
-            inputType = InputType.TYPE_CLASS_PHONE
-            layoutDirection = View.LAYOUT_DIRECTION_LTR
-            background = bordered(WHITE, BORDER, 15)
-            setPadding(dp(15), dp(5), dp(15), dp(5))
-        }
-
-        loginCard.addView(
-            phone,
-            LinearLayout.LayoutParams(-1, dp(54))
-        )
-
-        val password = EditText(this).apply {
-            hint = "كلمة المرور"
-            textSize = 17f
-            gravity = Gravity.CENTER
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            maxLines = 1
-            isSingleLine = true
-            background = bordered(WHITE, BORDER, 15)
-            setPadding(dp(12), dp(5), dp(12), dp(5))
-        }
-        loginCard.addView(password, LinearLayout.LayoutParams(-1, dp(52)).apply {
-            topMargin = dp(8)
-        })
-
-        loginCard.addView(
-            primaryButton("🔐 دخول بكلمة المرور") {
-                val normalized = normalizeIraqPhone(phone.text.toString())
-                val pass = password.text.toString()
-                if (normalized == null) {
-                    phone.error = "رقم الهاتف العراقي غير صحيح"
-                    return@primaryButton
-                }
-                if (pass.length < 6) {
-                    password.error = "كلمة المرور 6 أحرف/أرقام على الأقل"
-                    return@primaryButton
-                }
-                signInNurseWithPassword(normalized, pass)
-            },
-            LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8) }
-        )
-
-        loginCard.addView(
-            outlineButton("نسيت كلمة المرور") {
-                val normalized = normalizeIraqPhone(phone.text.toString())
-                if (normalized == null) {
-                    phone.error = "أدخل رقم الهاتف أولاً"
-                    return@outlineButton
-                }
-                phoneNumber = normalized
-                passwordResetFlow = true
-                sendOtp()
-            },
-            LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) }
-        )
-
-        loginCard.addView(
-            makeText(
-                "يمكنك أيضاً استخدام رمز SMS",
-                13f,
-                GRAY
-            )
-        )
-
-        addSpace(loginCard, 7)
-
-        loginCard.addView(
-            primaryButton("دخول باستخدام رمز التحقق") {
-                val normalized = normalizeIraqPhone(phone.text.toString())
-
-                if (normalized == null) {
-                    phone.error = "رقم الهاتف العراقي غير صحيح"
-                    return@primaryButton
-                }
-
-                phoneNumber = normalized
-                isNewNurseRegistration = false
-                sendOtp()
-            },
-            LinearLayout.LayoutParams(-1, dp(54))
-        )
-
-        root.addView(loginCard, LinearLayout.LayoutParams(-1, -2))
-
-        addSpace(root, 14)
-
-        val newNurseCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            background = rounded(LIGHT_BLUE, 20)
-            setPadding(dp(14), dp(14), dp(14), dp(14))
-        }
-
-        newNurseCard.addView(makeText("✚", 34f, NAVY))
-        newNurseCard.addView(
-            makeText(
-                "ممرض جديد؟",
-                18f,
-                NAVY,
-                true
-            )
-        )
-        newNurseCard.addView(
-            makeText(
-                "أنشئ حسابك من هنا وأرسل بياناتك المهنية إلى الإدارة لاعتمادها.",
-                14f,
-                TEXT
-            )
-        )
-
-        addSpace(newNurseCard, 8)
-
-        newNurseCard.addView(
-            primaryButton("➕ تسجيل ممرض جديد") {
-                showNewNurseRegistrationScreen()
-            },
-            LinearLayout.LayoutParams(-1, dp(52))
-        )
-
-        root.addView(
-            newNurseCard,
-            LinearLayout.LayoutParams(-1, -2)
-        )
-
-        addSpace(root, 14)
-
-        root.addView(
-            outlineButton("العودة") { finish() },
-            LinearLayout.LayoutParams(-1, dp(56))
-        )
-
+        window.statusBarColor = WHITE
+        window.navigationBarColor = WHITE
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        val root = rootLayout().apply { setPadding(dp(18), dp(12), dp(18), dp(24)) }
+        root.addView(makeImageLogo(), LinearLayout.LayoutParams(dp(112), dp(112)).apply { gravity = Gravity.CENTER_HORIZONTAL })
+        root.addView(makeText("دخول الممرض", 28f, NAVY, true), LinearLayout.LayoutParams(-1, dp(44)))
+        root.addView(makeText("مرحباً بك في فريق التمريض", 14f, GREEN, true), LinearLayout.LayoutParams(-1, dp(30)))
+        val card = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.CENTER; layoutDirection=View.LAYOUT_DIRECTION_RTL; background=rounded(WHITE,24); elevation=dp(3).toFloat(); setPadding(dp(14),dp(14),dp(14),dp(14)) }
+        card.addView(makeText("📱 رقم الهاتف", 15f, NAVY, true), LinearLayout.LayoutParams(-1,dp(32)))
+        val phone = EditText(this).apply { hint="07XXXXXXXXX"; textSize=17f; gravity=Gravity.CENTER; inputType=InputType.TYPE_CLASS_PHONE; layoutDirection=View.LAYOUT_DIRECTION_LTR; maxLines=1; isSingleLine=true; background=bordered(WHITE,BORDER,16); setPadding(dp(12),0,dp(12),0) }
+        card.addView(phone,LinearLayout.LayoutParams(-1,dp(52)))
+        card.addView(makeText("🔐 كلمة المرور", 15f, NAVY, true), LinearLayout.LayoutParams(-1,dp(32)).apply{topMargin=dp(7)})
+        val password=EditText(this).apply{hint="كلمة المرور";textSize=17f;gravity=Gravity.CENTER;inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;maxLines=1;isSingleLine=true;background=bordered(WHITE,BORDER,16);setPadding(dp(12),0,dp(12),0)}
+        card.addView(password,LinearLayout.LayoutParams(-1,dp(52)))
+        card.addView(primaryButton("🔐  دخول",){val p=normalizeIraqPhone(phone.text.toString());val pass=password.text.toString();if(p==null){phone.error="رقم الهاتف العراقي غير صحيح";return@primaryButton};if(pass.length<6){password.error="كلمة المرور 6 أحرف/أرقام على الأقل";return@primaryButton};signInNurseWithPassword(p,pass)},LinearLayout.LayoutParams(-1,dp(54)).apply{topMargin=dp(9)})
+        card.addView(outlineButton("نسيت كلمة المرور"){val p=normalizeIraqPhone(phone.text.toString());if(p==null){phone.error="أدخل رقم الهاتف أولاً";return@outlineButton};phoneNumber=p;passwordResetFlow=true;sendOtp()},LinearLayout.LayoutParams(-1,dp(48)).apply{topMargin=dp(7)})
+        card.addView(makeText("أو",12f,GRAY,true),LinearLayout.LayoutParams(-1,dp(28)))
+        card.addView(outlineButton("📱  دخول بالرمز (OTP)"){val p=normalizeIraqPhone(phone.text.toString());if(p==null){phone.error="رقم الهاتف العراقي غير صحيح";return@outlineButton};phoneNumber=p;isNewNurseRegistration=false;sendOtp()},LinearLayout.LayoutParams(-1,dp(52)))
+        root.addView(card,LinearLayout.LayoutParams(-1,-2))
+        addSpace(root,12)
+        val newCard=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL;background=rounded(LIGHT_BLUE,22);setPadding(dp(14),dp(12),dp(14),dp(12))}
+        newCard.addView(makeText("ممرض جديد؟",19f,NAVY,true));newCard.addView(makeText("أنشئ حسابك وأرسل بياناتك المهنية إلى الإدارة للاعتماد.",12.5f,TEXT));newCard.addView(primaryButton("➕  إنشاء حساب ممرض"){showNewNurseRegistrationScreen()},LinearLayout.LayoutParams(-1,dp(52)).apply{topMargin=dp(8)})
+        root.addView(newCard,LinearLayout.LayoutParams(-1,dp(140)))
+        addSpace(root,10);root.addView(outlineButton("‹  العودة"){finish()},LinearLayout.LayoutParams(-1,dp(50)))
         setContentView(scroll(root))
+    }
+
+    private fun makeImageLogo(): ImageView = ImageView(this).apply {
+        setImageResource(R.drawable.app_logo); scaleType=ImageView.ScaleType.CENTER_INSIDE; contentDescription="شعار التمريض المنزلي"
     }
 
     private fun normalizeIraqPhone(value: String): String? {
