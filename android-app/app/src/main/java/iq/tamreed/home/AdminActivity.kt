@@ -164,60 +164,27 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun showLogin() {
-        window.statusBarColor = Color.WHITE
-        window.navigationBarColor = light
+        window.statusBarColor = white; window.navigationBarColor = white
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setBackgroundColor(light)
-            setPadding(dp(18), dp(22), dp(18), dp(18))
-        }
-        root.addView(text("🛡️", 52f, navy, true))
-        root.addView(text("دخول الإدارة", 29f, navy, true), LinearLayout.LayoutParams(-1, dp(48)))
-        root.addView(text("الهاتف + كلمة المرور", 15f, gray), LinearLayout.LayoutParams(-1, dp(30)))
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            background = rounded(white, 22)
-            elevation = dp(2).toFloat()
-            setPadding(dp(14), dp(12), dp(14), dp(12))
-        }
-        card.addView(text("📱 رقم الهاتف", 17f, navy, true), LinearLayout.LayoutParams(-1, dp(38)))
-        val phone = EditText(this).apply {
-            hint = "07701234567"; textSize = 18f; gravity = Gravity.CENTER
-            inputType = InputType.TYPE_CLASS_PHONE; layoutDirection = View.LAYOUT_DIRECTION_LTR
-            maxLines = 1; isSingleLine = true; background = bordered(white, border, 15)
-        }
-        card.addView(phone, LinearLayout.LayoutParams(-1, dp(52)))
-        card.addView(text("🔐 كلمة المرور", 17f, navy, true), LinearLayout.LayoutParams(-1, dp(38)).apply { topMargin = dp(7) })
-        val password = EditText(this).apply {
-            hint = "كلمة المرور"; textSize = 17f; gravity = Gravity.CENTER
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            maxLines = 1; isSingleLine = true; background = bordered(white, border, 15)
-        }
-        card.addView(password, LinearLayout.LayoutParams(-1, dp(52)))
-        card.addView(button("🔐 دخول بكلمة المرور", green) {
-            val p = normalizePhone(phone.text.toString()); val pass = password.text.toString()
-            if (p == null) { phone.error = "رقم الهاتف العراقي غير صحيح"; return@button }
-            if (pass.length < 6) { password.error = "كلمة المرور 6 أحرف/أرقام على الأقل"; return@button }
-            signInAdminWithPassword(p, pass)
-        }, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8) })
-        card.addView(outlineButton("نسيت كلمة المرور") {
-            val p = normalizePhone(phone.text.toString())
-            if (p == null) { phone.error = "أدخل رقم الهاتف أولاً"; return@outlineButton }
-            adminPhone = p; passwordResetFlow = true; sendAdminOtp(p)
-        }, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(6) })
-        card.addView(text("أول دخول؟ استخدم OTP لإنشاء كلمة المرور", 12f, gray), LinearLayout.LayoutParams(-1, dp(28)).apply { topMargin = dp(3) })
-        card.addView(button("📩 دخول برمز التحقق", navy) {
-            val p = normalizePhone(phone.text.toString())
-            if (p == null) { phone.error = "رقم الهاتف العراقي غير صحيح"; return@button }
-            adminPhone = p; passwordResetFlow = false; sendAdminOtp(p)
-        }, LinearLayout.LayoutParams(-1, dp(52)))
-        root.addView(card, LinearLayout.LayoutParams(-1, dp(360)))
-        root.addView(text("حسابات الإدارة المصرح لها فقط", 12f, gray), LinearLayout.LayoutParams(-1, dp(30)).apply { topMargin = dp(8) })
-        setContentView(root)
+        val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.TOP or Gravity.CENTER_HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundColor(white);setPadding(dp(18),dp(14),dp(18),dp(24))}
+        root.addView(ImageView(this).apply{setImageResource(R.drawable.app_logo);scaleType=ImageView.ScaleType.CENTER_INSIDE;contentDescription="شعار التمريض المنزلي"},LinearLayout.LayoutParams(dp(112),dp(112)).apply{gravity=Gravity.CENTER_HORIZONTAL})
+        root.addView(text("دخول الإدارة",29f,Color.rgb(79,48,170),true),LinearLayout.LayoutParams(-1,dp(46)))
+        root.addView(text("لوحة التحكم والإدارة",14f,Color.rgb(79,48,170),true),LinearLayout.LayoutParams(-1,dp(30)))
+        val card=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;background=rounded(white,24);elevation=dp(3).toFloat();setPadding(dp(14),dp(14),dp(14),dp(14))}
+        card.addView(text("📱 رقم الهاتف",15f,navy,true),LinearLayout.LayoutParams(-1,dp(32)))
+        val phone=EditText(this).apply{hint="07XXXXXXXXX";textSize=17f;gravity=Gravity.CENTER;inputType=InputType.TYPE_CLASS_PHONE;layoutDirection=View.LAYOUT_DIRECTION_LTR;maxLines=1;isSingleLine=true;background=bordered(white,border,16);setPadding(dp(12),0,dp(12),0)}
+        card.addView(phone,LinearLayout.LayoutParams(-1,dp(52)))
+        card.addView(text("🔐 كلمة المرور",15f,navy,true),LinearLayout.LayoutParams(-1,dp(32)).apply{topMargin=dp(7)})
+        val password=EditText(this).apply{hint="كلمة المرور";textSize=17f;gravity=Gravity.CENTER;inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;maxLines=1;isSingleLine=true;background=bordered(white,border,16);setPadding(dp(12),0,dp(12),0)}
+        card.addView(password,LinearLayout.LayoutParams(-1,dp(52)))
+        card.addView(button("🔐  دخول",Color.rgb(91,63,190)){val p=normalizePhone(phone.text.toString());val pass=password.text.toString();if(p==null){phone.error="رقم الهاتف العراقي غير صحيح";return@button};if(pass.length<6){password.error="كلمة المرور 6 أحرف/أرقام على الأقل";return@button};signInAdminWithPassword(p,pass)},LinearLayout.LayoutParams(-1,dp(54)).apply{topMargin=dp(9)})
+        card.addView(outlineButton("نسيت كلمة المرور"){val p=normalizePhone(phone.text.toString());if(p==null){phone.error="أدخل رقم الهاتف أولاً";return@outlineButton};adminPhone=p;passwordResetFlow=true;sendAdminOtp(p)},LinearLayout.LayoutParams(-1,dp(48)).apply{topMargin=dp(7)})
+        card.addView(text("أو",12f,gray,true),LinearLayout.LayoutParams(-1,dp(28)))
+        card.addView(outlineButton("📱  دخول بالرمز (OTP)"){val p=normalizePhone(phone.text.toString());if(p==null){phone.error="رقم الهاتف العراقي غير صحيح";return@outlineButton};adminPhone=p;passwordResetFlow=false;sendAdminOtp(p)},LinearLayout.LayoutParams(-1,dp(52)))
+        root.addView(card,LinearLayout.LayoutParams(-1,-2))
+        root.addView(text("🔒 حسابات الإدارة المصرح لها فقط",12f,gray,true),LinearLayout.LayoutParams(-1,dp(36)).apply{topMargin=dp(10)})
+        root.addView(outlineButton("‹  العودة"){finish()},LinearLayout.LayoutParams(-1,dp(50)))
+        setContentView(ScrollView(this).apply{isFillViewport=true;addView(root)})
     }
 
     private fun sendAdminOtp(phone: String) {
@@ -341,28 +308,35 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun showDashboard() {
+        window.statusBarColor = white
+        window.navigationBarColor = light
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(light)
-            setPadding(dp(14), dp(22), dp(14), dp(30))
+            setPadding(dp(16), dp(12), dp(16), dp(28))
         }
-
-        root.addView(text("🛡️", 52f))
-        root.addView(text("لوحة الإدارة", 28f, navy, true))
-        root.addView(text("إدارة الممرضين وطلبات الاشتراك", 16f, gray))
-
-        root.addView(button("🔄 تحديث جميع الطلبات", blue) {
-            loadDashboardData(root)
-        }, LinearLayout.LayoutParams(-1, dp(58)))
-
-        val logout = button("تسجيل الخروج", navy) { signOut() }
-        logout.background = bg(white, 15, navy)
-        logout.setTextColor(navy)
-        root.addView(logout, LinearLayout.LayoutParams(-1, dp(55)))
-
-        setContentView(ScrollView(this).apply { addView(root) })
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = rounded(Color.rgb(244,239,255), 24)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+        }
+        header.addView(ImageView(this).apply { setImageResource(R.drawable.app_logo); scaleType=ImageView.ScaleType.CENTER_INSIDE; contentDescription="شعار التطبيق" }, LinearLayout.LayoutParams(dp(66),dp(66)))
+        header.addView(text("لوحة الإدارة",24f,Color.rgb(79,48,170),true),LinearLayout.LayoutParams(0,dp(66),1f))
+        root.addView(header,LinearLayout.LayoutParams(-1,dp(92)))
+        root.addView(text("إدارة المرضى والممرضين والطلبات والاشتراكات",13f,gray),LinearLayout.LayoutParams(-1,dp(34)).apply{topMargin=dp(7)})
+        val stats=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+        fun stat(title:String,icon:String,color:Int)=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL;background=rounded(white,20);setPadding(dp(4),dp(8),dp(4),dp(8));addView(text(icon,24f,color,true),LinearLayout.LayoutParams(-1,dp(30)));addView(text(title,11f,gray,true),LinearLayout.LayoutParams(-1,dp(28)))}
+        stats.addView(stat("المرضى","👥",green),LinearLayout.LayoutParams(0,dp(78),1f).apply{marginEnd=dp(4)})
+        stats.addView(stat("الممرضون","👨‍⚕️",blue),LinearLayout.LayoutParams(0,dp(78),1f).apply{marginStart=dp(4);marginEnd=dp(4)})
+        stats.addView(stat("الاشتراكات","💳",Color.rgb(125,82,195)),LinearLayout.LayoutParams(0,dp(78),1f).apply{marginStart=dp(4)})
+        root.addView(stats,LinearLayout.LayoutParams(-1,dp(78)).apply{topMargin=dp(8)})
+        root.addView(button("🔄  تحديث البيانات",blue){loadDashboardData(root)},LinearLayout.LayoutParams(-1,dp(54)).apply{topMargin=dp(10)})
+        val logout=button("تسجيل الخروج",white){signOut()};logout.setTextColor(navy);logout.background=bg(white,16,navy);root.addView(logout,LinearLayout.LayoutParams(-1,dp(52)).apply{topMargin=dp(8)})
+        setContentView(ScrollView(this).apply{isFillViewport=true;addView(root)})
         loadDashboardData(root)
     }
 
