@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.InputType
 import java.time.Instant
 import android.view.Gravity
 import android.view.View
@@ -97,6 +98,24 @@ class AdminActivity : AppCompatActivity() {
             setColor(color)
             if (stroke != null) setStroke(dp(1), stroke)
             cornerRadius = dp(radius).toFloat()
+        }
+
+    private fun rounded(color: Int, radius: Int = 18): GradientDrawable =
+        bg(color, radius)
+
+    private fun bordered(color: Int, stroke: Int, radius: Int = 18): GradientDrawable =
+        bg(color, radius, stroke)
+
+    private fun outlineButton(title: String, action: () -> Unit): Button =
+        Button(this).apply {
+            text = title
+            textSize = 16f
+            isAllCaps = false
+            setTextColor(navy)
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = bg(white, 14, navy)
+            setOnClickListener { action() }
         }
 
     private fun text(value: String, size: Float, color: Int = navy, bold: Boolean = false) =
