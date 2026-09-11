@@ -352,7 +352,7 @@ class NurseActivity : AppCompatActivity() {
         window.statusBarColor=WHITE;window.navigationBarColor=LIGHT_GRAY;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setBackgroundColor(LIGHT_GRAY);setPadding(dp(16),dp(10),dp(16),dp(26))}
         val scroll=ScrollView(this).apply{isFillViewport=true;addView(root)}
-        val header=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;background=WHITE;setPadding(dp(10),dp(8),dp(10),dp(8))}
+        val header=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;background=rounded(WHITE,18);setPadding(dp(10),dp(8),dp(10),dp(8))}
         header.addView(makeText("مرحباً بك 👨‍⚕️",17f,NAVY,true),LinearLayout.LayoutParams(0,dp(48),1f))
         header.addView(makeText(profile?.full_name?:"الممرض",19f,NAVY,true),LinearLayout.LayoutParams(dp(150),dp(48)))
         root.addView(header,LinearLayout.LayoutParams(-1,dp(64)))
@@ -371,7 +371,7 @@ class NurseActivity : AppCompatActivity() {
         sub.addView(makeText("💳 الاشتراك",19f,NAVY,true));sub.addView(makeText(subscriptionStatusText(profile?:NurseHomeProfile()),15f,if(profile!=null&&hasActiveSubscription(profile))GREEN else GRAY,true));sub.addView(makeText("ينتهي: ${formatSubscriptionEnd(profile?.subscription_end)}",13f,GRAY))
         root.addView(sub,LinearLayout.LayoutParams(-1,dp(100)).apply{topMargin=dp(12)})
         fun addBtn(title:String,color:Int,action:()->Unit){root.addView(Button(this).apply{text=title;textSize=16f;isAllCaps=false;setTextColor(WHITE);gravity=Gravity.CENTER;background=rounded(color,17);setOnClickListener{action()}},LinearLayout.LayoutParams(-1,dp(54)).apply{topMargin=dp(9)})}
-        addBtn(if(status)"🔴  إيقاف استقبال الطلبات" else "🟢  تفعيل استقبال الطلبات",if(status)NAVY:GREEN){toggleAvailability()}
+        addBtn(if(status)"🔴  إيقاف استقبال الطلبات" else "🟢  تفعيل استقبال الطلبات",if(status) NAVY else GREEN){toggleAvailability()}
         addBtn("👤  ملفي الشخصي",BLUE_COLOR){val id=SupabaseManager.client.auth.currentUserOrNull()?.id;if(!id.isNullOrBlank())startActivity(Intent(this,ProfileActivity::class.java).apply{putExtra(ProfileActivity.EXTRA_ROLE,"nurse");putExtra(ProfileActivity.EXTRA_USER_ID,id);putExtra(ProfileActivity.EXTRA_READ_ONLY,false)})}
         addBtn("💳  الاشتراكات والباقات",BLUE_COLOR){startActivity(Intent(this,NurseSubscriptionActivity::class.java))}
         root.addView(outlineButtonLocal("تسجيل الخروج"){logout()},LinearLayout.LayoutParams(-1,dp(52)).apply{topMargin=dp(9)})
