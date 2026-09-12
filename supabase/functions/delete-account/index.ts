@@ -13,20 +13,28 @@ const json = (body: Record<string, unknown>, status = 200) =>
   });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const authorization = req.headers.get("Authorization");
 
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+  // Support the current Supabase secret-key format, with legacy fallback.
+  let secretKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  try {
+    const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    secretKey = secretKeys.default ?? secretKey;
+  } catch (_) {}
+
+  // Support the current publishable-key format, with legacy fallback.
+  let publishableKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  try {
+    const publishableKeys = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}");
+    publishableKey = publishableKeys.default ?? publishableKey;
+  } catch (_) {}
+
+  if (!supabaseUrl || !publishableKey || !secretKey) {
+    console.error("delete-account failed: Supabase server configuration is incomplete");
     return json({ error: "Supabase server configuration is incomplete." }, 500);
   }
 
@@ -34,9 +42,11 @@ Deno.serve(async (req) => {
     return json({ error: "Authorization header is required." }, 401);
   }
 
+  let stage = "start";
+
   try {
-    // Validate the caller's JWT with the user's own session context.
-    const userClient = createClient(supabaseUrl, anonKey, {
+    stage = "validate-user";
+    const userClient = createClient(supabaseUrl, publishableKey, {
       global: { headers: { Authorization: authorization } },
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -47,103 +57,95 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser();
 
     if (userError || !user) {
+      console.error("delete-account failed at validate-user:", userError?.message ?? "No user");
       return json({ error: "جلسة الدخول غير صالحة أو منتهية." }, 401);
     }
 
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
+    const admin = createClient(supabaseUrl, secretKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
     const userId = user.id;
 
-    // Delete chat messages first so booking/user records can be removed safely.
-    const { error: chatSenderError } = await admin
-      .from("chat_messages")
-      .delete()
-      .eq("sender_id", userId);
-    if (chatSenderError) throw chatSenderError;
+    stage = "chat-sender";
+    const { error: chatSenderError } = await admin.from("chat_messages").delete().eq("sender_id", userId);
+    if (chatSenderError) throw new Error(`chat_sender: ${chatSenderError.message}`);
 
-    const { error: chatReceiverError } = await admin
-      .from("chat_messages")
-      .delete()
-      .eq("receiver_id", userId);
-    if (chatReceiverError) throw chatReceiverError;
+    stage = "chat-receiver";
+    const { error: chatReceiverError } = await admin.from("chat_messages").delete().eq("receiver_id", userId);
+    if (chatReceiverError) throw new Error(`chat_receiver: ${chatReceiverError.message}`);
 
-    // Remove push tokens belonging to the account.
-    const { error: tokenError } = await admin
-      .from("notification_tokens")
-      .delete()
-      .eq("user_id", userId);
-    if (tokenError) throw tokenError;
+    stage = "notification-tokens";
+    const { error: tokenError } = await admin.from("notification_tokens").delete().eq("user_id", userId);
+    if (tokenError) throw new Error(`notification_tokens: ${tokenError.message}`);
 
-    // Remove bookings that belong to the account as patient or nurse.
-    const { error: patientBookingsError } = await admin
-      .from("bookings")
-      .delete()
-      .eq("patient_id", userId);
-    if (patientBookingsError) throw patientBookingsError;
+    stage = "patient-bookings";
+    const { error: patientBookingsError } = await admin.from("bookings").delete().eq("patient_id", userId);
+    if (patientBookingsError) throw new Error(`patient_bookings: ${patientBookingsError.message}`);
 
-    const { error: nurseBookingsError } = await admin
-      .from("bookings")
-      .delete()
-      .eq("nurse_id", userId);
-    if (nurseBookingsError) throw nurseBookingsError;
+    stage = "nurse-bookings";
+    const { error: nurseBookingsError } = await admin.from("bookings").delete().eq("nurse_id", userId);
+    if (nurseBookingsError) throw new Error(`nurse_bookings: ${nurseBookingsError.message}`);
 
-    // Remove nurse subscription requests and admin membership, if present.
+    stage = "subscription-requests";
     const { error: subscriptionError } = await admin
       .from("nurse_subscription_requests")
       .delete()
       .eq("nurse_id", userId);
-    if (subscriptionError) throw subscriptionError;
+    if (subscriptionError) throw new Error(`subscription_requests: ${subscriptionError.message}`);
 
-    const { error: adminError } = await admin
-      .from("admin_users")
-      .delete()
-      .eq("user_id", userId);
-    if (adminError) throw adminError;
+    stage = "admin-users";
+    const { error: adminError } = await admin.from("admin_users").delete().eq("user_id", userId);
+    if (adminError) throw new Error(`admin_users: ${adminError.message}`);
 
-    // Remove the user's public avatar files before deleting auth.users.
+    stage = "avatar-patient";
     const avatarBucket = admin.storage.from("avatars");
-    for (const role of ["patient", "nurse"]) {
-      const prefix = `${role}/${userId}`;
-      const { data: objects, error: listError } = await avatarBucket.list(prefix, {
-        limit: 1000,
-        offset: 0,
-      });
-      if (listError) throw listError;
-
-      if (objects && objects.length > 0) {
-        const paths = objects
-          .filter((object) => object.name)
-          .map((object) => `${prefix}/${object.name}`);
-        if (paths.length > 0) {
-          const { error: removeError } = await avatarBucket.remove(paths);
-          if (removeError) throw removeError;
-        }
+    const patientPrefix = `patient/${userId}`;
+    const { data: patientObjects, error: patientListError } = await avatarBucket.list(patientPrefix, {
+      limit: 1000,
+      offset: 0,
+    });
+    if (patientListError) throw new Error(`avatar_patient_list: ${patientListError.message}`);
+    if (patientObjects?.length) {
+      const paths = patientObjects.filter((o) => o.name).map((o) => `${patientPrefix}/${o.name}`);
+      if (paths.length) {
+        const { error } = await avatarBucket.remove(paths);
+        if (error) throw new Error(`avatar_patient_remove: ${error.message}`);
       }
     }
 
-    // Remove application profile rows.
-    const { error: patientError } = await admin
-      .from("patients")
-      .delete()
-      .eq("user_id", userId);
-    if (patientError) throw patientError;
+    stage = "avatar-nurse";
+    const nursePrefix = `nurse/${userId}`;
+    const { data: nurseObjects, error: nurseListError } = await avatarBucket.list(nursePrefix, {
+      limit: 1000,
+      offset: 0,
+    });
+    if (nurseListError) throw new Error(`avatar_nurse_list: ${nurseListError.message}`);
+    if (nurseObjects?.length) {
+      const paths = nurseObjects.filter((o) => o.name).map((o) => `${nursePrefix}/${o.name}`);
+      if (paths.length) {
+        const { error } = await avatarBucket.remove(paths);
+        if (error) throw new Error(`avatar_nurse_remove: ${error.message}`);
+      }
+    }
 
-    const { error: nurseError } = await admin
-      .from("nurses")
-      .delete()
-      .eq("user_id", userId);
-    if (nurseError) throw nurseError;
+    stage = "patient-profile";
+    const { error: patientError } = await admin.from("patients").delete().eq("user_id", userId);
+    if (patientError) throw new Error(`patient_profile: ${patientError.message}`);
 
-    // Finally remove the Auth account. The service-role key never leaves this server function.
+    stage = "nurse-profile";
+    const { error: nurseError } = await admin.from("nurses").delete().eq("user_id", userId);
+    if (nurseError) throw new Error(`nurse_profile: ${nurseError.message}`);
+
+    stage = "auth-user";
     const { error: deleteAuthError } = await admin.auth.admin.deleteUser(userId, false);
-    if (deleteAuthError) throw deleteAuthError;
+    if (deleteAuthError) throw new Error(`auth_user: ${deleteAuthError.message}`);
 
+    console.log("delete-account success");
     return json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("delete-account failed:", message);
-    return json({ error: message }, 500);
+    console.error(`delete-account failed at ${stage}: ${message}`);
+    return json({ error: `Delete failed at ${stage}: ${message}` }, 500);
   }
 });
