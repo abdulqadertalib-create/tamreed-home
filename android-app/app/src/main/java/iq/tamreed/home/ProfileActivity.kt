@@ -17,6 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -87,6 +94,9 @@ class ProfileActivity : AppCompatActivity() {
     private val white = Color.WHITE
     private val border = Color.rgb(218, 224, 229)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val deleteHttpClient by lazy { HttpClient(Android) }
+    private val deleteAccountFunctionUrl =
+        "https://pmjmfeymnahpockjjafn.supabase.co/functions/v1/delete-account"
 
     private var role = "patient"
     private var targetUserId = ""
@@ -119,6 +129,7 @@ class ProfileActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         scope.cancel()
+        deleteHttpClient.close()
         super.onDestroy()
     }
 
@@ -287,6 +298,17 @@ class ProfileActivity : AppCompatActivity() {
             }, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(12) })
         }
 
+        if (!readOnly && targetUserId == SupabaseManager.client.auth.currentUserOrNull()?.id) {
+            root.addView(Button(this).apply {
+                text = "🗑️ حذف الحساب نهائياً"
+                isAllCaps = false
+                textSize = 16f
+                setTextColor(Color.rgb(175, 45, 45))
+                background = bg(Color.rgb(255, 245, 245), 15, Color.rgb(225, 120, 120))
+                setOnClickListener { confirmAccountDeletion() }
+            }, LinearLayout.LayoutParams(-1, dp(58)).apply { topMargin = dp(12) })
+        }
+
         root.addView(Button(this).apply {
             text = "رجوع"
             isAllCaps = false
@@ -405,6 +427,85 @@ class ProfileActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 loading.dismiss()
                 showError("تعذر حفظ الملف", e.message ?: "حاول مرة أخرى.")
+            }
+        }
+    }
+
+    private fun confirmAccountDeletion() {
+        AlertDialog.Builder(this)
+            .setTitle("حذف الحساب نهائياً")
+            .setMessage(
+                "هل أنت متأكد؟ سيتم حذف حساب الدخول وبيانات الملف والطلبات والمحادثات ورمز الإشعارات والصورة المرتبطة بالحساب. لا يمكن التراجع عن هذا الإجراء."
+            )
+            .setNegativeButton("إلغاء", null)
+            .setPositiveButton("نعم، احذف الحساب") { _, _ ->
+                deleteAccount()
+            }
+            .show()
+    }
+
+    private fun deleteAccount() {
+        val user = SupabaseManager.client.auth.currentUserOrNull()
+        if (user == null || user.id != targetUserId) {
+            showError("غير مسموح", "يجب أن تكون مسجلاً للدخول بحسابك الحالي لحذف الحساب.")
+            return
+        }
+
+        scope.launch {
+            val loading = ProgressDialog.show(
+                this@ProfileActivity,
+                null,
+                "جاري حذف الحساب...",
+                true,
+                false
+            )
+            try {
+                val accessToken = SupabaseManager.client.auth.currentSessionOrNull()?.accessToken
+                    ?: throw IllegalStateException("انتهت جلسة الدخول. سجّل الدخول مرة أخرى ثم حاول.")
+
+                val response = deleteHttpClient.post(deleteAccountFunctionUrl) {
+                    contentType(ContentType.Application.Json)
+                    header("Authorization", "Bearer $accessToken")
+                    header("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                    setBody("{}")
+                }
+
+                if (response.status.value !in 200..299) {
+                    throw IllegalStateException("تعذر حذف الحساب (HTTP ${response.status.value}).")
+                }
+
+                try {
+                    SupabaseManager.client.auth.signOut()
+                } catch (_: Exception) {
+                }
+
+                getSharedPreferences("tamreed_patient_session", MODE_PRIVATE)
+                    .edit()
+                    .clear()
+                    .apply()
+                getSharedPreferences("tamreed_session", MODE_PRIVATE)
+                    .edit()
+                    .clear()
+                    .apply()
+
+                loading.dismiss()
+                Toast.makeText(
+                    this@ProfileActivity,
+                    "تم حذف الحساب وبياناته بنجاح",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                val intent = Intent(this@ProfileActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+                finish()
+            } catch (e: Exception) {
+                loading.dismiss()
+                showError(
+                    "تعذر حذف الحساب",
+                    e.message ?: "تحقق من نشر دالة delete-account في Supabase ثم حاول مرة أخرى."
+                )
             }
         }
     }
