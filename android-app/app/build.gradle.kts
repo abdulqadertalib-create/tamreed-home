@@ -18,6 +18,12 @@ android {
 
         versionCode = 1
         versionName = "1.0.0"
+
+        buildConfigField(
+            "String",
+            "SUPABASE_PUBLISHABLE_KEY",
+            "\"sb_publishable_HtMExFgxiFq_qhN2I9V76w_0YFG6L0j\""
+        )
     }
 
     buildTypes {
@@ -28,6 +34,10 @@ android {
         debug {
             isMinifyEnabled = false
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
