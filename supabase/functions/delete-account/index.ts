@@ -93,10 +93,15 @@ Deno.serve(async (req) => {
       .eq("user_id", userId);
     if (nurseLookupError) throw new Error(`nurse_lookup: ${nurseLookupError.message}`);
 
-    const nurseIds = [
-      userId,
-      ...(nurseRows ?? []).map((row) => row.id).filter((id) => typeof id === "string" && id.length > 0),
-    ];
+    // The internal nurses.id can be UUID, text, or another scalar type depending
+    // on the deployed schema. Convert it to text so we never accidentally drop it.
+    const nurseIds = Array.from(
+      new Set(
+        [userId, ...(nurseRows ?? []).map((row) => row.id)]
+          .filter((id) => id !== null && id !== undefined && String(id).length > 0)
+          .map((id) => String(id)),
+      ),
+    );
 
     stage = "nurse-bookings";
     const { error: nurseBookingsError } = await admin
@@ -104,6 +109,21 @@ Deno.serve(async (req) => {
       .delete()
       .in("nurse_id", nurseIds);
     if (nurseBookingsError) throw new Error(`nurse_bookings: ${nurseBookingsError.message}`);
+
+    // Verify that no booking still references the nurse before deleting the nurse row.
+    stage = "verify-nurse-bookings";
+    const { data: remainingNurseBookings, error: remainingBookingsError } = await admin
+      .from("bookings")
+      .select("nurse_id")
+      .in("nurse_id", nurseIds)
+      .limit(10);
+    if (remainingBookingsError) {
+      throw new Error(`verify_nurse_bookings: ${remainingBookingsError.message}`);
+    }
+    if (remainingNurseBookings?.length) {
+      const remainingIds = remainingNurseBookings.map((row) => String(row.nurse_id)).join(", ");
+      throw new Error(`nurse_bookings_remaining: ${remainingIds}`);
+    }
 
     stage = "subscription-requests";
     const { error: subscriptionError } = await admin
