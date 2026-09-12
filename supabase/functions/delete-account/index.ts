@@ -83,8 +83,26 @@ Deno.serve(async (req) => {
     const { error: patientBookingsError } = await admin.from("bookings").delete().eq("patient_id", userId);
     if (patientBookingsError) throw new Error(`patient_bookings: ${patientBookingsError.message}`);
 
+    // In the current schema bookings.nurse_id points to nurses.id,
+    // while nurses.user_id points to the Auth user. Find the internal nurse id
+    // first, then remove bookings using both ids for compatibility with older rows.
+    stage = "find-nurse-profile";
+    const { data: nurseRows, error: nurseLookupError } = await admin
+      .from("nurses")
+      .select("id")
+      .eq("user_id", userId);
+    if (nurseLookupError) throw new Error(`nurse_lookup: ${nurseLookupError.message}`);
+
+    const nurseIds = [
+      userId,
+      ...(nurseRows ?? []).map((row) => row.id).filter((id) => typeof id === "string" && id.length > 0),
+    ];
+
     stage = "nurse-bookings";
-    const { error: nurseBookingsError } = await admin.from("bookings").delete().eq("nurse_id", userId);
+    const { error: nurseBookingsError } = await admin
+      .from("bookings")
+      .delete()
+      .in("nurse_id", nurseIds);
     if (nurseBookingsError) throw new Error(`nurse_bookings: ${nurseBookingsError.message}`);
 
     stage = "subscription-requests";
