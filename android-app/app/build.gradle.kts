@@ -11,14 +11,21 @@ android {
     compileSdk = 36
 
     signingConfigs {
-        create("release") {
-            val keystorePath = System.getenv("TAMREED_KEYSTORE_PATH")
+        val keystorePath = System.getenv("TAMREED_KEYSTORE_PATH")
+        val keystorePassword = System.getenv("TAMREED_KEYSTORE_PASSWORD")
+        val keyAliasEnv = System.getenv("TAMREED_KEY_ALIAS")
+        val keyPassword = System.getenv("TAMREED_KEY_PASSWORD")
 
-            if (keystorePath != null) {
+        if (!keystorePath.isNullOrBlank() &&
+            !keystorePassword.isNullOrBlank() &&
+            !keyAliasEnv.isNullOrBlank() &&
+            !keyPassword.isNullOrBlank()
+        ) {
+            create("release") {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("TAMREED_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("TAMREED_KEY_ALIAS")
-                keyPassword = System.getenv("TAMREED_KEY_PASSWORD")
+                storePassword = keystorePassword
+                keyAlias = keyAliasEnv
+                this.keyPassword = keyPassword
                 storeType = "PKCS12"
             }
         }
@@ -43,7 +50,12 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+
+            // التوقيع يُفعّل فقط عند توفر متغيرات التوقيع في GitHub Actions.
+            signingConfigs.findByName("release")?.let {
+                signingConfig = it
+            }
+
             isShrinkResources = false
 
             proguardFiles(
