@@ -26,9 +26,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Decode release keystore
+        env:
+          TAMREED_KEYSTORE_BASE64: ${{ secrets.TAMREED_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$TAMREED_KEYSTORE_BASE64"
+          echo "$TAMREED_KEYSTORE_BASE64" | base64 --decode > android-app/tamreed-home-release.p12
+          test -s android-app/tamreed-home-release.p12
+
       - name: Validate and build
         working-directory: android-app
+        env:
+          TAMREED_KEYSTORE_PATH: ${{ github.workspace }}/android-app/tamreed-home-release.p12
+          TAMREED_KEYSTORE_PASSWORD: ${{ secrets.TAMREED_KEYSTORE_PASSWORD }}
+          TAMREED_KEY_ALIAS: ${{ secrets.TAMREED_KEY_ALIAS }}
+          TAMREED_KEY_PASSWORD: ${{ secrets.TAMREED_KEY_PASSWORD }}
         run: |
+          test -n "$TAMREED_KEYSTORE_PASSWORD"
+          test -n "$TAMREED_KEY_ALIAS"
+          test -n "$TAMREED_KEY_PASSWORD"
           gradle clean lintDebug assembleDebug bundleRelease
 
       - name: Upload APK and AAB
@@ -38,3 +54,7 @@ jobs:
           path: |
             android-app/app/build/outputs/apk/debug/app-debug.apk
             android-app/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Remove release keystore
+        if: always()
+        run: rm -f android-app/tamreed-home-release.p12
