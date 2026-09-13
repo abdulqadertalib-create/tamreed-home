@@ -31,7 +31,7 @@ jobs:
           TAMREED_KEYSTORE_BASE64: ${{ secrets.TAMREED_KEYSTORE_BASE64 }}
         run: |
           test -n "$TAMREED_KEYSTORE_BASE64"
-          printf '%s' "$TAMREED_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > android-app/tamreed-home-release.p12
+          printf '%s' "$TAMREED_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --ignore-garbage --decode > android-app/tamreed-home-release.p12
           test -s android-app/tamreed-home-release.p12
 
       - name: Validate release keystore
