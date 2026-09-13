@@ -17,8 +17,8 @@
         android:supportsRtl="true"
         android:allowBackup="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher">
+        android:icon="@drawable/app_logo"
+        android:roundIcon="@drawable/app_logo">
 
         <!-- خدمة Firebase Cloud Messaging -->
         <service
@@ -31,58 +31,46 @@
 
         </service>
 
-        <!-- شاشة دخول الممرض -->
         <activity
             android:name=".NurseLoginActivity"
             android:exported="false" />
 
-        <!-- لوحة الإدارة واعتماد الممرضين -->
         <activity
             android:name=".AdminActivity"
             android:exported="false" />
 
-        <!-- لوحة الممرض -->
         <activity
             android:name=".NurseActivity"
             android:exported="false" />
 
-        <!-- طلبات المريض -->
         <activity
             android:name=".MyBookingsActivity"
             android:exported="false" />
 
-        <!-- طلبات الممرض -->
         <activity
             android:name=".NurseRequestsActivity"
             android:exported="false" />
 
-        <!-- اشتراكات الممرضين -->
         <activity
             android:name=".NurseSubscriptionActivity"
             android:exported="false" />
 
-        <!-- المحادثة بين المريض والممرض -->
         <activity
             android:name=".ChatActivity"
             android:exported="false" />
 
-        <!-- الملف الشخصي للمريض والممرض -->
         <activity
             android:name=".ProfileActivity"
             android:exported="false" />
 
-        <!-- التطبيق الرئيسي -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
 
             <intent-filter>
-
                 <action android:name="android.intent.action.MAIN" />
 
-                <category
-                    android:name="android.intent.category.LAUNCHER" />
-
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
         </activity>
