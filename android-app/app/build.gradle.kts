@@ -10,6 +10,20 @@ android {
 
     compileSdk = 36
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("TAMREED_KEYSTORE_PATH")
+
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("TAMREED_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("TAMREED_KEY_ALIAS")
+                keyPassword = System.getenv("TAMREED_KEY_PASSWORD")
+                storeType = "PKCS12"
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "iq.tamreed.home"
 
@@ -29,6 +43,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             isShrinkResources = false
 
             proguardFiles(
