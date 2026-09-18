@@ -2306,12 +2306,20 @@ class MainActivity : AppCompatActivity() {
 
         addSpace(root, 3)
         root.addView(
-            text("إتمام طلب التمريض", 22f, NAVY, true),
-            LinearLayout.LayoutParams(-1, dp(32))
+            text("إتمام طلب التمريض", 22f, NAVY, true).apply {
+                gravity = Gravity.CENTER
+                setPadding(dp(8), dp(4), dp(8), dp(4))
+            },
+            LinearLayout.LayoutParams(-1, dp(48)).apply {
+                bottomMargin = dp(2)
+            }
         )
         root.addView(
-            text("أدخل بيانات المريض وحدد موقع الوصول بدقة", 12f, GRAY),
-            LinearLayout.LayoutParams(-1, dp(22))
+            text("أدخل بيانات المريض وحدد موقع الوصول بدقة", 12f, GRAY).apply {
+                gravity = Gravity.CENTER
+                setPadding(dp(8), dp(3), dp(8), dp(3))
+            },
+            LinearLayout.LayoutParams(-1, dp(32))
         )
         addSpace(root, 4)
 
