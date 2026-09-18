@@ -185,6 +185,7 @@ class MainActivity : AppCompatActivity() {
     private val LOCATION_REQUEST_CODE = 2001
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        LanguageManager.applySaved(this)
         super.onCreate(savedInstanceState)
         NotificationHelper.createChannel(this)
         requestNotificationPermissionIfNeeded()
@@ -383,7 +384,7 @@ class MainActivity : AppCompatActivity() {
         bold: Boolean = false
     ): TextView {
         return TextView(this).apply {
-            text = value
+            text = LanguageManager.tr(this, value)
             textSize = size
             setTextColor(color)
             gravity = Gravity.CENTER
@@ -406,7 +407,7 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ): Button {
         return Button(this).apply {
-            text = value
+            text = LanguageManager.tr(this, value)
             textSize = 17f
             isAllCaps = false
             setTextColor(WHITE)
@@ -429,7 +430,7 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ): Button {
         return Button(this).apply {
-            text = value
+            text = LanguageManager.tr(this, value)
             textSize = 16f
             isAllCaps = false
             setTextColor(NAVY)
@@ -859,7 +860,7 @@ class MainActivity : AppCompatActivity() {
 
         // استبدال "الأنبار - الفلوجة" بالعبارة التعريفية المطلوبة.
         val locationChip = TextView(this).apply {
-            text = "تمريض منزلي في محافظة الأنبار"
+            text = if (LanguageManager.isEnglish(this)) "Home nursing in Anbar Governorate" else "تمريض منزلي في محافظة الأنبار"
             textSize = 11.5f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
@@ -880,13 +881,25 @@ class MainActivity : AppCompatActivity() {
         )
 
         val language = TextView(this).apply {
-            text = "English"
+            text = LanguageManager.label(this)
             textSize = 11.5f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             background = bordered(WHITE, BORDER, 16)
             includeFontPadding = true
+        }
+
+        language.setOnClickListener {
+            val labels = arrayOf("العربية", "English")
+            val checked = if (LanguageManager.isEnglish(this)) 1 else 0
+            AlertDialog.Builder(this)
+                .setTitle(if (LanguageManager.isEnglish(this)) "Language" else "اللغة")
+                .setSingleChoiceItems(labels, checked) { dialog, which ->
+                    LanguageManager.set(this, if (which == 1) "en" else "ar")
+                    dialog.dismiss()
+                }
+                .show()
         }
 
         header.addView(language, LinearLayout.LayoutParams(dp(82), dp(46)))
@@ -1878,7 +1891,7 @@ class MainActivity : AppCompatActivity() {
             background = bordered(WHITE, BORDER, 16)
             contentDescription = "الإشعارات"
             setOnClickListener {
-                showNotificationCenter()
+                Toast.makeText(this@MainActivity, "لا توجد إشعارات جديدة", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -3491,21 +3504,10 @@ class MainActivity : AppCompatActivity() {
                         val newStatus = booking.status.uppercase()
                         val oldStatus = knownBookingStatuses[booking.id]
                         if (oldStatus != null && oldStatus != newStatus) {
-                            val notificationTitle = "تحديث طلب التمريض"
-                            val notificationMessage =
-                                "طلبك رقم ${booking.id.take(8)}…: ${statusText(newStatus)}"
-
-                            NotificationStore.add(
-                                this@MainActivity,
-                                notificationTitle,
-                                notificationMessage,
-                                booking.id
-                            )
-
                             NotificationHelper.show(
                                 this@MainActivity,
-                                notificationTitle,
-                                notificationMessage,
+                                "تحديث طلب التمريض",
+                                "طلبك رقم ${booking.id.take(8)}…: ${statusText(newStatus)}",
                                 (booking.id + newStatus).hashCode(),
                                 MainActivity::class.java
                             )
@@ -3544,104 +3546,6 @@ class MainActivity : AppCompatActivity() {
                     "تعذر تحديث الطلبات\n\n${e.message ?: "خطأ غير معروف"}"
             }
         }
-    }
-
-    private fun showNotificationCenter() {
-        val notifications = NotificationStore.getAll(this)
-
-        val root = baseLayout().apply {
-            setBackgroundColor(LIGHT_GRAY)
-        }
-
-        root.addView(
-            topBar("الإشعارات", ::showHome),
-            LinearLayout.LayoutParams(-1, dp(55))
-        )
-        addSpace(root, 8)
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
-        header.addView(
-            text("آخر التنبيهات", 20f, NAVY, true),
-            LinearLayout.LayoutParams(0, dp(46), 1f)
-        )
-
-        if (notifications.isNotEmpty()) {
-            val clear = outlineButton("مسح الكل") {
-                NotificationStore.clear(this)
-                showNotificationCenter()
-            }
-            header.addView(clear, LinearLayout.LayoutParams(dp(100), dp(42)))
-        }
-
-        root.addView(header)
-        addSpace(root, 5)
-
-        if (notifications.isEmpty()) {
-            root.addView(
-                emptyState(
-                    "🔔",
-                    "لا توجد إشعارات",
-                    "ستظهر هنا تحديثات طلبات التمريض والتنبيهات المهمة."
-                )
-            )
-        } else {
-            notifications.forEach { item ->
-                val card = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutDirection = View.LAYOUT_DIRECTION_RTL
-                    background = bordered(WHITE, BORDER, 18)
-                    setPadding(dp(14), dp(12), dp(14), dp(12))
-                    elevation = dp(1).toFloat()
-                }
-
-                val titleRow = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    layoutDirection = View.LAYOUT_DIRECTION_RTL
-                }
-
-                titleRow.addView(
-                    text("🔔", 23f, NAVY, true),
-                    LinearLayout.LayoutParams(dp(38), dp(38))
-                )
-                titleRow.addView(
-                    text(item.title, 17f, NAVY, true),
-                    LinearLayout.LayoutParams(0, dp(42), 1f)
-                )
-                card.addView(titleRow)
-
-                card.addView(
-                    text(item.message, 14f, TEXT)
-                )
-
-                val dateText = java.text.SimpleDateFormat(
-                    "yyyy/MM/dd - HH:mm",
-                    java.util.Locale.getDefault()
-                ).format(java.util.Date(item.time))
-
-                card.addView(
-                    text(dateText, 11f, GRAY)
-                )
-
-                root.addView(
-                    card,
-                    LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                        bottomMargin = dp(8)
-                    }
-                )
-            }
-        }
-
-        setContentView(ScrollView(this).apply {
-            isFillViewport = true
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            addView(root)
-        })
     }
 
     private fun addBookingCard(
