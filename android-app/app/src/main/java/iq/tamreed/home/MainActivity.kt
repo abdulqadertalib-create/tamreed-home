@@ -389,7 +389,9 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             includeFontPadding = true
-            setFallbackLineSpacing(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setFallbackLineSpacing(true)
+            }
             setElegantTextHeight(true)
             setLineSpacing(0f, 1.05f)
             if (bold) {
@@ -411,7 +413,9 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             includeFontPadding = true
-            setFallbackLineSpacing(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setFallbackLineSpacing(true)
+            }
             setElegantTextHeight(true)
             setLineSpacing(0f, 1.05f)
             background = rounded(NAVY, 15)
@@ -431,7 +435,9 @@ class MainActivity : AppCompatActivity() {
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             includeFontPadding = true
-            setFallbackLineSpacing(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setFallbackLineSpacing(true)
+            }
             setElegantTextHeight(true)
             setLineSpacing(0f, 1.05f)
             background = bordered(WHITE, NAVY, 14)
