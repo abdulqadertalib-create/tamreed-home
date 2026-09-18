@@ -386,6 +386,9 @@ class MainActivity : AppCompatActivity() {
             text = value
             textSize = size
             setTextColor(color)
+            includeFontPadding = true
+            maxLines = Int.MAX_VALUE
+            ellipsize = null
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             if (bold) {
@@ -403,6 +406,9 @@ class MainActivity : AppCompatActivity() {
             text = value
             textSize = 17f
             isAllCaps = false
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             setTextColor(WHITE)
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -420,6 +426,9 @@ class MainActivity : AppCompatActivity() {
             text = value
             textSize = 16f
             isAllCaps = false
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             setTextColor(NAVY)
             gravity = Gravity.CENTER
             background = bordered(WHITE, NAVY, 14)
@@ -535,15 +544,33 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
-        bar.addView(
-            realIcon(android.R.drawable.ic_popup_reminder, 24),
-            LinearLayout.LayoutParams(dp(50), dp(50))
-        )
+        val notifications = FrameLayout(this).apply {
+            isClickable = true
+            isFocusable = true
+            contentDescription = "الإشعارات"
+            background = bordered(WHITE, BORDER, 14)
+            addView(realIcon(android.R.drawable.ic_popup_reminder, 24),
+                FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER))
+            setOnClickListener {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("الإشعارات")
+                    .setMessage("ستظهر هنا إشعارات الطلبات وتحديثات حالة التمريض عند وصولها.")
+                    .setPositiveButton("حسنًا", null)
+                    .show()
+            }
+        }
+        bar.addView(notifications, LinearLayout.LayoutParams(dp(50), dp(50)).apply { marginEnd = dp(4) })
 
-        bar.addView(
-            realIcon(android.R.drawable.ic_menu_view, 24),
-            LinearLayout.LayoutParams(dp(50), dp(50))
-        )
+        val viewButton = FrameLayout(this).apply {
+            isClickable = true
+            isFocusable = true
+            contentDescription = "الرئيسية"
+            background = bordered(WHITE, BORDER, 14)
+            addView(realIcon(android.R.drawable.ic_menu_view, 24),
+                FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER))
+            setOnClickListener { showHome() }
+        }
+        bar.addView(viewButton, LinearLayout.LayoutParams(dp(50), dp(50)))
 
         return bar
     }
@@ -843,6 +870,9 @@ class MainActivity : AppCompatActivity() {
             text = "تمريض منزلي في محافظة الأنبار"
             textSize = 11.5f
             setTextColor(NAVY)
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             background = rounded(LIGHT_BLUE, 18)
@@ -864,12 +894,27 @@ class MainActivity : AppCompatActivity() {
             text = "English"
             textSize = 11.5f
             setTextColor(NAVY)
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             background = bordered(WHITE, BORDER, 16)
             includeFontPadding = true
         }
 
+        language.isClickable = true
+        language.isFocusable = true
+        language.contentDescription = "تغيير اللغة"
+        language.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("اللغة")
+                .setItems(arrayOf("العربية", "English")) { _, which ->
+                    if (which == 0) language.text = "العربية" else language.text = "English"
+                    Toast.makeText(this, "تغيير اللغة الكامل سيُطبق على جميع الشاشات في الإصدار القادم.", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        }
         header.addView(language, LinearLayout.LayoutParams(dp(82), dp(46)))
         root.addView(header, LinearLayout.LayoutParams(-1, dp(48)))
 
@@ -1060,6 +1105,9 @@ class MainActivity : AppCompatActivity() {
             text = "+964  🇮🇶"
             textSize = 15f
             setTextColor(NAVY)
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             layoutDirection = View.LAYOUT_DIRECTION_LTR
@@ -1390,6 +1438,9 @@ class MainActivity : AppCompatActivity() {
             text = "‹"
             textSize = 34f
             setTextColor(NAVY)
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             gravity = Gravity.CENTER
             includeFontPadding = true
             setOnClickListener { showPhoneLogin() }
@@ -1441,6 +1492,9 @@ class MainActivity : AppCompatActivity() {
             text = "✓"
             textSize = 30f
             setTextColor(WHITE)
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             gravity = Gravity.CENTER
             includeFontPadding = true
             background = rounded(NAVY, 45)
@@ -1845,6 +1899,9 @@ class MainActivity : AppCompatActivity() {
             text = "⌖  الفلوجة - الأنبار  ›"
             textSize = 14f
             setTextColor(NAVY)
+            includeFontPadding = true
+            minHeight = 0
+            minWidth = 0
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
             background = rounded(LIGHT_BLUE, 18)
