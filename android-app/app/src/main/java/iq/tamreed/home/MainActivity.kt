@@ -2017,27 +2017,29 @@ class MainActivity : AppCompatActivity() {
                     gravity = Gravity.CENTER
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
-                }, LinearLayout.LayoutParams(-1, dp(27)))
+                    setPadding(dp(3), dp(2), dp(3), dp(2))
+                }, LinearLayout.LayoutParams(-1, dp(34)))
                 addView(text(subtitle, 10f, GRAY).apply {
                     includeFontPadding = true
                     gravity = Gravity.CENTER
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
-                }, LinearLayout.LayoutParams(-1, dp(21)))
+                    setPadding(dp(3), dp(1), dp(3), dp(1))
+                }, LinearLayout.LayoutParams(-1, dp(26)))
             }
         }
 
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_agenda, "طلباتي", "متابعة الطلبات") { showBookings() },
-            LinearLayout.LayoutParams(0, dp(118), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(128), 1f).apply { marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_myplaces, "الخدمات", "اختر خدمة") { showServices() },
-            LinearLayout.LayoutParams(0, dp(118), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(128), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_send, "المحادثات", "تواصل معنا") { showChats() },
-            LinearLayout.LayoutParams(0, dp(118), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(128), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(quickRow)
@@ -2059,15 +2061,15 @@ class MainActivity : AppCompatActivity() {
 
         serviceRow.addView(
             serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(146), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(166), 1f).apply { marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(146), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(166), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(146), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(166), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(serviceRow)
@@ -2196,8 +2198,10 @@ class MainActivity : AppCompatActivity() {
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     includeFontPadding = true
+                    gravity = Gravity.CENTER
+                    setPadding(dp(3), dp(1), dp(3), dp(1))
                 },
-                LinearLayout.LayoutParams(-1, dp(25))
+                LinearLayout.LayoutParams(-1, dp(34))
             )
 
             addView(
@@ -2209,8 +2213,10 @@ class MainActivity : AppCompatActivity() {
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     includeFontPadding = true
+                    gravity = Gravity.CENTER
+                    setPadding(dp(3), dp(1), dp(3), dp(1))
                 },
-                LinearLayout.LayoutParams(-1, dp(22))
+                LinearLayout.LayoutParams(-1, dp(28))
             )
         }
     }
