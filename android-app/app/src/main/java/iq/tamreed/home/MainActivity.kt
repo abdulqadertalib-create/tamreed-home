@@ -384,7 +384,7 @@ class MainActivity : AppCompatActivity() {
         bold: Boolean = false
     ): TextView {
         return TextView(this).apply {
-            text = LanguageManager.tr(this, value)
+            text = LanguageManager.tr(this@MainActivity, value)
             textSize = size
             setTextColor(color)
             gravity = Gravity.CENTER
@@ -407,7 +407,7 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ): Button {
         return Button(this).apply {
-            text = LanguageManager.tr(this, value)
+            text = LanguageManager.tr(this@MainActivity, value)
             textSize = 17f
             isAllCaps = false
             setTextColor(WHITE)
@@ -430,7 +430,7 @@ class MainActivity : AppCompatActivity() {
         action: () -> Unit
     ): Button {
         return Button(this).apply {
-            text = LanguageManager.tr(this, value)
+            text = LanguageManager.tr(this@MainActivity, value)
             textSize = 16f
             isAllCaps = false
             setTextColor(NAVY)
@@ -860,7 +860,7 @@ class MainActivity : AppCompatActivity() {
 
         // استبدال "الأنبار - الفلوجة" بالعبارة التعريفية المطلوبة.
         val locationChip = TextView(this).apply {
-            text = if (LanguageManager.isEnglish(this)) "Home nursing in Anbar Governorate" else "تمريض منزلي في محافظة الأنبار"
+            text = if (LanguageManager.isEnglish(this@MainActivity)) "Home nursing in Anbar Governorate" else "تمريض منزلي في محافظة الأنبار"
             textSize = 11.5f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
@@ -881,7 +881,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         val language = TextView(this).apply {
-            text = LanguageManager.label(this)
+            text = LanguageManager.label(this@MainActivity)
             textSize = 11.5f
             setTextColor(NAVY)
             gravity = Gravity.CENTER
