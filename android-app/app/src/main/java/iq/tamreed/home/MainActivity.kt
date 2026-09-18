@@ -1991,12 +1991,16 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(0, dp(32), 1f)
         )
         quickTitle.addView(
-            text("عرض الكل", 11f, BLUE, true).apply {
+            text("عرض الكل", 13f, BLUE, true).apply {
+                gravity = Gravity.CENTER
+                includeFontPadding = true
+                minimumHeight = dp(48)
+                setPadding(dp(6), dp(6), dp(6), dp(6))
                 setOnClickListener { showServices() }
             },
-            LinearLayout.LayoutParams(dp(70), dp(32))
+            LinearLayout.LayoutParams(dp(82), dp(48))
         )
-        root.addView(quickTitle)
+        root.addView(quickTitle, LinearLayout.LayoutParams(-1, dp(48)))
 
         addSpace(root, 5)
 
@@ -2011,8 +2015,16 @@ class MainActivity : AppCompatActivity() {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
-                background = bordered(WHITE, BORDER, 20)
+                background = android.graphics.drawable.RippleDrawable(
+                    android.content.res.ColorStateList.valueOf(0x220B4F71),
+                    bordered(WHITE, BORDER, 20),
+                    null
+                )
                 elevation = dp(1).toFloat()
+                minimumHeight = dp(48)
+                isClickable = true
+                isFocusable = true
+                contentDescription = "$title: $subtitle"
                 setPadding(dp(6), dp(8), dp(6), dp(8))
                 setOnClickListener { action() }
 
@@ -2066,15 +2078,15 @@ class MainActivity : AppCompatActivity() {
 
         serviceRow.addView(
             serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(166), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(174), 1f).apply { marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(166), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(174), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(166), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(174), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(serviceRow)
@@ -2166,10 +2178,21 @@ class MainActivity : AppCompatActivity() {
                 View.LAYOUT_DIRECTION_RTL
 
             background =
-                rounded(WHITE, 18)
+                android.graphics.drawable.RippleDrawable(
+                    android.content.res.ColorStateList.valueOf(0x220B4F71),
+                    rounded(WHITE, 18),
+                    null
+                )
 
             elevation =
                 dp(2).toFloat()
+
+            minimumHeight =
+                dp(48)
+
+            isClickable = true
+            isFocusable = true
+            contentDescription = "$title: $description"
 
             setPadding(
                 dp(8),
@@ -2204,9 +2227,9 @@ class MainActivity : AppCompatActivity() {
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     includeFontPadding = true
                     gravity = Gravity.CENTER
-                    setPadding(dp(3), dp(1), dp(3), dp(1))
+                    setPadding(dp(3), dp(4), dp(3), dp(4))
                 },
-                LinearLayout.LayoutParams(-1, dp(34))
+                LinearLayout.LayoutParams(-1, dp(40))
             )
 
             addView(
@@ -2219,9 +2242,9 @@ class MainActivity : AppCompatActivity() {
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     includeFontPadding = true
                     gravity = Gravity.CENTER
-                    setPadding(dp(3), dp(1), dp(3), dp(1))
+                    setPadding(dp(3), dp(3), dp(3), dp(3))
                 },
-                LinearLayout.LayoutParams(-1, dp(28))
+                LinearLayout.LayoutParams(-1, dp(32))
             )
         }
     }
