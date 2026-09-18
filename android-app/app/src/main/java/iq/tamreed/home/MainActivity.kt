@@ -1969,8 +1969,13 @@ class MainActivity : AppCompatActivity() {
         root.addView(
             button("طلب ممرض الآن") {
                 checkLoginBeforeRequest()
+            }.apply {
+                textSize = 18f
+                background = rounded(NAVY, 18)
+                setPadding(dp(16), dp(10), dp(16), dp(10))
+                minimumHeight = dp(56)
             },
-            LinearLayout.LayoutParams(-1, dp(52))
+            LinearLayout.LayoutParams(-1, dp(56))
         )
 
         addSpace(root, 12)
