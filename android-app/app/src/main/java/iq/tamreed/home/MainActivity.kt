@@ -931,7 +931,7 @@ class MainActivity : AppCompatActivity() {
 
         heroVisual.addView(
             nursingLogo(),
-            LinearLayout.LayoutParams(dp(70), dp(70))
+            LinearLayout.LayoutParams(dp(62), dp(62))
         )
 
         hero.addView(
@@ -2014,24 +2014,30 @@ class MainActivity : AppCompatActivity() {
                 addView(realIcon(iconRes, 28), LinearLayout.LayoutParams(dp(48), dp(42)))
                 addView(text(title, 14f, NAVY, true).apply {
                     includeFontPadding = true
-                }, LinearLayout.LayoutParams(-1, dp(28)))
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }, LinearLayout.LayoutParams(-1, dp(27)))
                 addView(text(subtitle, 10f, GRAY).apply {
                     includeFontPadding = true
-                }, LinearLayout.LayoutParams(-1, dp(22)))
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }, LinearLayout.LayoutParams(-1, dp(21)))
             }
         }
 
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_agenda, "طلباتي", "متابعة الطلبات") { showBookings() },
-            LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(102), 1f).apply { marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_myplaces, "الخدمات", "اختر خدمة") { showServices() },
-            LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(102), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_send, "المحادثات", "تواصل معنا") { showChats() },
-            LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(102), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(quickRow)
@@ -2053,15 +2059,15 @@ class MainActivity : AppCompatActivity() {
 
         serviceRow.addView(
             serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(110), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(110), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(110), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(serviceRow)
@@ -2183,18 +2189,28 @@ class MainActivity : AppCompatActivity() {
             addView(
                 text(
                     title,
-                    17f,
+                    14f,
                     NAVY,
                     true
-                )
+                ).apply {
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = true
+                },
+                LinearLayout.LayoutParams(-1, dp(25))
             )
 
             addView(
                 text(
                     description,
-                    12f,
+                    10f,
                     GRAY
-                )
+                ).apply {
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = true
+                },
+                LinearLayout.LayoutParams(-1, dp(22))
             )
         }
     }
