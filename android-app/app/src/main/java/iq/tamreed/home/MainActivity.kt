@@ -1934,34 +1934,34 @@ class MainActivity : AppCompatActivity() {
         heroInfo.addView(
             text("رعاية أقرب إليك", 14f, GREEN, true).apply {
                 gravity = Gravity.RIGHT
-                includeFontPadding = false
+                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(22))
+            LinearLayout.LayoutParams(-1, -2)
         )
         heroInfo.addView(
             text("التمريض المنزلي", 25f, NAVY, true).apply {
                 gravity = Gravity.RIGHT
-                includeFontPadding = false
+                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(32))
+            LinearLayout.LayoutParams(-1, -2)
         )
         heroInfo.addView(
             text("صحة أفضل .. حياة أفضل", 13f, NAVY).apply {
                 gravity = Gravity.RIGHT
-                includeFontPadding = false
+                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(22))
+            LinearLayout.LayoutParams(-1, -2)
         )
         heroInfo.addView(
             text("خدمة تمريض منزلية موثوقة في الأنبار", 11f, GRAY).apply {
                 gravity = Gravity.RIGHT
-                includeFontPadding = false
+                includeFontPadding = true
             },
-            LinearLayout.LayoutParams(-1, dp(32))
+            LinearLayout.LayoutParams(-1, -2)
         )
 
-        hero.addView(heroInfo, LinearLayout.LayoutParams(0, dp(112), 1f))
-        root.addView(hero, LinearLayout.LayoutParams(-1, dp(126)))
+        hero.addView(heroInfo, LinearLayout.LayoutParams(0, dp(124), 1f))
+        root.addView(hero, LinearLayout.LayoutParams(-1, dp(138)))
 
         addSpace(root, 12)
 
@@ -2029,15 +2029,15 @@ class MainActivity : AppCompatActivity() {
 
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_agenda, "طلباتي", "متابعة الطلبات") { showBookings() },
-            LinearLayout.LayoutParams(0, dp(102), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(118), 1f).apply { marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_myplaces, "الخدمات", "اختر خدمة") { showServices() },
-            LinearLayout.LayoutParams(0, dp(102), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(118), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         quickRow.addView(
             homeAction(android.R.drawable.ic_menu_send, "المحادثات", "تواصل معنا") { showChats() },
-            LinearLayout.LayoutParams(0, dp(102), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(118), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(quickRow)
@@ -2059,15 +2059,15 @@ class MainActivity : AppCompatActivity() {
 
         serviceRow.addView(
             serviceCard(serviceIconRes("إعطاء الحقن"), "إعطاء الحقن", "خدمة منزلية") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(146), 1f).apply { marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("تغيير الضماد"), "تغيير الضماد", "العناية بالجروح") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
+            LinearLayout.LayoutParams(0, dp(146), 1f).apply { marginStart = dp(4); marginEnd = dp(4) }
         )
         serviceRow.addView(
             serviceCard(serviceIconRes("قياس السكر"), "قياس السكر", "فحص منزلي") { checkLoginBeforeRequest() },
-            LinearLayout.LayoutParams(0, dp(126), 1f).apply { marginStart = dp(4) }
+            LinearLayout.LayoutParams(0, dp(146), 1f).apply { marginStart = dp(4) }
         )
 
         root.addView(serviceRow)
