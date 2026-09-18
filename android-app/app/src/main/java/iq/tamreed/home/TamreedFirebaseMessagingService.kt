@@ -59,6 +59,13 @@ class TamreedFirebaseMessagingService : FirebaseMessagingService() {
 
         val bookingId = data["booking_id"]
 
+        NotificationStore.add(
+            applicationContext,
+            title,
+            body,
+            bookingId
+        )
+
         showNotification(
             title = title,
             body = body,
