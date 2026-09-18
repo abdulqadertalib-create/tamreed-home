@@ -1878,7 +1878,7 @@ class MainActivity : AppCompatActivity() {
             background = bordered(WHITE, BORDER, 16)
             contentDescription = "الإشعارات"
             setOnClickListener {
-                Toast.makeText(this@MainActivity, "لا توجد إشعارات جديدة", Toast.LENGTH_SHORT).show()
+                showNotificationCenter()
             }
         }
 
@@ -3491,10 +3491,21 @@ class MainActivity : AppCompatActivity() {
                         val newStatus = booking.status.uppercase()
                         val oldStatus = knownBookingStatuses[booking.id]
                         if (oldStatus != null && oldStatus != newStatus) {
+                            val notificationTitle = "تحديث طلب التمريض"
+                            val notificationMessage =
+                                "طلبك رقم ${booking.id.take(8)}…: ${statusText(newStatus)}"
+
+                            NotificationStore.add(
+                                this@MainActivity,
+                                notificationTitle,
+                                notificationMessage,
+                                booking.id
+                            )
+
                             NotificationHelper.show(
                                 this@MainActivity,
-                                "تحديث طلب التمريض",
-                                "طلبك رقم ${booking.id.take(8)}…: ${statusText(newStatus)}",
+                                notificationTitle,
+                                notificationMessage,
                                 (booking.id + newStatus).hashCode(),
                                 MainActivity::class.java
                             )
@@ -3533,6 +3544,104 @@ class MainActivity : AppCompatActivity() {
                     "تعذر تحديث الطلبات\n\n${e.message ?: "خطأ غير معروف"}"
             }
         }
+    }
+
+    private fun showNotificationCenter() {
+        val notifications = NotificationStore.getAll(this)
+
+        val root = baseLayout().apply {
+            setBackgroundColor(LIGHT_GRAY)
+        }
+
+        root.addView(
+            topBar("الإشعارات", ::showHome),
+            LinearLayout.LayoutParams(-1, dp(55))
+        )
+        addSpace(root, 8)
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        header.addView(
+            text("آخر التنبيهات", 20f, NAVY, true),
+            LinearLayout.LayoutParams(0, dp(46), 1f)
+        )
+
+        if (notifications.isNotEmpty()) {
+            val clear = outlineButton("مسح الكل") {
+                NotificationStore.clear(this)
+                showNotificationCenter()
+            }
+            header.addView(clear, LinearLayout.LayoutParams(dp(100), dp(42)))
+        }
+
+        root.addView(header)
+        addSpace(root, 5)
+
+        if (notifications.isEmpty()) {
+            root.addView(
+                emptyState(
+                    "🔔",
+                    "لا توجد إشعارات",
+                    "ستظهر هنا تحديثات طلبات التمريض والتنبيهات المهمة."
+                )
+            )
+        } else {
+            notifications.forEach { item ->
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutDirection = View.LAYOUT_DIRECTION_RTL
+                    background = bordered(WHITE, BORDER, 18)
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                    elevation = dp(1).toFloat()
+                }
+
+                val titleRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutDirection = View.LAYOUT_DIRECTION_RTL
+                }
+
+                titleRow.addView(
+                    text("🔔", 23f, NAVY, true),
+                    LinearLayout.LayoutParams(dp(38), dp(38))
+                )
+                titleRow.addView(
+                    text(item.title, 17f, NAVY, true),
+                    LinearLayout.LayoutParams(0, dp(42), 1f)
+                )
+                card.addView(titleRow)
+
+                card.addView(
+                    text(item.message, 14f, TEXT)
+                )
+
+                val dateText = java.text.SimpleDateFormat(
+                    "yyyy/MM/dd - HH:mm",
+                    java.util.Locale.getDefault()
+                ).format(java.util.Date(item.time))
+
+                card.addView(
+                    text(dateText, 11f, GRAY)
+                )
+
+                root.addView(
+                    card,
+                    LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = dp(8)
+                    }
+                )
+            }
+        }
+
+        setContentView(ScrollView(this).apply {
+            isFillViewport = true
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            addView(root)
+        })
     }
 
     private fun addBookingCard(
