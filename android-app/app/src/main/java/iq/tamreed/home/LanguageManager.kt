@@ -225,6 +225,18 @@ object LanguageManager {
         "تم السماح بالموقع." to "Location permission granted.",
         "صلاحية الموقع مطلوبة" to "Location permission is required",
 
+        "الممرض" to "Nurse",
+        "محادثة مرتبطة بطلب التمريض" to "Chat linked to the nursing request",
+        "تعذر فتح المحادثة: بيانات الطلب أو المستخدم غير مكتملة." to "Unable to open the chat: booking or user data is incomplete.",
+        "طلب التمريض" to "Nursing request",
+        "جاري تحميل المحادثة..." to "Loading chat...",
+        "اكتب رسالتك..." to "Type your message...",
+        "تعذر تحديث المحادثة" to "Unable to refresh the chat",
+        "تعذر تحميل المحادثة" to "Unable to load the chat",
+        "ابدأ المحادثة" to "Start the conversation",
+        "يمكنك التواصل مع الطرف الآخر بخصوص طلب التمريض." to "You can communicate with the other party about the nursing request.",
+        "تعذر إرسال الرسالة" to "Unable to send the message",
+
         "English" to "العربية"
     )
 }
