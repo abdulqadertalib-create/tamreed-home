@@ -81,13 +81,14 @@ class ChatActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        LanguageManager.applySaved(this)
         super.onCreate(savedInstanceState)
 
         bookingId = intent.getStringExtra(EXTRA_BOOKING_ID)?.trim().orEmpty()
         receiverId = intent.getStringExtra(EXTRA_RECEIVER_ID)?.trim().orEmpty()
         receiverName =
             intent.getStringExtra(EXTRA_RECEIVER_NAME)?.trim().takeUnless { it.isNullOrBlank() }
-                ?: "الممرض"
+                ?: if (LanguageManager.isEnglish(this@ChatActivity)) "Nurse" else "الممرض"
 
         val user = SupabaseManager.client.auth.currentUserOrNull()
         currentUserId = user?.id.orEmpty()
@@ -95,7 +96,10 @@ class ChatActivity : AppCompatActivity() {
         if (bookingId.isBlank() || receiverId.isBlank() || currentUserId.isBlank()) {
             Toast.makeText(
                 this,
-                "تعذر فتح المحادثة: بيانات الطلب أو المستخدم غير مكتملة.",
+                if (LanguageManager.isEnglish(this@ChatActivity))
+                    "Unable to open the chat: booking or user data is incomplete."
+                else
+                    "تعذر فتح المحادثة: بيانات الطلب أو المستخدم غير مكتملة.",
                 Toast.LENGTH_LONG
             ).show()
             finish()
@@ -197,7 +201,7 @@ class ChatActivity : AppCompatActivity() {
 
         identity.addView(
             TextView(this).apply {
-                text = "محادثة مرتبطة بطلب التمريض"
+                text = LanguageManager.tr(this@ChatActivity, "محادثة مرتبطة بطلب التمريض")
                 textSize = 11f
                 setTextColor(GREEN)
                 gravity = Gravity.RIGHT
@@ -228,7 +232,7 @@ class ChatActivity : AppCompatActivity() {
 
         // معلومات الطلب
         val bookingInfo = TextView(this).apply {
-            text = "طلب التمريض: ${bookingId.take(8)}…"
+            text = (if (LanguageManager.isEnglish(this@ChatActivity)) "Nursing request: " else "طلب التمريض: ") + "${bookingId.take(8)}…"
             textSize = 11f
             setTextColor(GRAY)
             gravity = Gravity.CENTER
@@ -265,7 +269,7 @@ class ChatActivity : AppCompatActivity() {
         )
 
         loadingText = TextView(this).apply {
-            text = "جاري تحميل المحادثة..."
+            text = LanguageManager.tr(this@ChatActivity, "جاري تحميل المحادثة...")
             textSize = 13f
             setTextColor(GRAY)
             gravity = Gravity.CENTER
@@ -285,7 +289,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         input = EditText(this).apply {
-            hint = "اكتب رسالتك..."
+            hint = LanguageManager.tr(this@ChatActivity, "اكتب رسالتك...")
             textSize = 16f
             setTextColor(TEXT)
             setHintTextColor(GRAY)
@@ -305,7 +309,7 @@ class ChatActivity : AppCompatActivity() {
         )
 
         sendButton = Button(this).apply {
-            text = "إرسال"
+            text = LanguageManager.tr(this@ChatActivity, "إرسال")
             textSize = 15f
             isAllCaps = false
             setTextColor(WHITE)
@@ -382,8 +386,8 @@ class ChatActivity : AppCompatActivity() {
                 loadingText.visibility = View.GONE
             } catch (e: Exception) {
                 loadingText.text =
-                    if (silent) "تعذر تحديث المحادثة" else
-                        "تعذر تحميل المحادثة\n${e.message ?: ""}"
+                    if (silent) LanguageManager.tr(this@ChatActivity, "تعذر تحديث المحادثة") else
+                        if (LanguageManager.isEnglish(this@ChatActivity)) "Unable to load the chat" else "تعذر تحميل المحادثة" + "\n${e.message ?: ""}"
                 loadingText.visibility = View.VISIBLE
             }
         }
@@ -411,7 +415,7 @@ class ChatActivity : AppCompatActivity() {
 
             empty.addView(
                 TextView(this).apply {
-                    text = "ابدأ المحادثة"
+                    text = LanguageManager.tr(this@ChatActivity, "ابدأ المحادثة")
                     textSize = 19f
                     setTextColor(NAVY)
                     setTypeface(null, Typeface.BOLD)
@@ -422,7 +426,7 @@ class ChatActivity : AppCompatActivity() {
 
             empty.addView(
                 TextView(this).apply {
-                    text = "يمكنك التواصل مع الطرف الآخر بخصوص طلب التمريض."
+                    text = LanguageManager.tr(this@ChatActivity, "يمكنك التواصل مع الطرف الآخر بخصوص طلب التمريض.")
                     textSize = 13f
                     setTextColor(GRAY)
                     gravity = Gravity.CENTER
@@ -555,7 +559,7 @@ class ChatActivity : AppCompatActivity() {
             } finally {
                 sending = false
                 sendButton.isEnabled = true
-                sendButton.text = "إرسال"
+                sendButton.text = LanguageManager.tr(this@ChatActivity, "إرسال")
             }
         }
     }
