@@ -9,9 +9,6 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.from
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,15 +17,11 @@ import kotlinx.coroutines.launch
 
 import kotlinx.serialization.Serializable
 
-
 @Serializable
 data class MyBooking(
     val id: String,
     val patient_id: String,
-
-    // اسم المريض
     val patient_name: String? = null,
-
     val nurse_id: String? = null,
     val service_id: String,
     val address: String,
@@ -41,7 +34,6 @@ data class MyBooking(
     val notes: String? = null,
     val created_at: String? = null
 )
-
 
 class MyBookingsActivity : AppCompatActivity() {
 
@@ -64,19 +56,17 @@ class MyBookingsActivity : AppCompatActivity() {
             SupervisorJob() + Dispatchers.Main
         )
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
+        LanguageManager.applySaved(this)
         super.onCreate(savedInstanceState)
 
         loadBookings()
     }
 
-
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
     }
-
 
     private fun dp(value: Int): Int {
         return (
@@ -84,25 +74,21 @@ class MyBookingsActivity : AppCompatActivity() {
         ).toInt()
     }
 
-
     private fun rounded(
         color: Int,
         radius: Int = 18
     ): GradientDrawable {
-
         return GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(radius).toFloat()
         }
     }
 
-
     private fun bordered(
         color: Int = WHITE,
         strokeColor: Int = BORDER,
         radius: Int = 18
     ): GradientDrawable {
-
         return GradientDrawable().apply {
             setColor(color)
             setStroke(dp(1), strokeColor)
@@ -110,30 +96,24 @@ class MyBookingsActivity : AppCompatActivity() {
         }
     }
 
-
     private fun makeText(
         value: String,
         size: Float = 16f,
         color: Int = TEXT,
         bold: Boolean = false
     ): TextView {
-
         return TextView(this).apply {
-
-            text = value
+            text = LanguageManager.tr(
+                this@MyBookingsActivity,
+                value
+            )
             textSize = size
             setTextColor(color)
-
             gravity = Gravity.CENTER
-
-            layoutDirection =
-                View.LAYOUT_DIRECTION_RTL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
 
             if (bold) {
-                setTypeface(
-                    null,
-                    Typeface.BOLD
-                )
+                setTypeface(null, Typeface.BOLD)
             }
 
             setPadding(
@@ -145,29 +125,21 @@ class MyBookingsActivity : AppCompatActivity() {
         }
     }
 
-
     private fun button(
         title: String,
         color: Int,
         action: () -> Unit
     ): Button {
-
         return Button(this).apply {
-
-            text = title
+            text = LanguageManager.tr(
+                this@MyBookingsActivity,
+                title
+            )
             textSize = 16f
-
             isAllCaps = false
-
             setTextColor(WHITE)
-
             gravity = Gravity.CENTER
-
-            background =
-                rounded(
-                    color,
-                    15
-                )
+            background = rounded(color, 15)
 
             setOnClickListener {
                 action()
@@ -175,35 +147,30 @@ class MyBookingsActivity : AppCompatActivity() {
         }
     }
 
-
     private fun loadBookings() {
-
         val user =
             SupabaseManager.client
                 .auth
                 .currentUserOrNull()
 
         if (user == null) {
-
             Toast.makeText(
                 this,
-                "يجب تسجيل الدخول أولاً",
+                LanguageManager.tr(
+                    this,
+                    "يجب تسجيل الدخول أولاً"
+                ),
                 Toast.LENGTH_LONG
             ).show()
 
             finish()
-
             return
         }
 
-
         showLoading()
 
-
         scope.launch {
-
             try {
-
                 val bookings =
                     SupabaseManager.client
                         .from("bookings")
@@ -217,44 +184,31 @@ class MyBookingsActivity : AppCompatActivity() {
                         }
                         .decodeList<MyBooking>()
 
-
                 showBookings(bookings)
 
             } catch (e: Exception) {
-
                 Toast.makeText(
                     this@MyBookingsActivity,
-                    "تعذر تحميل الطلبات",
+                    LanguageManager.tr(
+                        this@MyBookingsActivity,
+                        "تعذر تحميل الطلبات"
+                    ),
                     Toast.LENGTH_LONG
                 ).show()
 
-                showBookings(
-                    emptyList()
-                )
+                showBookings(emptyList())
             }
         }
     }
 
-
     private fun showLoading() {
-
         val root =
             LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                gravity =
-                    Gravity.CENTER
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setBackgroundColor(
-                    LIGHT_GRAY
-                )
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                setBackgroundColor(LIGHT_GRAY)
             }
-
 
         root.addView(
             makeText(
@@ -265,27 +219,17 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         setContentView(root)
     }
-
 
     private fun showBookings(
         bookings: List<MyBooking>
     ) {
-
         val root =
             LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                setBackgroundColor(
-                    LIGHT_GRAY
-                )
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                setBackgroundColor(LIGHT_GRAY)
 
                 setPadding(
                     dp(12),
@@ -295,42 +239,21 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
             }
 
-
         val scroll =
             ScrollView(this).apply {
-
                 isFillViewport = true
-
                 addView(root)
             }
 
-
         setContentView(scroll)
-
-
-        /*
-         * =========================
-         * الشريط العلوي
-         * =========================
-         */
 
         val header =
             LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
 
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(
-                        WHITE,
-                        18
-                    )
+                background = rounded(WHITE, 18)
 
                 setPadding(
                     dp(7),
@@ -340,30 +263,26 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
             }
 
-
         val back =
             Button(this).apply {
-
-                text = "رجوع"
-
+                text = LanguageManager.tr(
+                    this@MyBookingsActivity,
+                    "رجوع"
+                )
                 textSize = 15f
-
                 isAllCaps = false
-
                 setTextColor(NAVY)
 
-                background =
-                    bordered(
-                        WHITE,
-                        NAVY,
-                        14
-                    )
+                background = bordered(
+                    WHITE,
+                    NAVY,
+                    14
+                )
 
                 setOnClickListener {
                     finish()
                 }
             }
-
 
         header.addView(
             back,
@@ -372,7 +291,6 @@ class MyBookingsActivity : AppCompatActivity() {
                 dp(46)
             )
         )
-
 
         header.addView(
             makeText(
@@ -388,7 +306,6 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         header.addView(
             makeText(
                 "📋",
@@ -401,7 +318,6 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         root.addView(
             header,
             LinearLayout.LayoutParams(
@@ -412,30 +328,16 @@ class MyBookingsActivity : AppCompatActivity() {
             }
         )
 
-
-        /*
-         * =========================
-         * ملخص
-         * =========================
-         */
-
         val summary =
             LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
 
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    rounded(
-                        LIGHT_BLUE,
-                        18
-                    )
+                background = rounded(
+                    LIGHT_BLUE,
+                    18
+                )
 
                 setPadding(
                     dp(10),
@@ -444,7 +346,6 @@ class MyBookingsActivity : AppCompatActivity() {
                     dp(6)
                 )
             }
-
 
         summary.addView(
             makeText(
@@ -460,7 +361,6 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         summary.addView(
             makeText(
                 bookings.size.toString(),
@@ -474,7 +374,6 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         root.addView(
             summary,
             LinearLayout.LayoutParams(
@@ -485,29 +384,15 @@ class MyBookingsActivity : AppCompatActivity() {
             }
         )
 
-
-        /*
-         * =========================
-         * لا توجد طلبات
-         * =========================
-         */
-
         if (bookings.isEmpty()) {
-
             val empty =
                 LinearLayout(this).apply {
-
-                    orientation =
-                        LinearLayout.VERTICAL
-
-                    gravity =
-                        Gravity.CENTER
-
-                    background =
-                        rounded(
-                            WHITE,
-                            22
-                        )
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    background = rounded(
+                        WHITE,
+                        22
+                    )
 
                     setPadding(
                         dp(16),
@@ -517,7 +402,6 @@ class MyBookingsActivity : AppCompatActivity() {
                     )
                 }
 
-
             empty.addView(
                 makeText(
                     "📋",
@@ -525,7 +409,6 @@ class MyBookingsActivity : AppCompatActivity() {
                     NAVY
                 )
             )
-
 
             empty.addView(
                 makeText(
@@ -536,7 +419,6 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
             )
 
-
             empty.addView(
                 makeText(
                     "عند إرسال طلب تمريض سيظهر هنا",
@@ -544,7 +426,6 @@ class MyBookingsActivity : AppCompatActivity() {
                     GRAY
                 )
             )
-
 
             root.addView(
                 empty,
@@ -554,55 +435,35 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
             )
 
-
             return
         }
 
-
-        /*
-         * =========================
-         * الطلبات
-         * =========================
-         */
-
         for (booking in bookings) {
-
             root.addView(
-                createBookingCard(
-                    booking
-                ),
+                createBookingCard(booking),
                 LinearLayout.LayoutParams(
                     -1,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-
-                    bottomMargin =
-                        dp(15)
+                    bottomMargin = dp(15)
                 }
             )
         }
     }
 
-
     private fun createBookingCard(
         booking: MyBooking
     ): LinearLayout {
-
         val card =
             LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
 
-                orientation =
-                    LinearLayout.VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
-
-                background =
-                    bordered(
-                        WHITE,
-                        BORDER,
-                        20
-                    )
+                background = bordered(
+                    WHITE,
+                    BORDER,
+                    20
+                )
 
                 setPadding(
                     dp(12),
@@ -612,24 +473,12 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
             }
 
-
-        /*
-         * رأس البطاقة
-         */
-
         val cardHeader =
             LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
             }
-
 
         cardHeader.addView(
             makeText(
@@ -645,26 +494,18 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         val statusView =
             makeText(
-                statusArabic(
-                    booking.status
-                ),
+                statusArabic(booking.status),
                 13f,
                 WHITE,
                 true
             )
 
-
-        statusView.background =
-            rounded(
-                statusColor(
-                    booking.status
-                ),
-                14
-            )
-
+        statusView.background = rounded(
+            statusColor(booking.status),
+            14
+        )
 
         cardHeader.addView(
             statusView,
@@ -674,7 +515,6 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         card.addView(
             cardHeader,
             LinearLayout.LayoutParams(
@@ -683,23 +523,11 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
-        /*
-         * رقم الطلب
-         */
-
         addRow(
             card,
             "رقم الطلب",
             booking.id
         )
-
-
-        /*
-         * اسم المريض
-         *
-         * تمت إضافته الآن.
-         */
 
         addRow(
             card,
@@ -708,21 +536,11 @@ class MyBookingsActivity : AppCompatActivity() {
                 ?: "غير مسجل"
         )
 
-
-        /*
-         * الخدمة
-         */
-
         addRow(
             card,
             "الخدمة",
             booking.service_id
         )
-
-
-        /*
-         * المدينة
-         */
 
         addRow(
             card,
@@ -731,27 +549,13 @@ class MyBookingsActivity : AppCompatActivity() {
                 ?: "الأنبار"
         )
 
-
-        /*
-         * العنوان
-         */
-
         addRow(
             card,
             "العنوان",
             booking.address
         )
 
-
-        /*
-         * أقرب نقطة
-         */
-
-        if (
-            !booking.landmark
-                .isNullOrBlank()
-        ) {
-
+        if (!booking.landmark.isNullOrBlank()) {
             addRow(
                 card,
                 "أقرب نقطة",
@@ -759,16 +563,7 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         }
 
-
-        /*
-         * رقم الهاتف
-         */
-
-        if (
-            !booking.patient_phone
-                .isNullOrBlank()
-        ) {
-
+        if (!booking.patient_phone.isNullOrBlank()) {
             addRow(
                 card,
                 "الهاتف",
@@ -776,37 +571,20 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         }
 
-
-        /*
-         * الممرض
-         */
-
         addRow(
             card,
             "الممرض",
-            if (
-                booking.nurse_id
-                    .isNullOrBlank()
-            ) {
-
+            if (booking.nurse_id.isNullOrBlank()) {
                 "لم يتم تعيين ممرض بعد"
-
             } else {
-
                 "تم تعيين ممرض"
             }
         )
-
-
-        /*
-         * الموقع
-         */
 
         if (
             booking.latitude != null &&
             booking.longitude != null
         ) {
-
             addRow(
                 card,
                 "الموقع",
@@ -814,16 +592,7 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         }
 
-
-        /*
-         * الملاحظات
-         */
-
-        if (
-            !booking.notes
-                .isNullOrBlank()
-        ) {
-
+        if (!booking.notes.isNullOrBlank()) {
             addRow(
                 card,
                 "ملاحظات",
@@ -831,41 +600,19 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         }
 
-
-        /*
-         * تاريخ الطلب
-         */
-
-        if (
-            !booking.created_at
-                .isNullOrBlank()
-        ) {
-
+        if (!booking.created_at.isNullOrBlank()) {
             addRow(
                 card,
                 "تاريخ الطلب",
-                formatDate(
-                    booking.created_at!!
-                )
+                formatDate(booking.created_at!!)
             )
         }
 
-
-        /*
-         * أزرار البطاقة
-         */
-
         val actions =
             LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
 
                 setPadding(
                     0,
@@ -875,22 +622,15 @@ class MyBookingsActivity : AppCompatActivity() {
                 )
             }
 
-
-        /*
-         * زر الموقع
-         */
-
         if (
             booking.latitude != null &&
             booking.longitude != null
         ) {
-
             actions.addView(
                 button(
                     "📍 الموقع",
                     BLUE
                 ) {
-
                     openLocation(
                         booking.latitude!!,
                         booking.longitude!!
@@ -901,29 +641,17 @@ class MyBookingsActivity : AppCompatActivity() {
                     dp(48),
                     1f
                 ).apply {
-
-                    marginEnd =
-                        dp(5)
+                    marginEnd = dp(5)
                 }
             )
         }
 
-
-        /*
-         * زر الاتصال
-         */
-
-        if (
-            !booking.patient_phone
-                .isNullOrBlank()
-        ) {
-
+        if (!booking.patient_phone.isNullOrBlank()) {
             actions.addView(
                 button(
                     "📞 اتصال",
                     GREEN
                 ) {
-
                     callPhone(
                         booking.patient_phone!!
                     )
@@ -933,16 +661,12 @@ class MyBookingsActivity : AppCompatActivity() {
                     dp(48),
                     1f
                 ).apply {
-
-                    marginStart =
-                        dp(5)
+                    marginStart = dp(5)
                 }
             )
         }
 
-
         if (actions.childCount > 0) {
-
             card.addView(
                 actions,
                 LinearLayout.LayoutParams(
@@ -952,30 +676,20 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         }
 
-
         return card
     }
-
 
     private fun addRow(
         parent: LinearLayout,
         title: String,
         value: String
     ) {
-
         val row =
             LinearLayout(this).apply {
-
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                gravity =
-                    Gravity.CENTER_VERTICAL
-
-                layoutDirection =
-                    View.LAYOUT_DIRECTION_RTL
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
             }
-
 
         row.addView(
             makeText(
@@ -990,7 +704,6 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         row.addView(
             makeText(
                 value,
@@ -1004,103 +717,61 @@ class MyBookingsActivity : AppCompatActivity() {
             )
         )
 
-
         parent.addView(row)
     }
-
 
     private fun statusArabic(
         status: String?
     ): String {
-
-        return when (
-            status?.lowercase()
-        ) {
-
-            "pending" ->
-                "بانتظار الممرض"
-
-            "accepted" ->
-                "تم القبول"
-
-            "assigned" ->
-                "تم تعيين ممرض"
-
-            "on_the_way" ->
-                "الممرض في الطريق"
-
-            "in_progress" ->
-                "جاري تنفيذ الزيارة"
-
-            "completed" ->
-                "مكتمل"
-
-            "rejected" ->
-                "مرفوض"
-
-            "cancelled" ->
-                "ملغي"
-
-            else ->
-                status ?: "غير معروف"
+        return when (status?.lowercase()) {
+            "pending" -> "بانتظار الممرض"
+            "accepted" -> "تم القبول"
+            "assigned" -> "تم تعيين ممرض"
+            "on_the_way" -> "الممرض في الطريق"
+            "in_progress" -> "جاري تنفيذ الزيارة"
+            "completed" -> "مكتمل"
+            "rejected" -> "مرفوض"
+            "cancelled" -> "ملغي"
+            else -> status ?: "غير معروف"
         }
     }
-
 
     private fun statusColor(
         status: String?
     ): Int {
-
-        return when (
-            status?.lowercase()
-        ) {
-
+        return when (status?.lowercase()) {
             "accepted",
             "assigned",
-            "completed" ->
-                GREEN
+            "completed" -> GREEN
 
             "on_the_way",
-            "in_progress" ->
-                BLUE
+            "in_progress" -> BLUE
 
             "rejected",
-            "cancelled" ->
-                RED
+            "cancelled" -> RED
 
-            else ->
-                ORANGE
+            else -> ORANGE
         }
     }
-
 
     private fun formatDate(
         value: String
     ): String {
-
         return try {
-
             value
                 .replace("T", " ")
                 .replace("Z", "")
                 .take(19)
-
-        } catch (
-            e: Exception
-        ) {
-
+        } catch (e: Exception) {
             value
         }
     }
-
 
     private fun openLocation(
         latitude: Double,
         longitude: Double
     ) {
-
         try {
-
             val uri =
                 android.net.Uri.parse(
                     "geo:$latitude,$longitude?q=$latitude,$longitude"
@@ -1114,25 +785,22 @@ class MyBookingsActivity : AppCompatActivity() {
 
             startActivity(intent)
 
-        } catch (
-            e: Exception
-        ) {
-
+        } catch (e: Exception) {
             Toast.makeText(
                 this,
-                "تعذر فتح الموقع",
+                LanguageManager.tr(
+                    this,
+                    "تعذر فتح الموقع"
+                ),
                 Toast.LENGTH_SHORT
             ).show()
         }
     }
 
-
     private fun callPhone(
         phone: String
     ) {
-
         try {
-
             val uri =
                 android.net.Uri.parse(
                     "tel:$phone"
@@ -1146,13 +814,13 @@ class MyBookingsActivity : AppCompatActivity() {
 
             startActivity(intent)
 
-        } catch (
-            e: Exception
-        ) {
-
+        } catch (e: Exception) {
             Toast.makeText(
                 this,
-                "تعذر فتح الاتصال",
+                LanguageManager.tr(
+                    this,
+                    "تعذر فتح الاتصال"
+                ),
                 Toast.LENGTH_SHORT
             ).show()
         }
